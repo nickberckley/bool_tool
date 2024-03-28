@@ -11,7 +11,7 @@ bl_info = {
 }
 
 import bpy
-from . import(
+from . import (
     bool_tool,
     utilities,
 )
