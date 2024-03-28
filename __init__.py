@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 bl_info = {
-   "name": "Bool Tool",
+   "name": "Bool Tool (2.0)",
    "author": "Vitor Balbio, Mikhail Rachinskiy, TynkaTopi, Meta-Androcto, Simon Appelt, Nika Kutsnishvili (v2.0)",
    "version": (2, 0, 0),
    "blender": (4, 0, 0),
