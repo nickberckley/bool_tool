@@ -18,6 +18,7 @@ def isBrush(_obj):
         return False
 
 
+# Set Object Visibility
 def object_visibility_set(ob, value=False):
     ob.visible_camera = value
     ob.visible_diffuse = value
@@ -27,7 +28,8 @@ def object_visibility_set(ob, value=False):
     ob.visible_volume_scatter = value
 
 
-def find_canvas(self, context, brushes):
+# Find Canvas
+def find_canvas(context, brushes):
     canvas = []
     for obj in bpy.context.view_layer.objects:
         if obj not in brushes:
@@ -39,6 +41,22 @@ def find_canvas(self, context, brushes):
                         return {"CANCELLED"}
     return canvas
 
+
+# Find Modifiers that Use Active Cutter
+def find_cutter_modifiers(context, cutters):
+    canvas = find_canvas(context, cutters)
+
+    modifiers = []
+    for obj in canvas:
+        for modifier in obj.modifiers:
+            if modifier.type == "BOOLEAN":
+                if modifier.object in cutters:
+                    modifiers.append(modifier)
+
+    return canvas, modifiers
+
+
+# Find Slices
 def find_slices(self, context, brushes):
     slices = []
     for obj in bpy.context.view_layer.objects:
@@ -50,6 +68,7 @@ def find_slices(self, context, brushes):
     return slices
     
 
+# Convert to Mesh
 def convert_to_mesh(brush, canvas):
     # Store Selection
     selected_objects = bpy.context.selected_objects

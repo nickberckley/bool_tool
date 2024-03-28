@@ -289,7 +289,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
                 brushes.append(obj)
         
         # Find Canvas
-        canvas = find_canvas(self, context, brushes)
+        canvas = find_canvas(context, brushes)
 
         set = "None"
         for obj in canvas:
@@ -339,7 +339,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                 brushes.append(obj)
         
         # Find Canvas
-        canvas = find_canvas(self, context, brushes)
+        canvas = find_canvas(context, brushes)
 
         for obj in canvas:
             slice_obj = False
@@ -380,7 +380,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                 brushes.append(obj)
         
         # Find Canvas
-        canvas = find_canvas(self, context, brushes)
+        canvas = find_canvas(context, brushes)
                 
         for obj in canvas:
             for mod in obj.modifiers:
@@ -468,7 +468,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
                 bpy.data.objects.remove(obj)
                 
         # Free Brushes that No Longe Have Canvases
-        other_canvas = find_canvas(self, context, brushes)
+        other_canvas = find_canvas(context, brushes)
         for obj in other_canvas:
             if obj in canvas:
                 other_canvas.remove(obj)
@@ -522,7 +522,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
                 del obj["Boolean Slice"]
         
         # Delete Brushes that No Longer Have Canvases
-        other_canvas = find_canvas(self, context, brushes)
+        other_canvas = find_canvas(context, brushes)
         for obj in other_canvas:
             if obj not in canvas:
                 if obj not in slices:
