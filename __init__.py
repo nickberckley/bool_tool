@@ -13,6 +13,7 @@ bl_info = {
 import bpy
 from . import (
     bool_tool,
+    ui,
     utilities,
 )
 
@@ -21,8 +22,10 @@ from . import (
 
 def register():
     bool_tool.register()
+    ui.register()
     utilities.register()
 
 def unregister():
     bool_tool.unregister()
+    ui.register()
     utilities.unregister()
