@@ -3,21 +3,6 @@ import bpy
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def isCanvas(_obj):
-    try:
-        if _obj["Boolean Canvas"]:
-            return True
-    except:
-        return False
-
-def isBrush(_obj):
-    try:
-        if _obj["Boolean Brush"]:
-            return True
-    except:
-        return False
-
-
 # Set Object Visibility
 def object_visibility_set(ob, value=False):
     ob.visible_camera = value

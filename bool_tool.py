@@ -1,7 +1,5 @@
 import bpy, itertools
 from .functions import (
-    isCanvas,
-    isBrush,
     convert_to_mesh,
     object_visibility_set,
     find_canvas,
@@ -104,7 +102,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "UNION"
 
@@ -116,7 +114,7 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "INTERSECT"
 
@@ -128,7 +126,7 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "DIFFERENCE"
 
@@ -140,7 +138,7 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "SLICE"
 
@@ -186,7 +184,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "UNION"
 
@@ -198,7 +196,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "DIFFERENCE"
 
@@ -210,7 +208,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "INTERSECT"
 
@@ -222,7 +220,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
+        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     def boolean_mod(self, obj, ob, mode, ob_delete=True):
         mod = obj.modifiers.new("Auto Boolean", "BOOLEAN")
@@ -287,7 +285,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
         brushes = list_selected_cutters(context)
@@ -331,7 +329,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
         brushes = list_selected_cutters(context)
@@ -366,7 +364,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
         brushes = list_selected_cutters(context)
@@ -402,7 +400,7 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isCanvas(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
@@ -429,7 +427,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isCanvas(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
@@ -484,7 +482,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isCanvas(context.active_object)
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
