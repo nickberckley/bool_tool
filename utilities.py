@@ -76,7 +76,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
                     if not any(modifier.object == cutter for modifier in canvas.modifiers):
                         for modifier in canvas.modifiers:
                             if modifier.type == "BOOLEAN" and modifier.object in original_cutters:
-                                duplicated_modifier = canvas.modifiers.new("Bool Tool " + cutter.name, "BOOLEAN")
+                                duplicated_modifier = canvas.modifiers.new("boolean_" + cutter.name, "BOOLEAN")
                                 duplicated_modifier.object = cutter
                                 duplicated_modifier.operation = modifier.operation
 

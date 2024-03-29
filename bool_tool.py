@@ -40,7 +40,7 @@ class BrushBoolean():
                 
                 # remove_other_modifiers
                 for mod in clone.modifiers:
-                    if "Bool Tool " in mod.name:
+                    if "boolean_" in mod.name:
                         clone.modifiers.remove(mod)
 
             for brush, clone in zip(brushes, clones):
@@ -50,7 +50,7 @@ class BrushBoolean():
                     clone.local_view_set(space_data, True)
 
                 # modifiers_on_slices
-                slice_modifier = clone.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
+                slice_modifier = clone.modifiers.new("boolean_" + brush.name, "BOOLEAN")
                 slice_modifier.object = brush
                 slice_modifier.operation = "INTERSECT"
 
@@ -76,7 +76,7 @@ class BrushBoolean():
             cutters_collection.objects.link(brush)
 
             # add_modifier
-            modifier = canvas.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
+            modifier = canvas.modifiers.new("boolean_" + brush.name, "BOOLEAN")
             modifier.object = brush
             if self.mode == "SLICE":
                 modifier.operation = "DIFFERENCE"
@@ -302,7 +302,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
                         obj.hide_render = False
                 
             for mod in obj.modifiers:
-                if "Bool Tool " in mod.name:
+                if "boolean_" in mod.name:
                     if mod.object in brushes:
                         if set == "None":
                             if mod.show_viewport:
@@ -337,7 +337,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         for obj in canvas:
             slice_obj = False
             for mod in obj.modifiers:
-                if "Bool Tool " in mod.name:
+                if "boolean_" in mod.name:
                     if mod.object in brushes:
                         slice_obj = True
                         obj.modifiers.remove(mod)
@@ -372,7 +372,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                 
         for obj in canvas:
             for mod in obj.modifiers:
-                if "Bool Tool " in mod.name:
+                if "boolean_" in mod.name:
                     if mod.object in brushes:
                         context.view_layer.objects.active = obj
                         try:
@@ -409,7 +409,7 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 
         brushes = set()
         for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "Bool Tool " in i.name)
+            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
         brushes = list(brushes)
 
         for brush in brushes:
@@ -437,7 +437,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
         brushes = set()
         for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "Bool Tool " in i.name)
+            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
         brushes = list(brushes)
 
         # Remove Slices
@@ -450,7 +450,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
         # Remove Modifiers
         for obj in canvas:
             for mod in obj.modifiers:
-                if "Bool Tool " in mod.name:
+                if "boolean_" in mod.name:
                     if mod.object in brushes:
                         obj.modifiers.remove(mod)
             del obj["Boolean Canvas"]
@@ -493,7 +493,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 
         brushes = set()
         for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "Bool Tool " in i.name)
+            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
         brushes = list(brushes)
         
         slices = find_slices(self, context, brushes)
@@ -501,7 +501,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
         # Apply Modifiers
         for obj in itertools.chain(canvas, slices):
             for mod in obj.modifiers:
-                if "Bool Tool " in mod.name:
+                if "boolean_" in mod.name:
                     bpy.context.view_layer.objects.active = obj
                     try:
                         bpy.ops.object.modifier_apply(modifier=mod.name)

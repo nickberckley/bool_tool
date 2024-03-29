@@ -69,7 +69,7 @@ def find_slices(self, context, brushes):
         if obj.get("Boolean Slice"):
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
-                    if any('Bool Tool ' in modifier.name for modifier in obj.modifiers):
+                    if any('boolean_' in modifier.name for modifier in obj.modifiers):
                         slices.append(obj)
     return slices
     

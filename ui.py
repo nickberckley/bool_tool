@@ -23,7 +23,7 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
         layout.operator('object.bool_tool_brush_slice', text="Slice", icon="SELECT_DIFFERENCE")
 
         active_object = context.active_object
-        if "Boolean Canvas" in active_object and any(modifier.name.startswith('Bool Tool ') for modifier in active_object.modifiers):
+        if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
             layout.separator()
             layout.operator('object.toggle_boolean_all', text="Toggle All")
             layout.operator('object.apply_boolean_all', text="Apply All")
