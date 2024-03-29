@@ -1,5 +1,9 @@
 import bpy
-
+from bpy.app.handlers import persistent
+from .functions import (
+    find_cutter_modifiers,
+    list_selected_cutters,
+)
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
@@ -39,7 +43,40 @@ class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
     def invoke(self, context, event):
         self.extend = event.shift
         return self.execute(context)
-    
+
+
+@persistent
+def duplicate_boolean_modifier(scene, depsgraph):
+    if bpy.context.active_object and bpy.context.active_object.type == "MESH":
+        obj = bpy.context.active_object
+        cutters = list_selected_cutters(bpy.context)
+
+        # find_duplicated_cutter
+        original_cutters = []
+        for cutter in cutters:
+            if 'Boolean Brush' in cutter:
+                if ".0" in cutter.name:
+                    if ".001" in cutter.name:
+                        original_name = cutter.name.split('.')[0]
+                    else:
+                        name, number = cutter.name.rsplit('.', 1)
+                        previous_number = str(int(number) - 1).zfill(len(number))
+                        original_name = name + '.' + previous_number
+
+                    for obj in bpy.data.objects:
+                        if obj.name == original_name:
+                            if 'Boolean Brush' in obj:
+                                original_cutters.append(obj)
+
+        if original_cutters:
+            # duplicate_modifiers
+            canvases, modifiers = find_cutter_modifiers(bpy.context, original_cutters)
+            for canvas in canvases:
+                for cutter in cutters:
+                    if not any(modifier.object == cutter for modifier in canvas.modifiers):
+                        duplicated_modifier = canvas.modifiers.new("Bool Tool " + cutter.name, "BOOLEAN")
+                        duplicated_modifier.object = cutter
+
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
@@ -54,6 +91,8 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    bpy.app.handlers.depsgraph_update_pre.append(duplicate_boolean_modifier)
+
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name='Property Editor', space_type='PROPERTIES')
@@ -65,6 +104,8 @@ def register():
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    bpy.app.handlers.depsgraph_update_pre.remove(duplicate_boolean_modifier)
 
     # KEYMAP
     for km in addon_keymaps:
