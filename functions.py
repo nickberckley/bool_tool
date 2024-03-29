@@ -1,17 +1,7 @@
 import bpy
 
 
-#### ------------------------------ FUNCTIONS ------------------------------ ####
-
-# Set Object Visibility
-def object_visibility_set(ob, value=False):
-    ob.visible_camera = value
-    ob.visible_diffuse = value
-    ob.visible_glossy = value
-    ob.visible_shadow = value
-    ob.visible_transmission = value
-    ob.visible_volume_scatter = value
-
+#### ------------------------------ /list_objects/ ------------------------------ ####
 
 # List Candidate Objects
 def list_candidate_objects(context):
@@ -31,7 +21,7 @@ def list_candidate_objects(context):
 # Find Canvas
 def find_canvas(context):
     canvas = []
-    for obj in bpy.context.view_layer.objects:
+    for obj in context.view_layer.objects:
         if "Boolean Brush" not in obj and "Boolean Canvas" in obj:
             if len(obj.modifiers) >= 1:
                 if any('BOOLEAN' in modifier.type for modifier in obj.modifiers):
@@ -75,7 +65,7 @@ def find_cutter_modifiers(context, cutters):
 # Find Slices
 def find_slices(self, context, brushes):
     slices = []
-    for obj in bpy.context.view_layer.objects:
+    for obj in context.view_layer.objects:
         if obj.get("Boolean Slice"):
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
@@ -83,6 +73,19 @@ def find_slices(self, context, brushes):
                         slices.append(obj)
     return slices
     
+
+
+#### ------------------------------ /set_properties/ ------------------------------ ####
+
+# Set Object Visibility
+def object_visibility_set(ob, value=False):
+    ob.visible_camera = value
+    ob.visible_diffuse = value
+    ob.visible_glossy = value
+    ob.visible_shadow = value
+    ob.visible_transmission = value
+    ob.visible_volume_scatter = value
+
 
 # Convert to Mesh
 def convert_to_mesh(context, brush):

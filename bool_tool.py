@@ -7,16 +7,16 @@ from .functions import (
     list_candidate_objects,
 )
 
-#### ------------------------------ OPERATORS ------------------------------ ####
 
-# Brush Boolean operators
+#### ------------------------------ /brush_boolean/ ------------------------------ ####
+
 class BrushBoolean():
     def execute(self, context):
         canvas = bpy.context.active_object
         brushes = list_candidate_objects(context)
 
         if self.mode == "SLICE":
-            # Create Slicer Clones
+            # create_slicer_clones
             clones = []
             for i in range(len(brushes)):
                 clone = canvas.copy()
@@ -28,7 +28,7 @@ class BrushBoolean():
                 context.collection.objects.link(clone)
                 clones.append(clone)
                 
-                # Add to Correct Collection
+                # add_to_current_collection
                 canvas_coll = canvas.users_collection[0]
                 if canvas_coll != context.view_layer.active_layer_collection.collection:
                     canvas_coll.objects.link(clone)
@@ -36,7 +36,7 @@ class BrushBoolean():
                     if coll != canvas_coll:
                         coll.objects.unlink(clone)
                 
-                # Remove Other Modifiers
+                # remove_other_modifiers
                 for mod in clone.modifiers:
                     if "Bool Tool " in mod.name:
                         clone.modifiers.remove(mod)
@@ -51,16 +51,17 @@ class BrushBoolean():
                 sliceMod = clone.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
                 sliceMod.object = brush
                 sliceMod.operation = "INTERSECT"
-        
+
+
         for brush in brushes:
-            # Hide Object
+            # hide_brush
             brush.hide_render = True
             brush.display_type = "BOUNDS"
             object_visibility_set(brush, value=False)
             brush.parent = canvas
             brush.matrix_parent_inverse = canvas.matrix_world.inverted()
 
-            # Add Modifiers
+            # add_modifier
             newMod = canvas.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
             newMod.object = brush
             if self.mode == "SLICE":
@@ -68,7 +69,7 @@ class BrushBoolean():
             else:
                 newMod.operation = self.mode
             
-            # Custom Properties
+            # custom_properties
             canvas["Boolean Canvas"] = True
             brush["Boolean Brush"] = self.mode.capitalize()
             
@@ -96,6 +97,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 
     mode = "UNION"
 
+
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_intersect"
     bl_label = "Boolean Brush Intersection"
@@ -108,6 +110,7 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 
     mode = "INTERSECT"
 
+
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_difference"
     bl_label = "Boolean Brush Difference"
@@ -119,6 +122,7 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
         return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "DIFFERENCE"
+
 
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_slice"
@@ -134,19 +138,23 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 
 
 
-# Auto Boolean operators
+#### ------------------------------ /auto_boolean/ ------------------------------ ####
+
 class AutoBoolean:
     def execute(self, context):
         canvas = bpy.context.active_object
         brushes = list_candidate_objects(context)
         
         for brush in brushes:
-            mod = canvas.modifiers.new("Auto Boolean", "BOOLEAN") # add modifier
+            # add_modifier
+            mod = canvas.modifiers.new("Auto Boolean", "BOOLEAN")
             mod.show_viewport = False
             mod.operation = self.mode
             mod.object = brush
             bpy.ops.object.modifier_apply(modifier=mod.name)
-            bpy.data.objects.remove(brush) # delete brush
+
+            # delete_brush
+            bpy.data.objects.remove(brush)
                     
         return {"FINISHED"}
 
@@ -170,6 +178,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
     mode = "UNION"
 
+
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_difference"
     bl_label = "Bool Tool Difference"
@@ -182,6 +191,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
     mode = "DIFFERENCE"
 
+
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_intersect"
     bl_label = "Bool Tool Intersect"
@@ -193,6 +203,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
         return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "INTERSECT"
+
 
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     bl_idname = "object.bool_tool_auto_slice"
@@ -224,7 +235,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
         is_local_view = bool(space_data.local_view)
 
         for brush in brushes:
-            # Copy Canvas
+            # copy_canvas
             canvas_copy = canvas.copy()
             canvas_copy.data = canvas.data.copy()
             for coll in canvas.users_collection:
@@ -250,7 +261,9 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
 
 
 
-# Brush Utility Operators
+#### ------------------------------ /brush_utilities/ ------------------------------ ####
+
+# Toggle Boolean Cutter
 class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_brush"
     bl_label = "Toggle Boolean Brush"
@@ -294,6 +307,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Remove Boolean Cutter
 class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
     bl_idname = "object.remove_boolean_brush"
     bl_label = "Remove Boolean Brush"
@@ -329,6 +343,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Apply Boolean Cutter
 class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
     bl_idname = "object.apply_boolean_brush"
     bl_label = "Apply Boolean Brush"
@@ -364,7 +379,9 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 
 
 
-# Canvas Utility Operators
+#### ------------------------------ /canvas_utilities/ ------------------------------ ####
+    
+# Toggle All Cutters
 class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_all"
     bl_label = "Toggle Boolean Brushes"
@@ -392,6 +409,7 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Remove All Brushes
 class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     bl_idname = "object.remove_boolean_all"
     bl_label = "Bool Tool Remove"
@@ -447,6 +465,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# Apply All Brushes
 class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     bl_idname = "object.apply_boolean_all"
     bl_label = "Apply All Boolean Brushes"

@@ -45,10 +45,10 @@ class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
         return self.execute(context)
 
 
+# Duplicate Modifier for Duplicated Cutters
 @persistent
 def duplicate_boolean_modifier(scene, depsgraph):
     if bpy.context.active_object and bpy.context.active_object.type == "MESH":
-        obj = bpy.context.active_object
         cutters = list_selected_cutters(bpy.context)
 
         # find_duplicated_cutter
@@ -70,12 +70,14 @@ def duplicate_boolean_modifier(scene, depsgraph):
 
         if original_cutters:
             # duplicate_modifiers
-            canvases, modifiers = find_cutter_modifiers(bpy.context, original_cutters)
+            canvases, _ = find_cutter_modifiers(bpy.context, original_cutters)
             for canvas in canvases:
                 for cutter in cutters:
                     if not any(modifier.object == cutter for modifier in canvas.modifiers):
                         duplicated_modifier = canvas.modifiers.new("Bool Tool " + cutter.name, "BOOLEAN")
                         duplicated_modifier.object = cutter
+
+            # use find_canvas instead of find_cutter_modifiers, but make sure it finds canvases ONLY with cutters in their modifiers
 
 
 
