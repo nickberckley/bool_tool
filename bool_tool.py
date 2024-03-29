@@ -81,7 +81,7 @@ class BrushBoolean():
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "At least two objects must be selected")
+            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
             return {"CANCELLED"}
 
         return self.execute(context)
@@ -162,7 +162,7 @@ class AutoBoolean:
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "At least two objects must be selected")
+            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
             return {"CANCELLED"}
 
         return self.execute(context)
@@ -256,7 +256,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "At least two objects must be selected")
+            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
             return {"CANCELLED"}
 
         return self.execute(context)
