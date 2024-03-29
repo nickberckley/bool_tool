@@ -2,10 +2,8 @@ import bpy
 from bpy.app.handlers import persistent
 from .functions import (
     add_boolean_modifier,
-    find_cutter_modifiers,
     list_selected_cutters,
     list_cutter_users,
-    find_canvas,
 )
 
 #### ------------------------------ OPERATORS ------------------------------ ####
@@ -73,7 +71,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
 
         # duplicate_modifiers
         if original_cutters:
-            canvases = find_canvas(bpy.context)
+            canvases = list_cutter_users(bpy.context, original_cutters)
             for canvas in canvases:
                 if "Boolean Slice" in canvas:
                     return
@@ -86,8 +84,6 @@ def duplicate_boolean_modifier(scene, depsgraph):
                         for modifier in canvas.modifiers:
                             if modifier.type == "BOOLEAN" and modifier.object in original_cutters:
                                 add_boolean_modifier(canvas, cutter, modifier.operation)
-
-            # use find_canvas instead of find_cutter_modifiers, but make sure it finds canvases ONLY with cutters in their modifiers
 
 
 

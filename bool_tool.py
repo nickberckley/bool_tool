@@ -2,8 +2,8 @@ import bpy, itertools
 from .functions import (
     add_boolean_modifier,
     object_visibility_set,
-    find_canvas,
-    find_slices,
+    list_canvases,
+    list_slices,
     list_selected_cutters,
     list_candidate_objects,
     list_canvas_cutters,
@@ -271,7 +271,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        canvas = find_canvas(context)
+        canvas = list_canvases(context)
         brushes = list_selected_cutters(context)
 
         for obj in canvas:
@@ -282,11 +282,11 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
                     obj.hide_render = not obj.hide_render
 
             # toggle_modifiers_visibility
-            for mod in obj.modifiers:
-                if "boolean_" in mod.name:
-                    if mod.object in brushes:
-                        mod.show_viewport = not mod.show_viewport
-                        mod.show_render = not mod.show_render
+            for modifier in obj.modifiers:
+                if "boolean_" in modifier.name:
+                    if modifier.object in brushes:
+                        modifier.show_viewport = not modifier.show_viewport
+                        modifier.show_render = not modifier.show_render
 
         return {"FINISHED"}
 
@@ -303,17 +303,17 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        canvas = find_canvas(context)
+        canvas = list_canvases(context)
         brushes = list_selected_cutters(context)
 
         # delete_modifiers
         for obj in canvas:
             slice_obj = False
-            for mod in obj.modifiers:
-                if "boolean_" in mod.name:
-                    if mod.object in brushes:
+            for modifier in obj.modifiers:
+                if "boolean_" in modifier.name:
+                    if modifier.object in brushes:
                         slice_obj = True
-                        obj.modifiers.remove(mod)
+                        obj.modifiers.remove(modifier)
 
             # remove_slices
             if "Boolean Slice" in obj:
@@ -349,7 +349,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        canvas = find_canvas(context)
+        canvas = list_canvases(context)
         brushes = list_selected_cutters(context)
                 
         for obj in canvas:
@@ -411,31 +411,28 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
         brushes = list_canvas_cutters(canvas)
+        slices = list_slices(self, context, brushes)
 
-        # Remove Slices
-        slices = find_slices(self, context, brushes)
-        for obj in slices:
-            bpy.data.objects.remove(obj)
-            if obj in canvas:
-                canvas.remove(obj)
+        # remove_slices
+        for slice in slices:
+            bpy.data.objects.remove(slice)
+            if slice in canvas:
+                canvas.remove(slice)
 
-        # Remove Modifiers
         for obj in canvas:
-            for mod in obj.modifiers:
-                if "boolean_" in mod.name:
-                    if mod.object in brushes:
-                        obj.modifiers.remove(mod)
-            del obj["Boolean Canvas"]
-            
-            if obj.get("Boolean Slice"):
-                bpy.data.objects.remove(obj)
+            # remove_modifiers
+            for modifier in obj.modifiers:
+                if "boolean_" in modifier.name:
+                    if modifier.object in brushes:
+                        obj.modifiers.remove(modifier)
+
+            if "Boolean Canvas" in obj:
+                del obj["Boolean Canvas"]
                 
-        # Free Brushes that No Longe Have Canvases
-        other_canvas = find_canvas(context)
+        # only_free_cutters_that_other_objects_dont_use
+        other_canvas = list_canvases(context)
         for obj in other_canvas:
-            if obj in canvas:
-                other_canvas.remove(obj)
-            else:
+            if obj not in (canvas, slices):
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
         
@@ -470,7 +467,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
         brushes = list_canvas_cutters(canvas)
-        slices = find_slices(self, context, brushes)
+        slices = list_slices(self, context, brushes)
 
         # apply_modifiers
         for obj in itertools.chain(canvas, slices):
@@ -490,7 +487,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
                 del obj["Boolean Slice"]
 
         # only_delete_cutters_that_other_objects_dont_use
-        other_canvas = find_canvas(context)
+        other_canvas = list_canvases(context)
         for obj in other_canvas:
             if obj not in (canvas, slices):
                 if any(modifier.object in brushes for modifier in obj.modifiers):

@@ -19,9 +19,9 @@ def list_candidate_objects(context):
 
 
 # List All Canvases
-def find_canvas(context):
+def list_canvases(context):
     canvas = []
-    for obj in context.view_layer.objects:
+    for obj in bpy.data.objects:
         if "Boolean Canvas" in obj:
             if len(obj.modifiers) >= 1:
                 if any('BOOLEAN' in modifier.type for modifier in obj.modifiers):
@@ -48,7 +48,7 @@ def list_selected_cutters(context):
     return cutters
 
 
-# List Canvas Cutters
+# List Cutters for Context Canvases
 def list_canvas_cutters(canvas):
     brushes = []
     for obj in canvas:
@@ -60,9 +60,10 @@ def list_canvas_cutters(canvas):
     return brushes
 
 
-# List Modifiers that Use Cutters
-def find_cutter_modifiers(context, cutters):
-    canvases = find_canvas(context)
+# List Modifiers that Use Context Cutters
+def list_cutter_modifiers(context, canvases, cutters):
+    if not canvases:
+        canvases = list_canvases(context)
 
     modifiers = []
     for obj in canvases:
@@ -74,11 +75,11 @@ def find_cutter_modifiers(context, cutters):
     return modifiers
 
 
-# List Slices
-def find_slices(self, context, brushes):
+# List All Slices
+def list_slices(self, context, brushes):
     slices = []
     for obj in context.view_layer.objects:
-        if obj.get("Boolean Slice"):
+        if "Boolean Slice" in obj:
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     if any('boolean_' in modifier.name for modifier in obj.modifiers):
@@ -86,10 +87,10 @@ def find_slices(self, context, brushes):
     return slices
 
 
-# List Cutter Users (Canvases)
+# List Context Cutter Users (Canvases)
 def list_cutter_users(context, cutters):
     cutter_users = []
-    canvas = find_canvas(context)
+    canvas = list_canvases(context)
     for obj in canvas:
         for modifier in obj.modifiers:
             if modifier.type == "BOOLEAN" and modifier.object in cutters:
