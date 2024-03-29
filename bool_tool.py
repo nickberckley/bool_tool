@@ -100,8 +100,8 @@ class BrushBoolean():
 
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_union"
-    bl_label = "Boolean Brush Union"
-    bl_description = "Add boolean brush to the canvas object set to Union"
+    bl_label = "Boolean Cutter Union"
+    bl_description = "Add boolean cutter to the active object set to Union"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -113,8 +113,8 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_intersect"
-    bl_label = "Boolean Brush Intersection"
-    bl_description = "Add boolean brush to the canvas object set to Intersect"
+    bl_label = "Boolean Cutter Intersection"
+    bl_description = "Add boolean cutter to the active object set to Intersect"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -126,8 +126,8 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_difference"
-    bl_label = "Boolean Brush Difference"
-    bl_description = "Add boolean brush to the canvas object set to Difference"
+    bl_label = "Boolean Cutter Difference"
+    bl_description = "Add boolean cutter to the active object set to Difference"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -139,8 +139,8 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_slice"
-    bl_label = "Boolean Brush Slice"
-    bl_description = "Add boolean brush to the canvas object set to Slice"
+    bl_label = "Boolean Cutter Slice"
+    bl_description = "Add boolean cutter to the active object set to Slice"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -181,8 +181,8 @@ class AutoBoolean:
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_union"
-    bl_label = "Bool Tool Union"
-    bl_description = "Combine selected objects"
+    bl_label = "Boolean Union"
+    bl_description = "Merge selected objects into active one with union boolean"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -194,8 +194,8 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_difference"
-    bl_label = "Bool Tool Difference"
-    bl_description = "Subtract selected objects from active object"
+    bl_label = "Boolean Difference"
+    bl_description = "Subtract selected objects from active one using difference boolean"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -207,8 +207,8 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_intersect"
-    bl_label = "Bool Tool Intersect"
-    bl_description = "Keep only intersecting geometry"
+    bl_label = "Boolean Intersect"
+    bl_description = "Use intersect boolean to keep only parts of active object that are interesecting selected objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -220,8 +220,8 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     bl_idname = "object.bool_tool_auto_slice"
-    bl_label = "Bool Tool Slice"
-    bl_description = "Slice active object along the selected objects"
+    bl_label = "Boolean Slice"
+    bl_description = "Slice active object along the selected objects with boolean operators. Will create slices as separate objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -278,8 +278,8 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
 # Toggle Boolean Cutter
 class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_brush"
-    bl_label = "Toggle Boolean Brush"
-    bl_description = "Toggles the selected boolean brush effect on the canvas objects"
+    bl_label = "Toggle Boolean Cutter"
+    bl_description = "Toggles the selected boolean cutter effect on the canvas objects"
 
     @classmethod
     def poll(cls, context):
@@ -322,8 +322,8 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
 # Remove Boolean Cutter
 class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
     bl_idname = "object.remove_boolean_brush"
-    bl_label = "Remove Boolean Brush"
-    bl_description = "Removes boolean brush properties from selected objects"
+    bl_label = "Remove Boolean Cutter"
+    bl_description = "Removes boolean cutter properties from selected canvases"
     bl_options = {"UNDO"}
 
     @classmethod
@@ -358,8 +358,8 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 # Apply Boolean Cutter
 class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
     bl_idname = "object.apply_boolean_brush"
-    bl_label = "Apply Boolean Brush"
-    bl_description = "Apply this boolean brush to the every canvas that uses it"
+    bl_label = "Apply Boolean Cutter"
+    bl_description = "Apply this boolean cutter to the every canvas that uses it"
     bl_options = {"UNDO"}
 
     @classmethod
@@ -396,8 +396,8 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 # Toggle All Cutters
 class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_all"
-    bl_label = "Toggle Boolean Brushes"
-    bl_description = "Toggles all boolean brush effects on active canvas"
+    bl_label = "Toggle Boolean Cutters"
+    bl_description = "Toggle all boolean cutters affecting active object"
     bl_options = {"UNDO"}
 
     @classmethod
@@ -424,8 +424,8 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 # Remove All Brushes
 class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     bl_idname = "object.remove_boolean_all"
-    bl_label = "Bool Tool Remove"
-    bl_description = "Removes all Bool Tool config assigned to it"
+    bl_label = "Remove Boolean Cutters"
+    bl_description = "Remove all boolean cutters affecting active object"
     bl_options = {"UNDO"}
 
     @classmethod
@@ -480,8 +480,8 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 # Apply All Brushes
 class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     bl_idname = "object.apply_boolean_all"
-    bl_label = "Apply All Boolean Brushes"
-    bl_description = "Apply all boolean brushes of selected canvas objects"
+    bl_label = "Apply All Boolean Cutters"
+    bl_description = "Apply all boolean cutters of selected canvas objects"
     bl_options = {"UNDO"}
 
     @classmethod
