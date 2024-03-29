@@ -31,9 +31,9 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
 
         if "Boolean Brush" in active_object:
             layout.separator()
-            layout.operator('object.toggle_boolean_brush', text="Toggle Brush")
-            layout.operator('object.apply_boolean_brush', text="Apply Brush")
-            layout.operator('object.remove_boolean_brush', text="Remove Brush")
+            layout.operator('object.toggle_boolean_brush', text="Toggle Cutter")
+            layout.operator('object.apply_boolean_brush', text="Apply Cutter")
+            layout.operator('object.remove_boolean_brush', text="Remove Cutter")
 
 
 def bool_tool_menu(self, context):
