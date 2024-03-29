@@ -68,14 +68,17 @@ def duplicate_boolean_modifier(scene, depsgraph):
                             if 'Boolean Brush' in obj:
                                 original_cutters.append(obj)
 
+        # duplicate_modifiers
         if original_cutters:
-            # duplicate_modifiers
             canvases, _ = find_cutter_modifiers(bpy.context, original_cutters)
             for canvas in canvases:
                 for cutter in cutters:
                     if not any(modifier.object == cutter for modifier in canvas.modifiers):
-                        duplicated_modifier = canvas.modifiers.new("Bool Tool " + cutter.name, "BOOLEAN")
-                        duplicated_modifier.object = cutter
+                        for modifier in canvas.modifiers:
+                            if modifier.type == "BOOLEAN" and modifier.object in original_cutters:
+                                duplicated_modifier = canvas.modifiers.new("Bool Tool " + cutter.name, "BOOLEAN")
+                                duplicated_modifier.object = cutter
+                                duplicated_modifier.operation = modifier.operation
 
             # use find_canvas instead of find_cutter_modifiers, but make sure it finds canvases ONLY with cutters in their modifiers
 
