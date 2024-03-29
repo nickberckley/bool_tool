@@ -6,6 +6,7 @@ from .functions import (
     find_slices,
     list_selected_cutters,
     list_candidate_objects,
+    list_canvas_cutters,
 )
 
 
@@ -263,42 +264,30 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_brush"
     bl_label = "Toggle Boolean Cutter"
     bl_description = "Toggles the selected boolean cutter effect on the canvas objects"
+    bl_options = {"UNDO"}
 
     @classmethod
     def poll(cls, context):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        brushes = list_selected_cutters(context)
         canvas = find_canvas(context)
+        brushes = list_selected_cutters(context)
 
-        set = "None"
         for obj in canvas:
-            boolean_slice = obj.get("Boolean Slice")
-            if boolean_slice is not None and boolean_slice == True:
+            # toggle_slices_visibility
+            if "Boolean Slice" in obj:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
-                    if obj.hide_viewport == False:
-                        obj.hide_viewport = True
-                        obj.hide_render = True
-                    else:
-                        obj.hide_viewport = False
-                        obj.hide_render = False
-                
+                    obj.hide_viewport = not obj.hide_viewport
+                    obj.hide_render = not obj.hide_render
+
+            # toggle_modifiers_visibility
             for mod in obj.modifiers:
                 if "boolean_" in mod.name:
                     if mod.object in brushes:
-                        if set == "None":
-                            if mod.show_viewport:
-                                mod.show_viewport = False
-                                mod.show_render = False
-                            else:
-                                mod.show_viewport = True
-                                mod.show_render = True
-                        else:
-                            if set == "True":
-                                mod.show_viewport = True
-                            else:
-                                mod.show_viewport = False
+                        mod.show_viewport = not mod.show_viewport
+                        mod.show_render = not mod.show_render
+
         return {"FINISHED"}
 
 
@@ -360,8 +349,8 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        brushes = list_selected_cutters(context)
         canvas = find_canvas(context)
+        brushes = list_selected_cutters(context)
                 
         for obj in canvas:
             for mod in obj.modifiers:
@@ -399,17 +388,11 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
+        brushes = list_canvas_cutters(canvas)
 
-        brushes = set()
-        for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
-        brushes = list(brushes)
-
+        # toggle_cutters_visibility
         for brush in brushes:
-            if brush.hide_viewport == False:
-                brush.hide_viewport = True
-            else:
-                brush.hide_viewport = False
+            brush.hide_viewport = not brush.hide_viewport
             
         return {"FINISHED"}
 
@@ -427,11 +410,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
-
-        brushes = set()
-        for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
-        brushes = list(brushes)
+        brushes = list_canvas_cutters(canvas)
 
         # Remove Slices
         slices = find_slices(self, context, brushes)
@@ -490,14 +469,9 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
-
-        brushes = set()
-        for obj in canvas:
-            brushes.update(i.object for i in obj.modifiers if i.type == "BOOLEAN" and "boolean_" in i.name)
-        brushes = list(brushes)
-        
+        brushes = list_canvas_cutters(canvas)
         slices = find_slices(self, context, brushes)
-        
+
         # Apply Modifiers
         for obj in itertools.chain(canvas, slices):
             for mod in obj.modifiers:

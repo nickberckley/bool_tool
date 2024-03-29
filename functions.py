@@ -48,6 +48,18 @@ def list_selected_cutters(context):
     return cutters
 
 
+# List Canvas Cutters
+def list_canvas_cutters(canvas):
+    brushes = []
+    for obj in canvas:
+        for modifier in obj.modifiers:
+            if modifier.type == "BOOLEAN" and "boolean_" in modifier.name:
+                if modifier.object:
+                    brushes.append(modifier.object)
+
+    return brushes
+
+
 # Find Modifiers that Use Active Cutter
 def find_cutter_modifiers(context, cutters):
     canvases = find_canvas(context)
