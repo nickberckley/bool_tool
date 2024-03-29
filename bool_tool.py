@@ -353,22 +353,22 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
         brushes = list_selected_cutters(context)
                 
         for obj in canvas:
+            context.view_layer.objects.active = obj
             for mod in obj.modifiers:
                 if "boolean_" in mod.name:
                     if mod.object in brushes:
-                        context.view_layer.objects.active = obj
                         try:
                             bpy.ops.object.modifier_apply(modifier=mod.name)
                         except:
                             context.active_object.data = context.active_object.data.copy()
                             bpy.ops.object.modifier_apply(modifier=mod.name)
-                        bpy.ops.object.select_all(action="TOGGLE")
-                        bpy.ops.object.select_all(action="DESELECT")
 
-        # Garbage Collector
+        # purge_orphaned_brushes
         for brush in brushes:
-            brush.select_set(True)
-            bpy.ops.object.delete()
+            orphaned_mesh = brush.data
+            bpy.data.objects.remove(brush)
+            bpy.data.meshes.remove(orphaned_mesh)
+
         return {"FINISHED"}
 
 
@@ -472,32 +472,36 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
         brushes = list_canvas_cutters(canvas)
         slices = find_slices(self, context, brushes)
 
-        # Apply Modifiers
+        # apply_modifiers
         for obj in itertools.chain(canvas, slices):
-            for mod in obj.modifiers:
-                if "boolean_" in mod.name:
-                    bpy.context.view_layer.objects.active = obj
+            bpy.context.view_layer.objects.active = obj
+            for modifier in obj.modifiers:
+                if "boolean_" in modifier.name:
                     try:
-                        bpy.ops.object.modifier_apply(modifier=mod.name)
+                        bpy.ops.object.modifier_apply(modifier=modifier.name)
                     except:
                         context.active_object.data = context.active_object.data.copy()
-                        bpy.ops.object.modifier_apply(modifier=mod.name)
-                        
-            del obj["Boolean Canvas"]
-            if obj.get("Boolean Slice"):
+                        bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+            # remove_custom_properties
+            if "Boolean Canvas" in obj:
+                del obj["Boolean Canvas"]
+            if "Boolean Slice" in obj:
                 del obj["Boolean Slice"]
-        
-        # Delete Brushes that No Longer Have Canvases
+
+        # only_delete_cutters_that_other_objects_dont_use
         other_canvas = find_canvas(context)
         for obj in other_canvas:
-            if obj not in canvas:
-                if obj not in slices:
-                    if any(modifier.object in brushes for modifier in obj.modifiers):
-                        brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
-        
-        for obj in brushes:
-            bpy.data.objects.remove(obj)
-        
+            if obj not in (canvas, slices):
+                if any(modifier.object in brushes for modifier in obj.modifiers):
+                    brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
+
+        # purge_orphans
+        for brush in brushes:
+            orphaned_mesh = brush.data
+            bpy.data.objects.remove(brush)
+            bpy.data.meshes.remove(orphaned_mesh)
+
         return {"FINISHED"}
 
 

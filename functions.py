@@ -22,7 +22,7 @@ def list_candidate_objects(context):
 def find_canvas(context):
     canvas = []
     for obj in context.view_layer.objects:
-        if "Boolean Brush" not in obj and "Boolean Canvas" in obj:
+        if "Boolean Canvas" in obj:
             if len(obj.modifiers) >= 1:
                 if any('BOOLEAN' in modifier.type for modifier in obj.modifiers):
                     canvas.append(obj)
