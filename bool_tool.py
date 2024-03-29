@@ -314,9 +314,10 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
 
     def execute(self, context):
-        brushes = list_selected_cutters(context)
         canvas = find_canvas(context)
+        brushes = list_selected_cutters(context)
 
+        # delete_modifiers
         for obj in canvas:
             slice_obj = False
             for mod in obj.modifiers:
@@ -324,16 +325,25 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                     if mod.object in brushes:
                         slice_obj = True
                         obj.modifiers.remove(mod)
-            boolean_slice = obj.get("Boolean Slice")
-            if boolean_slice is not None and boolean_slice == True:
+
+            # remove_slices
+            if "Boolean Slice" in obj:
                 if slice_obj:
                     bpy.data.objects.remove(obj)
 
         for brush in brushes:
+            # restore_visibility
             brush.display_type = "TEXTURED"
-            del brush["Boolean Brush"]
             object_visibility_set(brush, value=True)
             brush.hide_render = False
+            if "Boolean Brush" in obj:
+                del brush["Boolean Brush"]
+
+            # remove_parent_&_collection
+            brush.parent = None
+            cutters_collection = bpy.data.collections.get("boolean_cutters")
+            if cutters_collection in brush.users_collection:
+                bpy.data.collections.get("boolean_cutters").objects.unlink(brush)
         
         return {"FINISHED"}
 
@@ -404,7 +414,7 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# Remove All Brushes
+# Remove All Cutters
 class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     bl_idname = "object.remove_boolean_all"
     bl_label = "Remove Boolean Cutters"
@@ -450,17 +460,24 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
         
-        for obj in brushes:
-            obj.display_type = "TEXTURED"
-            obj.hide_render = False
-            object_visibility_set(obj, value=True)
-            if obj.get("Boolean Brush"):
-                del obj["Boolean Brush"]
+        for brush in brushes:
+            # restore_visibility
+            brush.display_type = "TEXTURED"
+            object_visibility_set(brush, value=True)
+            brush.hide_render = False
+            if "Boolean Brush" in brush:
+                del brush["Boolean Brush"]
+
+            # remove_parent_&_collection
+            brush.parent = None
+            cutters_collection = bpy.data.collections.get("boolean_cutters")
+            if cutters_collection in brush.users_collection:
+                bpy.data.collections.get("boolean_cutters").objects.unlink(brush)
         
         return {"FINISHED"}
 
 
-# Apply All Brushes
+# Apply All Cutters
 class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     bl_idname = "object.apply_boolean_all"
     bl_label = "Apply All Boolean Cutters"
