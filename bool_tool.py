@@ -72,7 +72,8 @@ class BrushBoolean():
                 cutters_collection.hide_render = True
                 cutters_collection.color_tag = "COLOR_01"
                 bpy.context.view_layer.layer_collection.children[collection_name].exclude = True
-            cutters_collection.objects.link(brush)
+            if cutters_collection not in brush.users_collection:
+                cutters_collection.objects.link(brush)
 
             # add_modifier
             add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode)
