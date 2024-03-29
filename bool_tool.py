@@ -28,12 +28,14 @@ class BrushBoolean():
                 context.collection.objects.link(clone)
                 clones.append(clone)
                 
-                # add_to_current_collection
-                canvas_coll = canvas.users_collection[0]
-                if canvas_coll != context.view_layer.active_layer_collection.collection:
-                    canvas_coll.objects.link(clone)
+                # add_to_canvas_collections
+                canvas_colls = canvas.users_collection
+                for collection in canvas_colls:
+                    if collection != context.view_layer.active_layer_collection.collection:
+                        collection.objects.link(clone)
+
                 for coll in clone.users_collection:
-                    if coll != canvas_coll:
+                    if coll not in canvas_colls:
                         coll.objects.unlink(clone)
                 
                 # remove_other_modifiers
