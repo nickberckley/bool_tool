@@ -1,10 +1,10 @@
 import bpy, itertools
 from .functions import (
-    convert_to_mesh,
     object_visibility_set,
     find_canvas,
     find_slices,
     list_selected_cutters,
+    list_candidate_objects,
 )
 
 #### ------------------------------ OPERATORS ------------------------------ ####
@@ -13,17 +13,7 @@ from .functions import (
 class BrushBoolean():
     def execute(self, context):
         canvas = bpy.context.active_object
-
-        # List Brushes
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if obj != bpy.context.active_object and (obj.type == "MESH" or obj.type == "CURVE"):
-                brushes.append(obj)
-                if obj.type == "CURVE":
-                    if obj.data.bevel_depth != 0 or obj.data.extrude != 0:
-                        convert_to_mesh(obj, canvas)
-                    else:
-                        brushes.remove(obj)
+        brushes = list_candidate_objects(context)
 
         if self.mode == "SLICE":
             # Create Slicer Clones
@@ -148,15 +138,7 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 class AutoBoolean:
     def execute(self, context):
         canvas = bpy.context.active_object
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if obj != bpy.context.active_object and (obj.type == "MESH" or obj.type == "CURVE"):
-                brushes.append(obj)
-                if obj.type == "CURVE":
-                    if obj.data.bevel_depth >= 0.001 or obj.data.extrude >= 0.001:
-                        convert_to_mesh(obj, canvas)
-                    else:
-                        brushes.remove(obj)
+        brushes = list_candidate_objects(context)
         
         for brush in brushes:
             mod = canvas.modifiers.new("Auto Boolean", "BOOLEAN") # add modifier
@@ -235,20 +217,11 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
             bpy.data.objects.remove(ob)
             
     def execute(self, context):
+        canvas = bpy.context.active_object
+        brushes = list_candidate_objects(context)
+
         space_data = context.space_data
         is_local_view = bool(space_data.local_view)
-        canvas = bpy.context.active_object
-#        canvas.select_set(False)
-        
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if obj != bpy.context.active_object and (obj.type == "MESH" or obj.type == "CURVE"):
-                brushes.append(obj)
-                if obj.type == "CURVE":
-                    if obj.data.bevel_depth >= 0.001 or obj.data.extrude >= 0.001:
-                        convert_to_mesh(obj, canvas)
-                    else:
-                        brushes.remove(obj)
 
         for brush in brushes:
             # Copy Canvas

@@ -13,6 +13,21 @@ def object_visibility_set(ob, value=False):
     ob.visible_volume_scatter = value
 
 
+# List Candidate Objects
+def list_candidate_objects(context):
+    brushes = []
+    for obj in context.selected_objects:
+        if obj != context.active_object and (obj.type == "MESH" or obj.type == "CURVE"):
+            if obj.type == "CURVE":
+                if obj.data.bevel_depth != 0 or obj.data.extrude != 0:
+                    convert_to_mesh(context, obj)
+                    brushes.append(obj)
+            else:
+                brushes.append(obj)
+
+    return brushes
+
+
 # Find Canvas
 def find_canvas(context):
     canvas = []
@@ -70,17 +85,17 @@ def find_slices(self, context, brushes):
     
 
 # Convert to Mesh
-def convert_to_mesh(brush, canvas):
-    # Store Selection
-    selected_objects = bpy.context.selected_objects
+def convert_to_mesh(context, brush):
+    # store_selection
+    stored_active = context.active_object
     bpy.ops.object.select_all(action='DESELECT')
     brush.select_set(True)
-    bpy.context.view_layer.objects.active = brush
+    context.view_layer.objects.active = brush
     
-    # Convert to Mesh
+    # convert_to_mesh
     bpy.ops.object.convert(target="MESH")
     
-    # Restore Selection
-    for obj in selected_objects:
+    # restore_selection
+    for obj in context.selected_objects:
         obj.select_set(True)
-    bpy.context.view_layer.objects.active = canvas
+    context.view_layer.objects.active = stored_active
