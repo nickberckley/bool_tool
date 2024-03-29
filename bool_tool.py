@@ -43,16 +43,16 @@ class BrushBoolean():
                     if "Bool Tool " in mod.name:
                         clone.modifiers.remove(mod)
 
-            # Add to Local View
             for brush, clone in zip(brushes, clones):
+                # add_slices_to_local_view
                 space_data = context.space_data
-                is_local_view = bool(space_data.local_view)
-                if is_local_view:
+                if space_data.local_view:
                     clone.local_view_set(space_data, True)
 
-                sliceMod = clone.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
-                sliceMod.object = brush
-                sliceMod.operation = "INTERSECT"
+                # modifiers_on_slices
+                slice_modifier = clone.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
+                slice_modifier.object = brush
+                slice_modifier.operation = "INTERSECT"
 
 
         for brush in brushes:
@@ -76,19 +76,18 @@ class BrushBoolean():
             cutters_collection.objects.link(brush)
 
             # add_modifier
-            newMod = canvas.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
-            newMod.object = brush
+            modifier = canvas.modifiers.new("Bool Tool " + brush.name, "BOOLEAN")
+            modifier.object = brush
             if self.mode == "SLICE":
-                newMod.operation = "DIFFERENCE"
+                modifier.operation = "DIFFERENCE"
             else:
-                newMod.operation = self.mode
+                modifier.operation = self.mode
             
             # custom_properties
             canvas["Boolean Canvas"] = True
             brush["Boolean Brush"] = self.mode.capitalize()
             
-            bpy.context.view_layer.objects.active = canvas
-        
+        bpy.context.view_layer.objects.active = canvas
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -161,11 +160,11 @@ class AutoBoolean:
         
         for brush in brushes:
             # add_modifier
-            mod = canvas.modifiers.new("Auto Boolean", "BOOLEAN")
-            mod.show_viewport = False
-            mod.operation = self.mode
-            mod.object = brush
-            bpy.ops.object.modifier_apply(modifier=mod.name)
+            modifier = canvas.modifiers.new("Auto Boolean", "BOOLEAN")
+            modifier.show_viewport = False
+            modifier.operation = self.mode
+            modifier.object = brush
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
 
             # delete_brush
             bpy.data.objects.remove(brush)
@@ -188,7 +187,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "UNION"
 
@@ -201,7 +200,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "DIFFERENCE"
 
@@ -214,7 +213,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     mode = "INTERSECT"
 
@@ -227,41 +226,40 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     def boolean_mod(self, obj, ob, mode, ob_delete=True):
-        mod = obj.modifiers.new("Auto Boolean", "BOOLEAN")
-        mod.operation = mode
-        mod.object = ob
+        modifier = obj.modifiers.new("Auto Boolean", "BOOLEAN")
+        modifier.operation = mode
+        modifier.object = ob
 
         context_override = {'object': obj}
         with bpy.context.temp_override(**context_override):
-            bpy.ops.object.modifier_apply(modifier=mod.name)
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
 
         if ob_delete:
             bpy.data.objects.remove(ob)
-            
-    def execute(self, context):
-        canvas = bpy.context.active_object
-        brushes = list_candidate_objects(context)
 
-        space_data = context.space_data
-        is_local_view = bool(space_data.local_view)
+    def execute(self, context):
+        canvas = context.active_object
+        brushes = list_candidate_objects(context)
 
         for brush in brushes:
             # copy_canvas
             canvas_copy = canvas.copy()
             canvas_copy.data = canvas.data.copy()
-            for coll in canvas.users_collection:
-                coll.objects.link(canvas_copy)
-            if is_local_view:
+            for collection in canvas.users_collection:
+                collection.objects.link(canvas_copy)
+            
+            # add_to_local_view
+            space_data = context.space_data
+            if space_data.local_view:
                 canvas_copy.local_view_set(space_data, True)
 
             self.boolean_mod(canvas, brush, "DIFFERENCE", ob_delete=False)
             self.boolean_mod(canvas_copy, brush, "INTERSECT")
             
             canvas_copy.select_set(True)
-
             context.view_layer.objects.active = canvas_copy
 
         return {"FINISHED"}
