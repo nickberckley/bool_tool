@@ -4,6 +4,8 @@ from .functions import (
     add_boolean_modifier,
     find_cutter_modifiers,
     list_selected_cutters,
+    list_cutter_users,
+    find_canvas,
 )
 
 #### ------------------------------ OPERATORS ------------------------------ ####
@@ -52,7 +54,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
     if bpy.context.active_object and bpy.context.active_object.type == "MESH":
         cutters = list_selected_cutters(bpy.context)
 
-        # find_duplicated_cutter
+        # find_original_cutter
         original_cutters = []
         for cutter in cutters:
             if 'Boolean Brush' in cutter:
@@ -71,9 +73,15 @@ def duplicate_boolean_modifier(scene, depsgraph):
 
         # duplicate_modifiers
         if original_cutters:
-            canvases, _ = find_cutter_modifiers(bpy.context, original_cutters)
+            canvases = find_canvas(bpy.context)
             for canvas in canvases:
+                if "Boolean Slice" in canvas:
+                    return
+                
                 for cutter in cutters:
+                    if canvas == cutter:
+                        return
+
                     if not any(modifier.object == cutter for modifier in canvas.modifiers):
                         for modifier in canvas.modifiers:
                             if modifier.type == "BOOLEAN" and modifier.object in original_cutters:

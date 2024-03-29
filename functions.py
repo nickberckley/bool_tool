@@ -18,7 +18,7 @@ def list_candidate_objects(context):
     return brushes
 
 
-# Find Canvas
+# List All Canvases
 def find_canvas(context):
     canvas = []
     for obj in context.view_layer.objects:
@@ -60,7 +60,7 @@ def list_canvas_cutters(canvas):
     return brushes
 
 
-# Find Modifiers that Use Active Cutter
+# List Modifiers that Use Cutters
 def find_cutter_modifiers(context, cutters):
     canvases = find_canvas(context)
 
@@ -71,10 +71,10 @@ def find_cutter_modifiers(context, cutters):
                 if modifier.object in cutters:
                     modifiers.append(modifier)
 
-    return canvases, modifiers
+    return modifiers
 
 
-# Find Slices
+# List Slices
 def find_slices(self, context, brushes):
     slices = []
     for obj in context.view_layer.objects:
@@ -84,7 +84,19 @@ def find_slices(self, context, brushes):
                     if any('boolean_' in modifier.name for modifier in obj.modifiers):
                         slices.append(obj)
     return slices
-    
+
+
+# List Cutter Users (Canvases)
+def list_cutter_users(context, cutters):
+    cutter_users = []
+    canvas = find_canvas(context)
+    for obj in canvas:
+        for modifier in obj.modifiers:
+            if modifier.type == "BOOLEAN" and modifier.object in cutters:
+                cutter_users.append(obj)
+
+    return cutter_users
+
 
 
 #### ------------------------------ /set_properties/ ------------------------------ ####
