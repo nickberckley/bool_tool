@@ -1,5 +1,6 @@
 import bpy, itertools
 from .functions import (
+    add_boolean_modifier,
     object_visibility_set,
     find_canvas,
     find_slices,
@@ -50,9 +51,7 @@ class BrushBoolean():
                     clone.local_view_set(space_data, True)
 
                 # modifiers_on_slices
-                slice_modifier = clone.modifiers.new("boolean_" + brush.name, "BOOLEAN")
-                slice_modifier.object = brush
-                slice_modifier.operation = "INTERSECT"
+                add_boolean_modifier(clone, brush, "INTERSECT")
 
 
         for brush in brushes:
@@ -76,12 +75,7 @@ class BrushBoolean():
             cutters_collection.objects.link(brush)
 
             # add_modifier
-            modifier = canvas.modifiers.new("boolean_" + brush.name, "BOOLEAN")
-            modifier.object = brush
-            if self.mode == "SLICE":
-                modifier.operation = "DIFFERENCE"
-            else:
-                modifier.operation = self.mode
+            add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode)
             
             # custom_properties
             canvas["Boolean Canvas"] = True
@@ -160,11 +154,7 @@ class AutoBoolean:
         
         for brush in brushes:
             # add_modifier
-            modifier = canvas.modifiers.new("Auto Boolean", "BOOLEAN")
-            modifier.show_viewport = False
-            modifier.operation = self.mode
-            modifier.object = brush
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
+            add_boolean_modifier(canvas, brush, self.mode, apply=True)
 
             # delete_brush
             bpy.data.objects.remove(brush)
@@ -228,18 +218,6 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     def poll(cls, context):
         return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
-    def boolean_mod(self, obj, ob, mode, ob_delete=True):
-        modifier = obj.modifiers.new("Auto Boolean", "BOOLEAN")
-        modifier.operation = mode
-        modifier.object = ob
-
-        context_override = {'object': obj}
-        with bpy.context.temp_override(**context_override):
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
-
-        if ob_delete:
-            bpy.data.objects.remove(ob)
-
     def execute(self, context):
         canvas = context.active_object
         brushes = list_candidate_objects(context)
@@ -247,7 +225,9 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
         for brush in brushes:
             # copy_canvas
             canvas_copy = canvas.copy()
+            canvas_copy.name = canvas.name + "_slice"
             canvas_copy.data = canvas.data.copy()
+            canvas_copy.data.name = canvas.data.name + "_slice"
             for collection in canvas.users_collection:
                 collection.objects.link(canvas_copy)
             
@@ -256,9 +236,11 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
             if space_data.local_view:
                 canvas_copy.local_view_set(space_data, True)
 
-            self.boolean_mod(canvas, brush, "DIFFERENCE", ob_delete=False)
-            self.boolean_mod(canvas_copy, brush, "INTERSECT")
-            
+            # add_modifiers
+            add_boolean_modifier(canvas, brush, "DIFFERENCE", apply=True)
+            add_boolean_modifier(canvas_copy, brush, "INTERSECT", apply=True)
+
+            bpy.data.objects.remove(brush)
             canvas_copy.select_set(True)
             context.view_layer.objects.active = canvas_copy
 

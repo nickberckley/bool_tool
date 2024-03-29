@@ -77,6 +77,18 @@ def find_slices(self, context, brushes):
 
 #### ------------------------------ /set_properties/ ------------------------------ ####
 
+# Add Boolean Modifier
+def add_boolean_modifier(canvas, cutter, mode, apply=False):
+    modifier = canvas.modifiers.new("boolean_" + cutter.name, "BOOLEAN")
+    modifier.operation = mode
+    modifier.object = cutter
+
+    if apply:
+        context_override = {'object': canvas}
+        with bpy.context.temp_override(**context_override):
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+
 # Set Object Visibility
 def object_visibility_set(ob, value=False):
     ob.visible_camera = value
