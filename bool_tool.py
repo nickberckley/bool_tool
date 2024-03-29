@@ -1,5 +1,13 @@
 import bpy, itertools
-from .functions import isCanvas, isBrush, convert_to_mesh, object_visibility_set, find_canvas, find_slices
+from .functions import (
+    isCanvas,
+    isBrush,
+    convert_to_mesh,
+    object_visibility_set,
+    find_canvas,
+    find_slices,
+    list_selected_cutters,
+)
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
@@ -18,7 +26,7 @@ class BrushBoolean():
                         convert_to_mesh(obj, canvas)
                     else:
                         brushes.remove(obj)
-        
+
         if self.mode == "SLICE":
             # Create Slicer Clones
             clones = []
@@ -282,13 +290,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
 
     def execute(self, context):
-        # Define Brushes
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if isBrush(context.active_object):
-                brushes.append(obj)
-        
-        # Find Canvas
+        brushes = list_selected_cutters(context)
         canvas = find_canvas(context, brushes)
 
         set = "None"
@@ -332,13 +334,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
 
     def execute(self, context):
-        # Define Brushes
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if isBrush(context.active_object):
-                brushes.append(obj)
-        
-        # Find Canvas
+        brushes = list_selected_cutters(context)
         canvas = find_canvas(context, brushes)
 
         for obj in canvas:
@@ -373,13 +369,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
         return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH' and isBrush(context.active_object)
 
     def execute(self, context):
-        # Define Brushes
-        brushes = []
-        for obj in bpy.context.selected_objects:
-            if isBrush(context.active_object):
-                brushes.append(obj)
-        
-        # Find Canvas
+        brushes = list_selected_cutters(context)
         canvas = find_canvas(context, brushes)
                 
         for obj in canvas:

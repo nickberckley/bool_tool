@@ -42,6 +42,28 @@ def find_canvas(context, brushes):
     return canvas
 
 
+# List Selected Cutters
+def list_selected_cutters(context):
+    cutters = []
+    
+    active_object = context.active_object
+    selected_objects = context.selected_objects
+
+    # selected_objects
+    if selected_objects:
+        for obj in selected_objects:
+            if obj != active_object and obj.type == "MESH":
+                if 'Boolean Brush' in obj:
+                    cutters.append(obj)
+
+    # active_object
+    if active_object:
+        if 'Boolean Brush' in active_object:
+            cutters.append(active_object)
+
+    return cutters
+
+
 # Find Modifiers that Use Active Cutter
 def find_cutter_modifiers(context, cutters):
     canvas = find_canvas(context, cutters)
