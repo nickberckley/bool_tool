@@ -9,6 +9,7 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
+
         layout.label(text="Auto Boolean")
         layout.operator('object.bool_tool_auto_difference', text="Difference", icon="SELECT_SUBTRACT")
         layout.operator('object.bool_tool_auto_union', text="Union", icon="SELECT_EXTEND")
@@ -22,6 +23,7 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
         layout.operator('object.bool_tool_brush_intersect', text="Intersect", icon="SELECT_INTERSECT")
         layout.operator('object.bool_tool_brush_slice', text="Slice", icon="SELECT_DIFFERENCE")
 
+        # canvas_operators
         active_object = context.active_object
         if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
             layout.separator()
@@ -29,6 +31,7 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
             layout.operator('object.apply_boolean_all', text="Apply All")
             layout.operator('object.remove_boolean_all', text="Remove All")
 
+        # cutter_operators
         if "Boolean Brush" in active_object:
             layout.separator()
             layout.operator('object.toggle_boolean_brush', text="Toggle Cutter")

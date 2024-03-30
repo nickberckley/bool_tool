@@ -71,7 +71,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
 
         # duplicate_modifiers
         if original_cutters:
-            canvases = list_cutter_users(bpy.context, original_cutters)
+            canvases = list_cutter_users(original_cutters)
             for canvas in canvases:
                 if "Boolean Slice" in canvas:
                     return

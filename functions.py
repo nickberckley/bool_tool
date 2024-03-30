@@ -19,7 +19,7 @@ def list_candidate_objects(context):
 
 
 # List All Canvases
-def list_canvases(context):
+def list_canvases():
     canvas = []
     for obj in bpy.data.objects:
         if "Boolean Canvas" in obj:
@@ -61,9 +61,9 @@ def list_canvas_cutters(canvas):
 
 
 # List Modifiers that Use Context Cutters
-def list_cutter_modifiers(context, canvases, cutters):
+def list_cutter_modifiers(canvases, cutters):
     if not canvases:
-        canvases = list_canvases(context)
+        canvases = list_canvases()
 
     modifiers = []
     for obj in canvases:
@@ -76,7 +76,7 @@ def list_cutter_modifiers(context, canvases, cutters):
 
 
 # List All Slices
-def list_slices(self, context, brushes):
+def list_slices(context, brushes):
     slices = []
     for obj in context.view_layer.objects:
         if "Boolean Slice" in obj:
@@ -88,9 +88,9 @@ def list_slices(self, context, brushes):
 
 
 # List Context Cutter Users (Canvases)
-def list_cutter_users(context, cutters):
+def list_cutter_users(cutters):
     cutter_users = []
-    canvas = list_canvases(context)
+    canvas = list_canvases()
     for obj in canvas:
         for modifier in obj.modifiers:
             if modifier.type == "BOOLEAN" and modifier.object in cutters:
@@ -115,13 +115,13 @@ def add_boolean_modifier(canvas, cutter, mode, apply=False):
 
 
 # Set Object Visibility
-def object_visibility_set(ob, value=False):
-    ob.visible_camera = value
-    ob.visible_diffuse = value
-    ob.visible_glossy = value
-    ob.visible_shadow = value
-    ob.visible_transmission = value
-    ob.visible_volume_scatter = value
+def object_visibility_set(obj, value=False):
+    obj.visible_camera = value
+    obj.visible_diffuse = value
+    obj.visible_glossy = value
+    obj.visible_shadow = value
+    obj.visible_transmission = value
+    obj.visible_volume_scatter = value
 
 
 # Convert to Mesh
