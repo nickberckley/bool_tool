@@ -12,38 +12,24 @@ from .functions import (
 class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
     bl_idname = "object.boolean_cutter_select"
     bl_label = "Select Boolean Cutter"
-    bl_description = ("Select object that is used as boolean cutter by this modifier. \n"
-                    "Shift-Click to preserve current selection and make cutter object active")
+    bl_description = "Select object that is used as boolean cutter by this modifier"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.mode == 'OBJECT' and bpy.context.active_object.type == 'MESH'
-
-    extend: bpy.props.BoolProperty(
-        name = "Extend Selection",
-        default = False,
-    )
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
 
     def execute(self, context):
         if context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER':
             modifier = context.object.modifiers.active
             if modifier and modifier.type == "BOOLEAN":
                 cutter = modifier.object
-                
-                # deselect_everything
-                if not self.extend:
-                    bpy.ops.object.select_all(action='DESELECT')
 
-                # select_cutter
+                bpy.ops.object.select_all(action='DESELECT')
                 cutter.select_set(True)
                 context.view_layer.objects.active = cutter
 
         return {"FINISHED"}
-
-    def invoke(self, context, event):
-        self.extend = event.shift
-        return self.execute(context)
 
 
 # Duplicate Modifier for Duplicated Cutters
