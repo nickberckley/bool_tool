@@ -3,9 +3,9 @@ import bpy
 
 #### ------------------------------ MENUS ------------------------------ ####
 
-class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
+class VIEW3D_MT_boolean(bpy.types.Menu):
     bl_label = "Boolean"
-    bl_idname = "VIEW3D_MT_bool_tool_menu"
+    bl_idname = "VIEW3D_MT_boolean"
 
     def draw(self, context):
         layout = self.layout
@@ -42,7 +42,7 @@ class VIEW3D_MT_bool_tool_menu(bpy.types.Menu):
 def bool_tool_menu(self, context):
     layout = self.layout
     layout.separator()
-    layout.menu('VIEW3D_MT_bool_tool_menu')
+    layout.menu('VIEW3D_MT_boolean')
 
 
 
@@ -50,9 +50,9 @@ def bool_tool_menu(self, context):
 
 addon_keymaps = []
 
-classes = (
-    VIEW3D_MT_bool_tool_menu,
-)
+classes = [
+    VIEW3D_MT_boolean,
+]
 
 def register():
     for cls in classes:
@@ -65,7 +65,7 @@ def register():
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
     kmi = km.keymap_items.new("wm.call_menu", 'B', 'PRESS', ctrl=True, shift=True)
-    kmi.properties.name = "VIEW3D_MT_bool_tool_menu"
+    kmi.properties.name = "VIEW3D_MT_boolean"
     kmi.active = True
     addon_keymaps.append(km)
 

@@ -27,5 +27,5 @@ def register():
 
 def unregister():
     bool_tool.unregister()
-    ui.register()
+    ui.unregister()
     utilities.unregister()
