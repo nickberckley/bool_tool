@@ -511,22 +511,23 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 addon_keymaps = []
 
 classes = (
+    OBJECT_OT_boolean_brush_union,
+    OBJECT_OT_boolean_brush_difference,
+    OBJECT_OT_boolean_brush_intersect,
+    OBJECT_OT_boolean_brush_slice,
+
     OBJECT_OT_boolean_auto_union,
     OBJECT_OT_boolean_auto_difference,
     OBJECT_OT_boolean_auto_intersect,
     OBJECT_OT_boolean_auto_slice,
     
     OBJECT_OT_toggle_boolean_brush,
-    OBJECT_OT_toggle_boolean_all,
     OBJECT_OT_remove_boolean_brush,
+    OBJECT_OT_apply_boolean_brush,
+
+    OBJECT_OT_toggle_boolean_all,
     OBJECT_OT_remove_boolean_all,
     OBJECT_OT_apply_boolean_all,
-    OBJECT_OT_apply_boolean_brush,
-    
-    OBJECT_OT_boolean_brush_union,
-    OBJECT_OT_boolean_brush_difference,
-    OBJECT_OT_boolean_brush_intersect,
-    OBJECT_OT_boolean_brush_slice,
 )
 
 def register():

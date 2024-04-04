@@ -27,9 +27,9 @@ class VIEW3D_MT_boolean(bpy.types.Menu):
         active_object = context.active_object
         if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
             layout.separator()
-            layout.operator('object.toggle_boolean_all', text="Toggle All")
-            layout.operator('object.apply_boolean_all', text="Apply All")
-            layout.operator('object.remove_boolean_all', text="Remove All")
+            layout.operator('object.toggle_boolean_all', text="Toggle All Cuters")
+            layout.operator('object.apply_boolean_all', text="Apply All Cutters")
+            layout.operator('object.remove_boolean_all', text="Remove All Cutters")
 
         # cutter_operators
         if "Boolean Brush" in active_object:
