@@ -7,8 +7,8 @@ import bpy
 def list_candidate_objects(context):
     brushes = []
     for obj in context.selected_objects:
-        if obj != context.active_object and (obj.type == "MESH" or obj.type == "CURVE"):
-            if obj.type == "CURVE":
+        if obj != context.active_object and obj.type in ("MESH", "CURVE", "FONT"):
+            if obj.type in ("CURVE", "FONT"):
                 if obj.data.bevel_depth != 0 or obj.data.extrude != 0:
                     convert_to_mesh(context, obj)
                     brushes.append(obj)
