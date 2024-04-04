@@ -45,6 +45,18 @@ def bool_tool_menu(self, context):
     layout.menu('VIEW3D_MT_boolean')
 
 
+def boolean_select_menu(self, context):
+    layout = self.layout
+    active_obj = context.active_object
+    if active_obj:
+        if "Boolean Canvas" in active_obj or "Boolean Brush" in active_obj:
+            layout.separator()
+
+        if "Boolean Canvas" in active_obj:
+            layout.operator('object.select_boolean_all', text="Select Boolean Cutters")
+        if "Boolean Brush" in active_obj:
+            layout.operator('object.select_cutter_canvas', text="Select Boolean Canvas")
+
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
@@ -60,6 +72,7 @@ def register():
     
     # MENU
     bpy.types.VIEW3D_MT_object.append(bool_tool_menu)
+    bpy.types.VIEW3D_MT_select_object.append(boolean_select_menu)
 
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
@@ -76,6 +89,7 @@ def unregister():
 
     # MENU
     bpy.types.VIEW3D_MT_object.remove(bool_tool_menu)
+    bpy.types.VIEW3D_MT_select_object.remove(boolean_select_menu)
 
     # KEYMAP
     for km in addon_keymaps:

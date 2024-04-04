@@ -16,6 +16,7 @@ from . import (
     ui,
     utilities,
 )
+from .operators import select
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
@@ -24,8 +25,10 @@ def register():
     bool_tool.register()
     ui.register()
     utilities.register()
+    select.register()
 
 def unregister():
     bool_tool.unregister()
     ui.unregister()
     utilities.unregister()
+    select.register()
