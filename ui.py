@@ -1,42 +1,88 @@
 import bpy
 
 
+def boolean_operators_menu(self, context):
+    layout = self.layout
+    col = layout.column(align=True)
+
+    col.label(text="Auto Boolean")
+    col.operator('object.bool_tool_auto_difference', text="Difference", icon="SELECT_SUBTRACT")
+    col.operator('object.bool_tool_auto_union', text="Union", icon="SELECT_EXTEND")
+    col.operator('object.bool_tool_auto_intersect', text="Intersect", icon="SELECT_INTERSECT")
+    col.operator('object.bool_tool_auto_slice', text="Slice", icon="SELECT_DIFFERENCE")
+
+    col.separator()
+    col.label(text="Brush Boolean")
+    col.operator('object.bool_tool_brush_difference', text="Difference", icon="SELECT_SUBTRACT")
+    col.operator('object.bool_tool_brush_union', text="Union", icon="SELECT_EXTEND")
+    col.operator('object.bool_tool_brush_intersect', text="Intersect", icon="SELECT_INTERSECT")
+    col.operator('object.bool_tool_brush_slice', text="Slice", icon="SELECT_DIFFERENCE")
+
+
+def boolean_extras_menu(self, context):
+    layout = self.layout
+    col = layout.column(align=True)
+
+    # canvas_operators
+    active_object = context.active_object
+    if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
+        col.separator()
+        col.operator('object.toggle_boolean_all', text="Toggle All Cuters")
+        col.operator('object.apply_boolean_all', text="Apply All Cutters")
+        col.operator('object.remove_boolean_all', text="Remove All Cutters")
+
+    # cutter_operators
+    if "Boolean Brush" in active_object:
+        col.separator()
+        col.operator('object.toggle_boolean_brush', text="Toggle Cutter")
+        col.operator('object.apply_boolean_brush', text="Apply Cutter")
+        col.operator('object.remove_boolean_brush', text="Remove Cutter")
+
+
+
+#### ------------------------------ PANELS ------------------------------ ####
+
+# Boolean Operators Panel
+class VIEW3D_PT_boolean(bpy.types.Panel):
+    bl_label = "Boolean"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Edit"
+    bl_context = "objectmode"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        boolean_operators_menu(self, context)
+
+
+# Properties Panel
+class VIEW3D_PT_boolean_properties(bpy.types.Panel):
+    bl_label = "Properties"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Edit"
+    bl_context = "objectmode"
+    bl_parent_id = "VIEW3D_PT_boolean"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object and ("Boolean Brush" in context.active_object or "Boolean Canvas" in context.active_object)
+
+    def draw(self, context):
+        boolean_extras_menu(self, context)
+
+
+
 #### ------------------------------ MENUS ------------------------------ ####
 
+# Object Mode Menu
 class VIEW3D_MT_boolean(bpy.types.Menu):
     bl_label = "Boolean"
     bl_idname = "VIEW3D_MT_boolean"
 
     def draw(self, context):
-        layout = self.layout
-
-        layout.label(text="Auto Boolean")
-        layout.operator('object.bool_tool_auto_difference', text="Difference", icon="SELECT_SUBTRACT")
-        layout.operator('object.bool_tool_auto_union', text="Union", icon="SELECT_EXTEND")
-        layout.operator('object.bool_tool_auto_intersect', text="Intersect", icon="SELECT_INTERSECT")
-        layout.operator('object.bool_tool_auto_slice', text="Slice", icon="SELECT_DIFFERENCE")
-
-        layout.separator()
-        layout.label(text="Brush Boolean")
-        layout.operator('object.bool_tool_brush_difference', text="Difference", icon="SELECT_SUBTRACT")
-        layout.operator('object.bool_tool_brush_union', text="Union", icon="SELECT_EXTEND")
-        layout.operator('object.bool_tool_brush_intersect', text="Intersect", icon="SELECT_INTERSECT")
-        layout.operator('object.bool_tool_brush_slice', text="Slice", icon="SELECT_DIFFERENCE")
-
-        # canvas_operators
-        active_object = context.active_object
-        if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
-            layout.separator()
-            layout.operator('object.toggle_boolean_all', text="Toggle All Cuters")
-            layout.operator('object.apply_boolean_all', text="Apply All Cutters")
-            layout.operator('object.remove_boolean_all', text="Remove All Cutters")
-
-        # cutter_operators
-        if "Boolean Brush" in active_object:
-            layout.separator()
-            layout.operator('object.toggle_boolean_brush', text="Toggle Cutter")
-            layout.operator('object.apply_boolean_brush', text="Apply Cutter")
-            layout.operator('object.remove_boolean_brush', text="Remove Cutter")
+        boolean_operators_menu(self, context)
+        boolean_extras_menu(self, context)
 
 
 def bool_tool_menu(self, context):
@@ -64,6 +110,8 @@ addon_keymaps = []
 
 classes = [
     VIEW3D_MT_boolean,
+    VIEW3D_PT_boolean,
+    VIEW3D_PT_boolean_properties,
 ]
 
 def register():
