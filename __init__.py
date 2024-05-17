@@ -13,6 +13,7 @@ bl_info = {
 import bpy
 from . import (
     bool_tool,
+    preferences,
     ui,
     utilities,
 )
@@ -23,12 +24,16 @@ from .operators import select
 
 def register():
     bool_tool.register()
+    preferences.register()
     ui.register()
     utilities.register()
+
     select.register()
 
 def unregister():
     bool_tool.unregister()
+    preferences.unregister()
     ui.unregister()
     utilities.unregister()
+
     select.register()
