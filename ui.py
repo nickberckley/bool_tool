@@ -1,6 +1,25 @@
 import bpy
 
 
+# #### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def update_sidebar_category(self, context):
+    try:
+        bpy.utils.unregister_class(VIEW3D_PT_boolean)
+        bpy.utils.unregister_class(VIEW3D_PT_boolean_properties)
+    except:
+        pass
+
+    VIEW3D_PT_boolean.bl_category = self.sidebar_category
+    bpy.utils.register_class(VIEW3D_PT_boolean)
+    
+    VIEW3D_PT_boolean_properties.bl_category = self.sidebar_category
+    bpy.utils.register_class(VIEW3D_PT_boolean_properties)
+
+
+
+# #### ------------------------------ UI ------------------------------ ####
+
 def boolean_operators_menu(self, context):
     layout = self.layout
     col = layout.column(align=True)
@@ -51,6 +70,11 @@ class VIEW3D_PT_boolean(bpy.types.Panel):
     bl_context = "objectmode"
     bl_options = {'DEFAULT_CLOSED'}
 
+    @classmethod
+    def poll(cls, context):
+        preferences = bpy.context.preferences.addons[__package__].preferences
+        return preferences.show_in_sidebar
+
     def draw(self, context):
         boolean_operators_menu(self, context)
 
@@ -66,7 +90,8 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object and ("Boolean Brush" in context.active_object or "Boolean Canvas" in context.active_object)
+        preferences = bpy.context.preferences.addons[__package__].preferences
+        return preferences.show_in_sidebar and context.active_object and ("Boolean Brush" in context.active_object or "Boolean Canvas" in context.active_object)
 
     def draw(self, context):
         boolean_extras_menu(self, context)
@@ -104,6 +129,7 @@ def boolean_select_menu(self, context):
             layout.operator('object.select_cutter_canvas', text="Select Boolean Canvas")
 
 
+
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 addon_keymaps = []
@@ -117,6 +143,10 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    # sidebar_category
+    prefs = bpy.context.preferences.addons[__package__].preferences
+    update_sidebar_category(prefs, bpy.context)
     
     # MENU
     bpy.types.VIEW3D_MT_object.append(bool_tool_menu)
