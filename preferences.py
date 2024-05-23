@@ -1,6 +1,7 @@
 import bpy
 from .ui import update_sidebar_category
 
+
 #### ------------------------------ PREFERENCES ------------------------------ ####
 
 class BoolToolPreferences(bpy.types.AddonPreferences):
@@ -17,6 +18,9 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         description = "Set sidebar category name. You can type in name of the existing category and panel will be added there, instead of creating new category.",
         default = "Edit",
         update = update_sidebar_category,
+    )
+    boolean_cutters_active_index: bpy.props.IntProperty(
+        default = -1,
     )
 
     def draw(self, context):
