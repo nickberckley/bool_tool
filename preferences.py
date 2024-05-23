@@ -26,10 +26,6 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = False,
     )
 
-    boolean_cutters_active_index: bpy.props.IntProperty(
-        default = -1,
-    )
-
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True

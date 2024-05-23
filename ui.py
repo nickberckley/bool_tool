@@ -118,9 +118,8 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
         return preferences.show_in_sidebar and context.active_object and is_canvas(context.active_object)
 
     def draw(self, context):
-        preferences = bpy.context.preferences.addons[__package__].preferences
         canvas = context.active_object
-        active_index = preferences.boolean_cutters_active_index - 1
+        active_index = canvas.bool_tool.cutters_active_index
         active_cutter = canvas.bool_tool.cutters[active_index].cutter
 
         # ui_list
@@ -130,8 +129,8 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
             list_id = "Boolean Cutters",
             dataptr = canvas,
             propname = "modifiers",
-            active_dataptr = preferences,
-            active_propname = "boolean_cutters_active_index",
+            active_dataptr = canvas.bool_tool,
+            active_propname = "cutters_active_index",
             rows = 4,
         )
 

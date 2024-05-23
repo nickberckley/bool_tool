@@ -27,6 +27,9 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
     cutters: bpy.props.CollectionProperty(
         type = BooleanCutters,
     )
+    cutters_active_index: bpy.props.IntProperty(
+        default = -1,
+    )
 
 
 
