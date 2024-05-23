@@ -85,7 +85,10 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.app.handlers.depsgraph_update_pre.append(duplicate_boolean_modifier)
+    # HANDLER
+    preferences = bpy.context.preferences.addons[__package__].preferences
+    if preferences.experimental:
+        bpy.app.handlers.depsgraph_update_pre.append(duplicate_boolean_modifier)
 
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
@@ -99,7 +102,10 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    bpy.app.handlers.depsgraph_update_pre.remove(duplicate_boolean_modifier)
+    # HANDLER
+    preferences = bpy.context.preferences.addons[__package__].preferences
+    if preferences.experimental:
+        bpy.app.handlers.depsgraph_update_pre.remove(duplicate_boolean_modifier)
 
     # KEYMAP
     for km in addon_keymaps:

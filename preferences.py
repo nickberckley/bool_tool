@@ -19,6 +19,13 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = "Edit",
         update = update_sidebar_category,
     )
+    experimental: bpy.props.BoolProperty(
+        name = "Experimental",
+        description = "Enable experimental features./n"
+                    "WARNING: Only do that if you're aware of what those features are. They can damage your scene",
+        default = False,
+    )
+
     boolean_cutters_active_index: bpy.props.IntProperty(
         default = -1,
     )
@@ -36,6 +43,9 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         sub = sub.row(align=True)
         sub.active = self.show_in_sidebar
         sub.prop(self, "sidebar_category", text="")
+
+        # experimental
+        layout.prop(self, "experimental")
 
 
 
