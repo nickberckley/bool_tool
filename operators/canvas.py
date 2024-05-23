@@ -25,6 +25,18 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
         brushes, modifiers = list_canvas_cutters(canvas)
 
+        # toggle_modifiers
+        for mod in modifiers:
+            mod.show_viewport = not mod.show_viewport
+            mod.show_render = not mod.show_render
+
+        # list_cutters_only_used_by_active_canvas
+        other_canvas = list_canvases()
+        for obj in other_canvas:
+            if obj not in canvas:
+                if any(modifier.object in brushes and modifier.show_viewport for modifier in obj.modifiers):
+                    brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
+
         # toggle_cutters_visibility
         for brush in brushes:
             brush.hide_viewport = not brush.hide_viewport
