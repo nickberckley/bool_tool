@@ -1,5 +1,6 @@
 import bpy
 from ..functions import (
+    basic_poll,
     object_visibility_set,
     list_canvases,
     list_selected_cutters,
@@ -14,7 +15,7 @@ from ..functions import (
 class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_brush"
     bl_label = "Toggle Boolean Cutter"
-    bl_description = "Toggles the selected boolean cutter effect on the canvas objects"
+    bl_description = "Toggle this boolean cutter. If cutter isn't the active object it will be toggled for every canvas that uses it"
     bl_options = {"UNDO"}
 
     specified_cutter: bpy.props.StringProperty(
@@ -22,7 +23,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     def execute(self, context):
         canvas = list_canvases()
@@ -47,6 +48,9 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
                             modifier.show_viewport = not modifier.show_viewport
                             modifier.show_render = not modifier.show_render
 
+        else:
+            self.report({'INFO'}, "No boolean cutters are selected")
+
         return {"FINISHED"}
 
 
@@ -54,7 +58,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
 class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
     bl_idname = "object.remove_boolean_brush"
     bl_label = "Remove Boolean Cutter"
-    bl_description = "Removes boolean cutter properties from selected canvases"
+    bl_description = "Remove this boolean cutter. If cutter isn't the active object it will be removed from every canvas that uses it"
     bl_options = {"UNDO"}
 
     specified_cutter: bpy.props.StringProperty(
@@ -62,7 +66,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     def execute(self, context):
         canvas = list_canvases()
@@ -108,6 +112,9 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 
             # purge_empty_collection
             delete_empty_collection()
+
+        else:
+            self.report({'INFO'}, "No boolean cutters are selected")
         
         return {"FINISHED"}
 
@@ -116,7 +123,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
     bl_idname = "object.apply_boolean_brush"
     bl_label = "Apply Boolean Cutter"
-    bl_description = "Apply this boolean cutter to the every canvas that uses it"
+    bl_description = "Apply this boolean cutter. If cutter isn't the active object it will be applied to every canvas that uses it"
     bl_options = {"UNDO"}
 
     specified_cutter: bpy.props.StringProperty(
@@ -124,7 +131,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     def execute(self, context):
         canvas = list_canvases()
@@ -159,6 +166,9 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 
             # purge_empty_collection
             delete_empty_collection()
+
+        else:
+            self.report({'INFO'}, "No boolean cutters are selected")
 
         return {"FINISHED"}
 

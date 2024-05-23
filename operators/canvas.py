@@ -1,5 +1,6 @@
 import bpy, itertools
 from ..functions import (
+    basic_poll,
     is_canvas,
     object_visibility_set,
     list_canvases,
@@ -15,12 +16,12 @@ from ..functions import (
 class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_all"
     bl_label = "Toggle Boolean Cutters"
-    bl_description = "Toggle all boolean cutters affecting active object"
+    bl_description = "Toggle all boolean cutters affecting selected canvases"
     bl_options = {"UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
+        return basic_poll(context) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
@@ -49,12 +50,12 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     bl_idname = "object.remove_boolean_all"
     bl_label = "Remove Boolean Cutters"
-    bl_description = "Remove all boolean cutters affecting active object"
+    bl_description = "Remove all boolean cutters from selected canvases"
     bl_options = {"UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
+        return basic_poll(context) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
@@ -108,12 +109,12 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     bl_idname = "object.apply_boolean_all"
     bl_label = "Apply All Boolean Cutters"
-    bl_description = "Apply all boolean cutters of selected canvas objects"
+    bl_description = "Apply all boolean cutters on selected canvases"
     bl_options = {"UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
+        return basic_poll(context) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
@@ -168,7 +169,7 @@ class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     def execute(self, context):
         if context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER':

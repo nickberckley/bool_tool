@@ -1,6 +1,7 @@
 import bpy
 from .. import __package__ as base_package
 from ..functions import (
+    basic_poll,
     add_boolean_modifier,
     object_visibility_set,
     list_candidate_objects,
@@ -99,12 +100,12 @@ class BrushBoolean():
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_union"
     bl_label = "Boolean Cutter Union"
-    bl_description = "Add boolean cutter to the active object set to Union"
+    bl_description = "Merge selected objects into active one"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "UNION"
 
@@ -112,12 +113,12 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_intersect"
     bl_label = "Boolean Cutter Intersection"
-    bl_description = "Add boolean cutter to the active object set to Intersect"
+    bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "INTERSECT"
 
@@ -125,12 +126,12 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_difference"
     bl_label = "Boolean Cutter Difference"
-    bl_description = "Add boolean cutter to the active object set to Difference"
+    bl_description = "Subtract selected objects from active one"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "DIFFERENCE"
 
@@ -138,12 +139,12 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_slice"
     bl_label = "Boolean Cutter Slice"
-    bl_description = "Add boolean cutter to the active object set to Slice"
+    bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and bpy.context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "SLICE"
 
@@ -177,12 +178,12 @@ class AutoBoolean:
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_union"
     bl_label = "Boolean Union"
-    bl_description = "Merge selected objects into active one with union boolean"
+    bl_description = "Merge selected objects into active one"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "UNION"
 
@@ -190,12 +191,12 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_difference"
     bl_label = "Boolean Difference"
-    bl_description = "Subtract selected objects from active one using difference boolean"
+    bl_description = "Subtract selected objects from active one"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "DIFFERENCE"
 
@@ -203,12 +204,12 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_intersect"
     bl_label = "Boolean Intersect"
-    bl_description = "Use intersect boolean to keep only parts of active object that are interesecting selected objects"
+    bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     mode = "INTERSECT"
 
@@ -216,12 +217,12 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     bl_idname = "object.bool_tool_auto_slice"
     bl_label = "Boolean Slice"
-    bl_description = "Slice active object along the selected objects with boolean operators. Will create slices as separate objects"
+    bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT'
+        return basic_poll(context)
 
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences

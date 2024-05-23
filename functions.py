@@ -1,6 +1,15 @@
 import bpy
 
 
+#### ------------------------------ /polls/ ------------------------------ ####
+
+def basic_poll(context):
+    if context.mode == 'OBJECT':
+        if context.active_object is not None:
+            if context.active_object.type == 'MESH':
+                return True
+
+
 def is_canvas(obj):
     if obj.bool_tool.canvas == False:
         return False
