@@ -35,6 +35,7 @@ class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
 # Duplicate Modifier for Duplicated Cutters
 @persistent
 def duplicate_boolean_modifier(scene, depsgraph):
+    prefs = bpy.context.preferences.addons[__package__].preferences
     if bpy.context.active_object and bpy.context.active_object.type == "MESH":
         cutters = list_selected_cutters(bpy.context)
 
@@ -69,7 +70,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
                     if not any(modifier.object == cutter for modifier in canvas.modifiers):
                         for modifier in canvas.modifiers:
                             if modifier.type == "BOOLEAN" and modifier.object in original_cutters:
-                                add_boolean_modifier(canvas, cutter, modifier.operation)
+                                add_boolean_modifier(canvas, cutter, modifier.operation, prefs.solver)
 
 
 
@@ -86,8 +87,8 @@ def register():
         bpy.utils.register_class(cls)
 
     # HANDLER
-    preferences = bpy.context.preferences.addons[__package__].preferences
-    if preferences.experimental:
+    prefs = bpy.context.preferences.addons[__package__].preferences
+    if prefs.experimental:
         bpy.app.handlers.depsgraph_update_pre.append(duplicate_boolean_modifier)
 
     # KEYMAP
@@ -103,8 +104,8 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     # HANDLER
-    preferences = bpy.context.preferences.addons[__package__].preferences
-    if preferences.experimental:
+    prefs = bpy.context.preferences.addons[__package__].preferences
+    if prefs.experimental:
         bpy.app.handlers.depsgraph_update_pre.remove(duplicate_boolean_modifier)
 
     # KEYMAP

@@ -77,8 +77,8 @@ class VIEW3D_PT_boolean(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        preferences = bpy.context.preferences.addons[__package__].preferences
-        return preferences.show_in_sidebar
+        prefs = bpy.context.preferences.addons[__package__].preferences
+        return prefs.show_in_sidebar
 
     def draw(self, context):
         boolean_operators_menu(self, context)
@@ -95,8 +95,8 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        preferences = bpy.context.preferences.addons[__package__].preferences
-        return (preferences.show_in_sidebar and context.active_object
+        prefs = bpy.context.preferences.addons[__package__].preferences
+        return (prefs.show_in_sidebar and context.active_object
                     and (is_canvas(context.active_object) or context.active_object.bool_tool.cutter))
 
     def draw(self, context):
@@ -114,8 +114,8 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        preferences = bpy.context.preferences.addons[__package__].preferences
-        return preferences.show_in_sidebar and context.active_object and is_canvas(context.active_object)
+        prefs = bpy.context.preferences.addons[__package__].preferences
+        return prefs.show_in_sidebar and context.active_object and is_canvas(context.active_object)
 
     def draw(self, context):
         canvas = context.active_object

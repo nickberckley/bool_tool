@@ -114,10 +114,11 @@ def list_cutter_users(cutters):
 #### ------------------------------ /set_properties/ ------------------------------ ####
 
 # Add Boolean Modifier
-def add_boolean_modifier(canvas, cutter, mode, apply=False):
+def add_boolean_modifier(canvas, cutter, mode, solver, apply=False):
     modifier = canvas.modifiers.new("boolean_" + cutter.name, "BOOLEAN")
     modifier.operation = mode
     modifier.object = cutter
+    modifier.solver = solver
 
     if apply:
         context_override = {'object': canvas}

@@ -19,6 +19,15 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = "Edit",
         update = update_sidebar_category,
     )
+
+    solver: bpy.props.EnumProperty(
+        name = "Boolean Solver",
+        description = "Which solver to use for automatic and brush booleans",
+        items = [('FAST', 'Fast', ''),
+                 ('EXACT', 'Exact', '')],
+        default = 'EXACT',
+    )
+
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
         description = "Enable experimental features./n"
@@ -40,7 +49,13 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         sub.active = self.show_in_sidebar
         sub.prop(self, "sidebar_category", text="")
 
+        # preferences
+        layout.separator()
+        row = layout.row(align=True)
+        row.prop(self, "solver", text="Solver", expand=True)
+
         # experimental
+        layout.separator()
         layout.prop(self, "experimental")
 
 
