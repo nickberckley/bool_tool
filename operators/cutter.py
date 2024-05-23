@@ -3,6 +3,7 @@ from ..functions import (
     object_visibility_set,
     list_canvases,
     list_selected_cutters,
+    list_canvas_cutters,
 )
 
 
@@ -85,6 +86,11 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                     if slice_obj:
                         bpy.data.objects.remove(obj)
 
+                # remove_canvas_property_if_needed
+                cutters, __ = list_canvas_cutters([obj])
+                if len(cutters) == 0:
+                    obj.bool_tool.canvas = False
+
             for brush in brushes:
                 # restore_visibility
                 brush.display_type = "TEXTURED"
@@ -135,6 +141,11 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                             except:
                                 context.active_object.data = context.active_object.data.copy()
                                 bpy.ops.object.modifier_apply(modifier=mod.name)
+
+                # remove_canvas_property_if_needed
+                cutters, __ = list_canvas_cutters([obj])
+                if len(cutters) == 0:
+                    obj.bool_tool.canvas = False
 
             # purge_orphaned_brushes
             for brush in brushes:
