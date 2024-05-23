@@ -153,3 +153,10 @@ def convert_to_mesh(context, brush):
     for obj in context.selected_objects:
         obj.select_set(True)
     context.view_layer.objects.active = stored_active
+
+
+# Delete Empty Collection
+def delete_empty_collection():
+    collection = bpy.data.collections.get("boolean_cutters")
+    if not collection.objects:
+        bpy.data.collections.remove(collection)

@@ -4,6 +4,7 @@ from ..functions import (
     list_canvases,
     list_selected_cutters,
     list_canvas_cutters,
+    delete_empty_collection,
 )
 
 
@@ -104,6 +105,9 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                 cutters_collection = bpy.data.collections.get("boolean_cutters")
                 if cutters_collection in brush.users_collection:
                     bpy.data.collections.get("boolean_cutters").objects.unlink(brush)
+
+            # purge_empty_collection
+            delete_empty_collection()
         
         return {"FINISHED"}
 
@@ -152,6 +156,9 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                 orphaned_mesh = brush.data
                 bpy.data.objects.remove(brush)
                 bpy.data.meshes.remove(orphaned_mesh)
+
+            # purge_empty_collection
+            delete_empty_collection()
 
         return {"FINISHED"}
 
