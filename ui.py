@@ -49,14 +49,14 @@ def boolean_extras_menu(self, context):
 
     # canvas_operators
     active_object = context.active_object
-    if "Boolean Canvas" in active_object and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
+    if active_object.bool_tool.canvas == True and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
         col.separator()
         col.operator('object.toggle_boolean_all', text="Toggle All Cuters")
         col.operator('object.apply_boolean_all', text="Apply All Cutters")
         col.operator('object.remove_boolean_all', text="Remove All Cutters")
 
     # cutter_operators
-    if "Boolean Brush" in active_object:
+    if active_object.bool_tool.cutter:
         col.separator()
         col.operator('object.toggle_boolean_brush', text="Toggle Cutter")
         col.operator('object.apply_boolean_brush', text="Apply Cutter")
@@ -96,7 +96,8 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         preferences = bpy.context.preferences.addons[__package__].preferences
-        return preferences.show_in_sidebar and context.active_object and is_canvas(context.active_object)
+        return (preferences.show_in_sidebar and context.active_object
+                    and (is_canvas(context.active_object) or context.active_object.bool_tool.cutter))
 
     def draw(self, context):
         boolean_extras_menu(self, context)
@@ -163,12 +164,12 @@ def boolean_select_menu(self, context):
     layout = self.layout
     active_obj = context.active_object
     if active_obj:
-        if "Boolean Canvas" in active_obj or "Boolean Brush" in active_obj:
+        if active_obj.bool_tool.canvas == True or active_obj.bool_tool.cutter:
             layout.separator()
 
-        if "Boolean Canvas" in active_obj:
+        if active_obj.bool_tool.canvas == True:
             layout.operator('object.select_boolean_all', text="Select Boolean Cutters")
-        if "Boolean Brush" in active_obj:
+        if active_obj.bool_tool.cutter:
             layout.operator('object.select_cutter_canvas', text="Select Boolean Canvas")
 
 
@@ -213,7 +214,7 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
     def get_props_filtered_items(self):
         canvas = bpy.context.object
         filtered_cutters = []
-        if "Boolean Canvas" in canvas:
+        if canvas.bool_tool.canvas == True:
             for modifier in canvas.modifiers:
                 if modifier.type == "BOOLEAN":
                     if not modifier.object:

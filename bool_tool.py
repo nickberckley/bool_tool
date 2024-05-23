@@ -1,5 +1,6 @@
 import bpy, itertools
 from .functions import (
+    is_canvas,
     add_boolean_modifier,
     object_visibility_set,
     list_canvases,
@@ -23,8 +24,8 @@ class BrushBoolean():
             for i in range(len(brushes)):
                 clone = canvas.copy()
                 clone.name = canvas.name + '_slice'
-                clone["Boolean Canvas"] = True
-                clone["Boolean Slice"] = True
+                clone.bool_tool.canvas = True
+                clone.bool_tool.slice = True
                 clone.parent = canvas
                 clone.matrix_parent_inverse = canvas.matrix_world.inverted()
                 context.collection.objects.link(clone)
@@ -80,8 +81,8 @@ class BrushBoolean():
             add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode)
             
             # custom_properties
-            canvas["Boolean Canvas"] = True
-            brush["Boolean Brush"] = self.mode.capitalize()
+            canvas.bool_tool.canvas = True
+            brush.bool_tool.cutter = self.mode.capitalize()
             cutter_index = canvas.bool_tool.cutters.add()
             cutter_index.cutter = brush
             
@@ -286,7 +287,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         if brushes:
             for obj in canvas:
                 # toggle_slices_visibility
-                if "Boolean Slice" in obj:
+                if obj.bool_tool.slice == True:
                     if any(modifier.object in brushes for modifier in obj.modifiers):
                         obj.hide_viewport = not obj.hide_viewport
                         obj.hide_render = not obj.hide_render
@@ -334,7 +335,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                             obj.modifiers.remove(modifier)
 
                 # remove_slices
-                if "Boolean Slice" in obj:
+                if obj.bool_tool.slice == True:
                     if slice_obj:
                         bpy.data.objects.remove(obj)
 
@@ -343,8 +344,8 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                 brush.display_type = "TEXTURED"
                 object_visibility_set(brush, value=True)
                 brush.hide_render = False
-                if "Boolean Brush" in obj:
-                    del brush["Boolean Brush"]
+                if obj.bool_tool.cutter:
+                    obj.bool_tool.cutter = ""
 
                 # remove_parent_&_collection
                 brush.parent = None
@@ -410,10 +411,10 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
 
     def execute(self, context):
-        canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
+        canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
         brushes = list_canvas_cutters(canvas)
 
         # toggle_cutters_visibility
@@ -432,10 +433,10 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
 
     def execute(self, context):
-        canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
+        canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
         brushes = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
@@ -452,8 +453,8 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
                     if modifier.object in brushes:
                         obj.modifiers.remove(modifier)
 
-            if "Boolean Canvas" in obj:
-                del obj["Boolean Canvas"]
+            if obj.bool_tool.canvas == True:
+                obj.bool_tool.canvas == False
                 
         # only_free_cutters_that_other_objects_dont_use
         other_canvas = list_canvases()
@@ -467,8 +468,8 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
             brush.display_type = "TEXTURED"
             object_visibility_set(brush, value=True)
             brush.hide_render = False
-            if "Boolean Brush" in brush:
-                del brush["Boolean Brush"]
+            if brush.bool_tool.cutter:
+                brush.bool_tool.cutter = ""
 
             # remove_parent_&_collection
             brush.parent = None
@@ -488,10 +489,10 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
 
     def execute(self, context):
-        canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
+        canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
         brushes = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
@@ -507,10 +508,10 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
                         bpy.ops.object.modifier_apply(modifier=modifier.name)
 
             # remove_custom_properties
-            if "Boolean Canvas" in obj:
-                del obj["Boolean Canvas"]
-            if "Boolean Slice" in obj:
-                del obj["Boolean Slice"]
+            if obj.bool_tool.canvas == True:
+                obj.bool_tool.canvas = False
+            if obj.bool_tool.slice == True:
+                obj.bool_tool.slice = False
 
         # only_delete_cutters_that_other_objects_dont_use
         other_canvas = list_canvases()
