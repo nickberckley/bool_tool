@@ -1,6 +1,18 @@
 import bpy
 
 
+def is_canvas(obj):
+    if not "Boolean Canvas" in obj:
+        return False
+    else:
+        cutters = list_canvas_cutters([obj])
+        if cutters != 0:
+            return True
+        else:
+            return False
+
+
+
 #### ------------------------------ /list_objects/ ------------------------------ ####
 
 # List Candidate Objects
