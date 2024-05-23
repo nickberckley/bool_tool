@@ -11,32 +11,29 @@ bl_info = {
 }
 
 import bpy
+from .operators import register as operators_register, unregister as operators_unregister
 from . import (
-    bool_tool,
     preferences,
     properties,
     ui,
     utilities,
 )
-from .operators import select
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 def register():
-    bool_tool.register()
     preferences.register()
     properties.register()
     ui.register()
     utilities.register()
 
-    select.register()
+    operators_register()
 
 def unregister():
-    bool_tool.unregister()
     preferences.unregister()
     properties.unregister()
     ui.unregister()
     utilities.unregister()
 
-    select.register()
+    operators_unregister()
