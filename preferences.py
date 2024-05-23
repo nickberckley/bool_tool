@@ -27,6 +27,12 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
                  ('EXACT', 'Exact', '')],
         default = 'EXACT',
     )
+    wireframe: bpy.props.BoolProperty(
+        name = "Display Cutters as Wireframe",
+        description = "When enabled cutters will be displayed as wireframes, instead of bounding boxes./n"
+                    "It's better for visualizating the shape, but might be harder to see and might have performance cost",
+        default = False,
+    )
 
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
@@ -53,6 +59,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         layout.separator()
         row = layout.row(align=True)
         row.prop(self, "solver", text="Solver", expand=True)
+        col = layout.column(align=True)
+        col.prop(self, "wireframe")
 
         # experimental
         layout.separator()

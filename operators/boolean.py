@@ -58,7 +58,7 @@ class BrushBoolean():
         for brush in brushes:
             # hide_brush
             brush.hide_render = True
-            brush.display_type = "BOUNDS"
+            brush.display_type = "WIRE" if prefs.wireframe else "BOUNDS"
             object_visibility_set(brush, value=False)
             brush.parent = canvas
             brush.matrix_parent_inverse = canvas.matrix_world.inverted()
