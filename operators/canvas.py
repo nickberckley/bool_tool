@@ -23,7 +23,7 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
-        brushes = list_canvas_cutters(canvas)
+        brushes, modifiers = list_canvas_cutters(canvas)
 
         # toggle_cutters_visibility
         for brush in brushes:
@@ -45,7 +45,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
-        brushes = list_canvas_cutters(canvas)
+        brushes, __ = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
         # remove_slices
@@ -101,7 +101,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
-        brushes = list_canvas_cutters(canvas)
+        brushes, __ = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
         # apply_modifiers

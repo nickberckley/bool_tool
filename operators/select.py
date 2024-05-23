@@ -45,7 +45,7 @@ class OBJECT_OT_select_boolean_all(bpy.types.Operator):
 
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
-        brushes = list_canvas_cutters(canvas)
+        brushes, __ = list_canvas_cutters(canvas)
 
         # select_cutters
         bpy.ops.object.select_all(action='DESELECT')

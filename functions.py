@@ -5,7 +5,7 @@ def is_canvas(obj):
     if obj.bool_tool.canvas == False:
         return False
     else:
-        cutters = list_canvas_cutters([obj])
+        cutters, __ = list_canvas_cutters([obj])
         if len(cutters) != 0:
             return True
         else:
@@ -61,14 +61,16 @@ def list_selected_cutters(context):
 
 # List Cutters for Context Canvases
 def list_canvas_cutters(canvas):
-    brushes = []
+    cutters = []
+    modifiers = []
     for obj in canvas:
         for modifier in obj.modifiers:
             if modifier.type == "BOOLEAN" and "boolean_" in modifier.name:
                 if modifier.object:
-                    brushes.append(modifier.object)
+                    cutters.append(modifier.object)
+                    modifiers.append(modifier)
 
-    return brushes
+    return cutters, modifiers
 
 
 # List Modifiers that Use Context Cutters
