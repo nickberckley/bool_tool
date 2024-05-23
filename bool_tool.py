@@ -82,6 +82,8 @@ class BrushBoolean():
             # custom_properties
             canvas["Boolean Canvas"] = True
             brush["Boolean Brush"] = self.mode.capitalize()
+            cutter_index = canvas.bool_tool.cutters.add()
+            cutter_index.cutter = brush
             
         bpy.context.view_layer.objects.active = canvas
         return {"FINISHED"}

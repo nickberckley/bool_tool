@@ -14,6 +14,7 @@ import bpy
 from . import (
     bool_tool,
     preferences,
+    properties,
     ui,
     utilities,
 )
@@ -25,6 +26,7 @@ from .operators import select
 def register():
     bool_tool.register()
     preferences.register()
+    properties.register()
     ui.register()
     utilities.register()
 
@@ -33,6 +35,7 @@ def register():
 def unregister():
     bool_tool.unregister()
     preferences.unregister()
+    properties.unregister()
     ui.unregister()
     utilities.unregister()
 
