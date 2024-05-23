@@ -2,7 +2,7 @@ import bpy
 
 
 def is_canvas(obj):
-    if not "Boolean Canvas" in obj:
+    if obj.bool_tool.canvas == False:
         return False
     else:
         cutters = list_canvas_cutters([obj])
@@ -49,11 +49,11 @@ def list_selected_cutters(context):
     if selected_objects:
         for obj in selected_objects:
             if obj != active_object and obj.type == "MESH":
-                if 'Boolean Brush' in obj:
+                if obj.bool_tool.cutter:
                     cutters.append(obj)
 
     if active_object:
-        if 'Boolean Brush' in active_object:
+        if active_object.bool_tool.cutter:
             cutters.append(active_object)
 
     return cutters
@@ -90,7 +90,7 @@ def list_cutter_modifiers(canvases, cutters):
 def list_slices(context, brushes):
     slices = []
     for obj in context.view_layer.objects:
-        if "Boolean Slice" in obj:
+        if obj.bool_tool.slice == True:
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     if any('boolean_' in modifier.name for modifier in obj.modifiers):

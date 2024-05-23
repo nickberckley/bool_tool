@@ -41,7 +41,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
         # find_original_cutter
         original_cutters = []
         for cutter in cutters:
-            if 'Boolean Brush' in cutter:
+            if cutter.bool_tool.cutter:
                 if ".0" in cutter.name:
                     if ".001" in cutter.name:
                         original_name = cutter.name.split('.')[0]
@@ -52,14 +52,14 @@ def duplicate_boolean_modifier(scene, depsgraph):
 
                     for obj in bpy.data.objects:
                         if obj.name == original_name:
-                            if 'Boolean Brush' in obj:
+                            if obj.bool_tool.cutter:
                                 original_cutters.append(obj)
 
         # duplicate_modifiers
         if original_cutters:
             canvases = list_cutter_users(original_cutters)
             for canvas in canvases:
-                if "Boolean Slice" in canvas:
+                if canvas.bool_tool.slice == True:
                     return
                 
                 for cutter in cutters:

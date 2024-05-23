@@ -1,5 +1,6 @@
 import bpy
 from ..functions import (
+    is_canvas,
     list_canvases,
     list_selected_cutters,
     list_canvas_cutters,
@@ -17,7 +18,7 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and "Boolean Brush" in context.active_object
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and context.active_object.bool_tool.cutter
 
     def execute(self, context):
         brushes = list_selected_cutters(context)
@@ -40,10 +41,10 @@ class OBJECT_OT_select_boolean_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and 'Boolean Canvas' in context.active_object
+        return context.active_object is not None and context.active_object.type == 'MESH' and context.mode == 'OBJECT' and is_canvas(context.active_object)
 
     def execute(self, context):
-        canvas = [obj for obj in bpy.context.selected_objects if "Boolean Canvas" in obj]
+        canvas = [obj for obj in bpy.context.selected_objects if obj.bool_tool.canvas == True]
         brushes = list_canvas_cutters(canvas)
 
         # select_cutters
