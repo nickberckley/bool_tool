@@ -6,7 +6,7 @@ def is_canvas(obj):
         return False
     else:
         cutters = list_canvas_cutters([obj])
-        if cutters != 0:
+        if len(cutters) != 0:
             return True
         else:
             return False
@@ -34,10 +34,9 @@ def list_candidate_objects(context):
 def list_canvases():
     canvas = []
     for obj in bpy.data.objects:
-        if "Boolean Canvas" in obj:
-            if len(obj.modifiers) >= 1:
-                if any('BOOLEAN' in modifier.type for modifier in obj.modifiers):
-                    canvas.append(obj)
+        if is_canvas(obj):
+            canvas.append(obj)
+
     return canvas
 
 
