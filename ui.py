@@ -8,6 +8,7 @@ def update_sidebar_category(self, context):
     try:
         bpy.utils.unregister_class(VIEW3D_PT_boolean)
         bpy.utils.unregister_class(VIEW3D_PT_boolean_properties)
+        bpy.utils.unregister_class(VIEW3D_PT_boolean_cutters)
     except:
         pass
 
@@ -16,6 +17,9 @@ def update_sidebar_category(self, context):
 
     VIEW3D_PT_boolean_properties.bl_category = self.sidebar_category
     bpy.utils.register_class(VIEW3D_PT_boolean_properties)
+
+    VIEW3D_PT_boolean_cutters.bl_category = self.sidebar_category
+    bpy.utils.register_class(VIEW3D_PT_boolean_cutters)
 
 
 
@@ -95,14 +99,31 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
         return preferences.show_in_sidebar and context.active_object and is_canvas(context.active_object)
 
     def draw(self, context):
-        preferences = bpy.context.preferences.addons[__package__].preferences
-        canvas = context.active_object
-
-        # operators
         boolean_extras_menu(self, context)
 
+
+# Cutters Panel
+class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
+    bl_label = "Cutters"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Edit"
+    bl_context = "objectmode"
+    bl_parent_id = "VIEW3D_PT_boolean"
+
+    @classmethod
+    def poll(cls, context):
+        preferences = bpy.context.preferences.addons[__package__].preferences
+        return preferences.show_in_sidebar and context.active_object and is_canvas(context.active_object)
+
+    def draw(self, context):
+        preferences = bpy.context.preferences.addons[__package__].preferences
+        canvas = context.active_object
+        active_index = preferences.boolean_cutters_active_index - 1
+        active_cutter = canvas.bool_tool.cutters[active_index].cutter
+
         # ui_list
-        row = self.layout.row()
+        row = self.layout.row(align=False)
         col = row.column()
         col.template_list("VIEW3D_UL_boolean_cutters",
             list_id = "Boolean Cutters",
@@ -112,6 +133,11 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
             active_propname = "boolean_cutters_active_index",
             rows = 4,
         )
+
+        # buttons
+        col = row.column(align=True)
+        col.operator('object.apply_boolean_brush', text="", icon='CHECKMARK').specified_cutter = active_cutter.name
+        col.operator('object.remove_boolean_brush', text="", icon='X').specified_cutter = active_cutter.name
 
 
 
@@ -208,6 +234,7 @@ classes = [
     VIEW3D_UL_boolean_cutters,
     VIEW3D_PT_boolean,
     VIEW3D_PT_boolean_properties,
+    VIEW3D_PT_boolean_cutters,
 ]
 
 def register():
