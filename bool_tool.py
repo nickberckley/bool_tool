@@ -54,6 +54,8 @@ class BrushBoolean():
 
                 # modifiers_on_slices
                 add_boolean_modifier(clone, brush, "INTERSECT")
+                cutter_index = clone.bool_tool.cutters.add()
+                cutter_index.cutter = brush
 
 
         for brush in brushes:
