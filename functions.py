@@ -169,3 +169,41 @@ def delete_empty_collection():
     collection = bpy.data.collections.get("boolean_cutters")
     if not collection.objects:
         bpy.data.collections.remove(collection)
+
+
+# Create Slice
+def create_slice(context, canvas, slices, modifier=False):
+    slice = canvas.copy()
+    context.collection.objects.link(slice)
+    slice.data = canvas.data.copy()
+    slice.name = slice.data.name = canvas.name + "_slice"
+
+    # parent_to_canvas
+    slice.parent = canvas
+    slice.matrix_parent_inverse = canvas.matrix_world.inverted()
+
+    # set_boolean_properties
+    if modifier == True:
+        slice.booleans.canvas = True
+        slice.booleans.slice = True
+    slices.append(slice)
+
+    # add_to_canvas_collections
+    canvas_colls = canvas.users_collection
+    for collection in canvas_colls:
+        if collection != context.view_layer.active_layer_collection.collection:
+            collection.objects.link(slice)
+
+    for coll in slice.users_collection:
+        if coll not in canvas_colls:
+            coll.objects.unlink(slice)
+
+    # remove_other_modifiers
+    for mod in slice.modifiers:
+        if "boolean_" in mod.name:
+            slice.modifiers.remove(mod)
+
+    # add_slices_to_local_view
+    space_data = context.space_data
+    if space_data.local_view:
+        slice.local_view_set(space_data, True)

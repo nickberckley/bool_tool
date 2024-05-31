@@ -5,6 +5,7 @@ from ..functions import (
     add_boolean_modifier,
     object_visibility_set,
     list_candidate_objects,
+    create_slice,
 )
 
 
@@ -18,43 +19,15 @@ class BrushBoolean():
 
         if self.mode == "SLICE":
             # create_slicer_clones
-            clones = []
+            slices = []
             for i in range(len(brushes)):
-                clone = canvas.copy()
-                clone.name = canvas.name + "_slice"
-                clone.booleans.canvas = True
-                clone.booleans.slice = True
-                clone.parent = canvas
-                clone.matrix_parent_inverse = canvas.matrix_world.inverted()
-                context.collection.objects.link(clone)
-                clones.append(clone)
+                create_slice(context, canvas, slices, modifier=True)
 
-                # add_to_canvas_collections
-                canvas_colls = canvas.users_collection
-                for collection in canvas_colls:
-                    if collection != context.view_layer.active_layer_collection.collection:
-                        collection.objects.link(clone)
-
-                for coll in clone.users_collection:
-                    if coll not in canvas_colls:
-                        coll.objects.unlink(clone)
-
-                # remove_other_modifiers
-                for mod in clone.modifiers:
-                    if "boolean_" in mod.name:
-                        clone.modifiers.remove(mod)
-
-            for brush, clone in zip(brushes, clones):
-                # add_slices_to_local_view
-                space_data = context.space_data
-                if space_data.local_view:
-                    clone.local_view_set(space_data, True)
-
+            for brush, slice in zip(brushes, slices):
                 # modifiers_on_slices
-                add_boolean_modifier(clone, brush, "INTERSECT", prefs.solver)
-                cutter_index = clone.booleans.cutters.add()
+                add_boolean_modifier(slice, brush, "INTERSECT", prefs.solver)
+                cutter_index = slice.booleans.cutters.add()
                 cutter_index.cutter = brush
-
 
         for brush in brushes:
             # hide_brush
@@ -158,12 +131,27 @@ class AutoBoolean:
         canvas = bpy.context.active_object
         brushes = list_candidate_objects(context)
 
+        if self.mode == "SLICE":
+            # create_slicer_clones
+            slices = []
+            for i in range(len(brushes)):
+                create_slice(context, canvas, slices)
+
+            for brush, slice in zip(brushes, slices):
+                # modifiers_on_slices
+                add_boolean_modifier(slice, brush, "INTERSECT", prefs.solver, apply=True)
+
         for brush in brushes:
             # add_modifier
-            add_boolean_modifier(canvas, brush, self.mode, prefs.solver, apply=True)
+            mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
+            add_boolean_modifier(canvas, brush, mode, prefs.solver, apply=True)
 
             # delete_brush
             bpy.data.objects.remove(brush)
+
+            if self.mode == "SLICE":
+                slice.select_set(True)
+                context.view_layer.objects.active = slice
 
         return {'FINISHED'}
 
@@ -214,7 +202,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     mode = "INTERSECT"
 
 
-class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
+class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_slice"
     bl_label = "Boolean Slice"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
@@ -224,41 +212,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     def poll(cls, context):
         return basic_poll(context)
 
-    def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
-        canvas = context.active_object
-        brushes = list_candidate_objects(context)
-
-        for brush in brushes:
-            # copy_canvas
-            canvas_copy = canvas.copy()
-            canvas_copy.name = canvas.name + "_slice"
-            canvas_copy.data = canvas.data.copy()
-            canvas_copy.data.name = canvas.data.name + "_slice"
-            for collection in canvas.users_collection:
-                collection.objects.link(canvas_copy)
-
-            # add_to_local_view
-            space_data = context.space_data
-            if space_data.local_view:
-                canvas_copy.local_view_set(space_data, True)
-
-            # add_modifiers
-            add_boolean_modifier(canvas, brush, "DIFFERENCE", prefs.solver, apply=True)
-            add_boolean_modifier(canvas_copy, brush, "INTERSECT", prefs.solver, apply=True)
-
-            bpy.data.objects.remove(brush)
-            canvas_copy.select_set(True)
-            context.view_layer.objects.active = canvas_copy
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        if len(context.selected_objects) < 2:
-            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
-            return {'CANCELLED'}
-
-        return self.execute(context)
+    mode = "SLICE"
 
 
 
