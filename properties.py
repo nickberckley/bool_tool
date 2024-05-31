@@ -25,9 +25,11 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
     )
 
     cutters: bpy.props.CollectionProperty(
+        name = "Cutters",
         type = BooleanCutters,
     )
     cutters_active_index: bpy.props.IntProperty(
+        name = "Active Cutter Index",
         default = -1,
     )
 
@@ -45,7 +47,7 @@ def register():
         bpy.utils.register_class(cls)
 
     # PROPERTY
-    bpy.types.Object.bool_tool = bpy.props.PointerProperty(type = OBJECT_PG_bool_tool)
+    bpy.types.Object.booleans = bpy.props.PointerProperty(type = OBJECT_PG_bool_tool, name="Boolean Tools")
 
 
 def unregister():
@@ -53,4 +55,4 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     # PROPERTY
-    del bpy.types.Object.bool_tool
+    del bpy.types.Object.booleans

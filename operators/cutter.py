@@ -36,7 +36,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         if brushes:
             for obj in canvas:
                 # toggle_slices_visibility
-                if obj.bool_tool.slice == True:
+                if obj.booleans.slice == True:
                     if any(modifier.object in brushes for modifier in obj.modifiers):
                         obj.hide_viewport = not obj.hide_viewport
                         obj.hide_render = not obj.hide_render
@@ -87,22 +87,22 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
                             obj.modifiers.remove(modifier)
 
                 # remove_slices
-                if obj.bool_tool.slice == True:
+                if obj.booleans.slice == True:
                     if slice_obj:
                         bpy.data.objects.remove(obj)
 
                 # remove_canvas_property_if_needed
                 cutters, __ = list_canvas_cutters([obj])
                 if len(cutters) == 0:
-                    obj.bool_tool.canvas = False
+                    obj.booleans.canvas = False
 
             for brush in brushes:
                 # restore_visibility
                 brush.display_type = 'TEXTURED'
                 object_visibility_set(brush, value=True)
                 brush.hide_render = False
-                if obj.bool_tool.cutter:
-                    obj.bool_tool.cutter = ""
+                if obj.booleans.cutter:
+                    obj.booleans.cutter = ""
 
                 # remove_parent_&_collection
                 brush.parent = None
@@ -155,7 +155,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                 # remove_canvas_property_if_needed
                 cutters, __ = list_canvas_cutters([obj])
                 if len(cutters) == 0:
-                    obj.bool_tool.canvas = False
+                    obj.booleans.canvas = False
 
             # purge_orphaned_brushes
             for brush in brushes:

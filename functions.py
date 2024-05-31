@@ -11,7 +11,7 @@ def basic_poll(context):
 
 
 def is_canvas(obj):
-    if obj.bool_tool.canvas == False:
+    if obj.booleans.canvas == False:
         return False
     else:
         cutters, __ = list_canvas_cutters([obj])
@@ -58,11 +58,11 @@ def list_selected_cutters(context):
     if selected_objects:
         for obj in selected_objects:
             if obj != active_object and obj.type == 'MESH':
-                if obj.bool_tool.cutter:
+                if obj.booleans.cutter:
                     cutters.append(obj)
 
     if active_object:
-        if active_object.bool_tool.cutter:
+        if active_object.booleans.cutter:
             cutters.append(active_object)
 
     return cutters
@@ -101,7 +101,7 @@ def list_cutter_modifiers(canvases, cutters):
 def list_slices(context, brushes):
     slices = []
     for obj in context.view_layer.objects:
-        if obj.bool_tool.slice == True:
+        if obj.booleans.slice == True:
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     if any("boolean_" in modifier.name for modifier in obj.modifiers):

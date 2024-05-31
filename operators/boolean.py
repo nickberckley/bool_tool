@@ -22,8 +22,8 @@ class BrushBoolean():
             for i in range(len(brushes)):
                 clone = canvas.copy()
                 clone.name = canvas.name + "_slice"
-                clone.bool_tool.canvas = True
-                clone.bool_tool.slice = True
+                clone.booleans.canvas = True
+                clone.booleans.slice = True
                 clone.parent = canvas
                 clone.matrix_parent_inverse = canvas.matrix_world.inverted()
                 context.collection.objects.link(clone)
@@ -52,7 +52,7 @@ class BrushBoolean():
 
                 # modifiers_on_slices
                 add_boolean_modifier(clone, brush, "INTERSECT", prefs.solver)
-                cutter_index = clone.bool_tool.cutters.add()
+                cutter_index = clone.booleans.cutters.add()
                 cutter_index.cutter = brush
 
 
@@ -81,9 +81,9 @@ class BrushBoolean():
             add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
 
             # custom_properties
-            canvas.bool_tool.canvas = True
-            brush.bool_tool.cutter = self.mode.capitalize()
-            cutter_index = canvas.bool_tool.cutters.add()
+            canvas.booleans.canvas = True
+            brush.booleans.cutter = self.mode.capitalize()
+            cutter_index = canvas.booleans.cutters.add()
             cutter_index.cutter = brush
 
         bpy.context.view_layer.objects.active = canvas

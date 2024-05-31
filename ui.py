@@ -49,14 +49,14 @@ def boolean_extras_menu(self, context):
 
     # canvas_operators
     active_object = context.active_object
-    if active_object.bool_tool.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
+    if active_object.booleans.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
         col.separator()
         col.operator("object.toggle_boolean_all", text="Toggle All Cuters")
         col.operator("object.apply_boolean_all", text="Apply All Cutters")
         col.operator("object.remove_boolean_all", text="Remove All Cutters")
 
     # cutter_operators
-    if active_object.bool_tool.cutter:
+    if active_object.booleans.cutter:
         col.separator()
         col.operator("object.toggle_boolean_brush", text="Toggle Cutter")
         col.operator("object.apply_boolean_brush", text="Apply Cutter")
@@ -97,7 +97,7 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
     def poll(cls, context):
         prefs = bpy.context.preferences.addons[__package__].preferences
         return (prefs.show_in_sidebar and context.active_object
-                    and (is_canvas(context.active_object) or context.active_object.bool_tool.cutter))
+                    and (is_canvas(context.active_object) or context.active_object.booleans.cutter))
 
     def draw(self, context):
         boolean_extras_menu(self, context)
@@ -119,8 +119,8 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
     def draw(self, context):
         canvas = context.active_object
-        active_index = canvas.bool_tool.cutters_active_index
-        active_cutter = canvas.bool_tool.cutters[active_index].cutter
+        active_index = canvas.booleans.cutters_active_index
+        active_cutter = canvas.booleans.cutters[active_index].cutter
 
         # ui_list
         row = self.layout.row(align=False)
@@ -129,7 +129,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
             list_id = "Boolean Cutters",
             dataptr = canvas,
             propname = "modifiers",
-            active_dataptr = canvas.bool_tool,
+            active_dataptr = canvas.booleans,
             active_propname = "cutters_active_index",
             rows = 4,
         )
@@ -163,12 +163,12 @@ def boolean_select_menu(self, context):
     layout = self.layout
     active_obj = context.active_object
     if active_obj:
-        if active_obj.bool_tool.canvas == True or active_obj.bool_tool.cutter:
+        if active_obj.booleans.canvas == True or active_obj.booleans.cutter:
             layout.separator()
 
-        if active_obj.bool_tool.canvas == True:
+        if active_obj.booleans.canvas == True:
             layout.operator("object.select_boolean_all", text="Select Boolean Cutters")
-        if active_obj.bool_tool.cutter:
+        if active_obj.booleans.cutter:
             layout.operator("object.select_cutter_canvas", text="Select Boolean Canvas")
 
 
@@ -213,7 +213,7 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
     def get_props_filtered_items(self):
         canvas = bpy.context.object
         filtered_cutters = []
-        if canvas.bool_tool.canvas == True:
+        if canvas.booleans.canvas == True:
             for modifier in canvas.modifiers:
                 if modifier.type == 'BOOLEAN':
                     if not modifier.object:

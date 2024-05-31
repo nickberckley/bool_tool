@@ -17,23 +17,26 @@ from . import (
     preferences,
     properties,
     ui,
+    versioning,
 )
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 def register():
+    experimental.register()
     preferences.register()
     properties.register()
     ui.register()
-    experimental.register()
+    versioning.register()
 
     operators_register()
 
 def unregister():
+    experimental.unregister()
     preferences.unregister()
     properties.unregister()
     ui.unregister()
-    experimental.unregister()
+    versioning.unregister()
 
     operators_unregister()

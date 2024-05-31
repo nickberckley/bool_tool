@@ -34,6 +34,11 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = False,
     )
 
+    versioning: bpy.props.BoolProperty(
+        name = "Versioning",
+        description = "Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
+                    "Where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this"
+    )
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
         description = "Enable experimental features./n"
@@ -57,14 +62,16 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
 
         # preferences
         layout.separator()
-        row = layout.row(align=True)
-        row.prop(self, "solver", text="Solver", expand=True)
         col = layout.column(align=True)
+        row = col.row(align=True)
+        row.prop(self, "solver", text="Solver", expand=True)
         col.prop(self, "wireframe")
 
         # experimental
         layout.separator()
-        layout.prop(self, "experimental")
+        col = layout.column(align=True)
+        col.prop(self, "versioning")
+        col.prop(self, "experimental")
 
 
 
