@@ -21,14 +21,14 @@ class BrushBoolean():
             clones = []
             for i in range(len(brushes)):
                 clone = canvas.copy()
-                clone.name = canvas.name + '_slice'
+                clone.name = canvas.name + "_slice"
                 clone.bool_tool.canvas = True
                 clone.bool_tool.slice = True
                 clone.parent = canvas
                 clone.matrix_parent_inverse = canvas.matrix_world.inverted()
                 context.collection.objects.link(clone)
                 clones.append(clone)
-                
+
                 # add_to_canvas_collections
                 canvas_colls = canvas.users_collection
                 for collection in canvas_colls:
@@ -38,7 +38,7 @@ class BrushBoolean():
                 for coll in clone.users_collection:
                     if coll not in canvas_colls:
                         coll.objects.unlink(clone)
-                
+
                 # remove_other_modifiers
                 for mod in clone.modifiers:
                     if "boolean_" in mod.name:
@@ -59,7 +59,7 @@ class BrushBoolean():
         for brush in brushes:
             # hide_brush
             brush.hide_render = True
-            brush.display_type = "WIRE" if prefs.wireframe else "BOUNDS"
+            brush.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
             object_visibility_set(brush, value=False)
             brush.parent = canvas
             brush.matrix_parent_inverse = canvas.matrix_world.inverted()
@@ -72,27 +72,27 @@ class BrushBoolean():
                 context.scene.collection.children.link(cutters_collection)
                 cutters_collection.hide_viewport = True
                 cutters_collection.hide_render = True
-                cutters_collection.color_tag = "COLOR_01"
+                cutters_collection.color_tag = 'COLOR_01'
                 bpy.context.view_layer.layer_collection.children[collection_name].exclude = True
             if cutters_collection not in brush.users_collection:
                 cutters_collection.objects.link(brush)
 
             # add_modifier
             add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
-            
+
             # custom_properties
             canvas.bool_tool.canvas = True
             brush.bool_tool.cutter = self.mode.capitalize()
             cutter_index = canvas.bool_tool.cutters.add()
             cutter_index.cutter = brush
-            
+
         bpy.context.view_layer.objects.active = canvas
-        return {"FINISHED"}
+        return {'FINISHED'}
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
-            return {"CANCELLED"}
+            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
+            return {'CANCELLED'}
 
         return self.execute(context)
 
@@ -101,7 +101,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_union"
     bl_label = "Boolean Cutter Union"
     bl_description = "Merge selected objects into active one"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -114,7 +114,7 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_intersect"
     bl_label = "Boolean Cutter Intersection"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -127,7 +127,7 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_difference"
     bl_label = "Boolean Cutter Difference"
     bl_description = "Subtract selected objects from active one"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -140,7 +140,7 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.bool_tool_brush_slice"
     bl_label = "Boolean Cutter Slice"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -157,20 +157,20 @@ class AutoBoolean:
         prefs = bpy.context.preferences.addons[base_package].preferences
         canvas = bpy.context.active_object
         brushes = list_candidate_objects(context)
-        
+
         for brush in brushes:
             # add_modifier
             add_boolean_modifier(canvas, brush, self.mode, prefs.solver, apply=True)
 
             # delete_brush
             bpy.data.objects.remove(brush)
-                    
-        return {"FINISHED"}
+
+        return {'FINISHED'}
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
-            return {"CANCELLED"}
+            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
+            return {'CANCELLED'}
 
         return self.execute(context)
 
@@ -179,7 +179,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_union"
     bl_label = "Boolean Union"
     bl_description = "Merge selected objects into active one"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -192,7 +192,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_difference"
     bl_label = "Boolean Difference"
     bl_description = "Subtract selected objects from active one"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -205,7 +205,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.bool_tool_auto_intersect"
     bl_label = "Boolean Intersect"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -218,7 +218,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
     bl_idname = "object.bool_tool_auto_slice"
     bl_label = "Boolean Slice"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
-    bl_options = {"REGISTER", "UNDO"}
+    bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -237,7 +237,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
             canvas_copy.data.name = canvas.data.name + "_slice"
             for collection in canvas.users_collection:
                 collection.objects.link(canvas_copy)
-            
+
             # add_to_local_view
             space_data = context.space_data
             if space_data.local_view:
@@ -251,15 +251,15 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator):
             canvas_copy.select_set(True)
             context.view_layer.objects.active = canvas_copy
 
-        return {"FINISHED"}
+        return {'FINISHED'}
 
     def invoke(self, context, event):
         if len(context.selected_objects) < 2:
-            self.report({"ERROR"}, "Boolean operator needs at least two objects selected")
-            return {"CANCELLED"}
+            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
+            return {'CANCELLED'}
 
         return self.execute(context)
-    
+
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
@@ -286,18 +286,18 @@ def register():
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
-    
+
     # brush_operators
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_union.bl_idname, "NUMPAD_PLUS", "PRESS", ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_difference.bl_idname, "NUMPAD_MINUS", "PRESS", ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_intersect.bl_idname, "NUMPAD_ASTERIX", "PRESS", ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_slice.bl_idname, "NUMPAD_SLASH", "PRESS", ctrl=True)
-    
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_union.bl_idname, 'NUMPAD_PLUS', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_difference.bl_idname, 'NUMPAD_MINUS', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_intersect.bl_idname, 'NUMPAD_ASTERIX', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_slice.bl_idname, 'NUMPAD_SLASH', 'PRESS', ctrl=True)
+
     # auto_operators
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_union.bl_idname, "NUMPAD_PLUS", "PRESS", ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_difference.bl_idname, "NUMPAD_MINUS", "PRESS", ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_intersect.bl_idname, "NUMPAD_ASTERIX", "PRESS", ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_slice.bl_idname, "NUMPAD_SLASH", "PRESS", ctrl=True, shift=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_union.bl_idname, 'NUMPAD_PLUS', 'PRESS', ctrl=True, shift=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_difference.bl_idname, 'NUMPAD_MINUS', 'PRESS', ctrl=True, shift=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_intersect.bl_idname, 'NUMPAD_ASTERIX', 'PRESS', ctrl=True, shift=True)
+    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_slice.bl_idname, 'NUMPAD_SLASH', 'PRESS', ctrl=True, shift=True)
     kmi.active = True
     addon_keymaps.append(km)
 
@@ -305,7 +305,7 @@ def register():
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-    
+
     # KEYMAP
     for km in addon_keymaps:
         for kmi in km.keymap_items:

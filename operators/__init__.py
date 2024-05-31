@@ -1,12 +1,10 @@
 import bpy
-
 from . import (
     boolean,
     canvas,
     cutter,
     select,
 )
-
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####

@@ -16,7 +16,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_brush"
     bl_label = "Toggle Boolean Cutter"
     bl_description = "Toggle this boolean cutter. If cutter isn't the active object it will be toggled for every canvas that uses it"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     specified_cutter: bpy.props.StringProperty(
     )
@@ -51,7 +51,7 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         else:
             self.report({'INFO'}, "No boolean cutters are selected")
 
-        return {"FINISHED"}
+        return {'FINISHED'}
 
 
 # Remove Boolean Cutter
@@ -59,7 +59,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
     bl_idname = "object.remove_boolean_brush"
     bl_label = "Remove Boolean Cutter"
     bl_description = "Remove this boolean cutter. If cutter isn't the active object it will be removed from every canvas that uses it"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     specified_cutter: bpy.props.StringProperty(
     )
@@ -98,7 +98,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 
             for brush in brushes:
                 # restore_visibility
-                brush.display_type = "TEXTURED"
+                brush.display_type = 'TEXTURED'
                 object_visibility_set(brush, value=True)
                 brush.hide_render = False
                 if obj.bool_tool.cutter:
@@ -115,8 +115,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
 
         else:
             self.report({'INFO'}, "No boolean cutters are selected")
-        
-        return {"FINISHED"}
+        return {'FINISHED'}
 
 
 # Apply Boolean Cutter
@@ -124,7 +123,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
     bl_idname = "object.apply_boolean_brush"
     bl_label = "Apply Boolean Cutter"
     bl_description = "Apply this boolean cutter. If cutter isn't the active object it will be applied to every canvas that uses it"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     specified_cutter: bpy.props.StringProperty(
     )
@@ -169,8 +168,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
 
         else:
             self.report({'INFO'}, "No boolean cutters are selected")
-
-        return {"FINISHED"}
+        return {'FINISHED'}
 
 
 

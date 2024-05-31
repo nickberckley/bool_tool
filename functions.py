@@ -28,8 +28,8 @@ def is_canvas(obj):
 def list_candidate_objects(context):
     brushes = []
     for obj in context.selected_objects:
-        if obj != context.active_object and obj.type in ("MESH", "CURVE", "FONT"):
-            if obj.type in ("CURVE", "FONT"):
+        if obj != context.active_object and obj.type in ('MESH', 'CURVE', 'FONT'):
+            if obj.type in ('CURVE', 'FONT'):
                 if obj.data.bevel_depth != 0 or obj.data.extrude != 0:
                     convert_to_mesh(context, obj)
                     brushes.append(obj)
@@ -57,7 +57,7 @@ def list_selected_cutters(context):
 
     if selected_objects:
         for obj in selected_objects:
-            if obj != active_object and obj.type == "MESH":
+            if obj != active_object and obj.type == 'MESH':
                 if obj.bool_tool.cutter:
                     cutters.append(obj)
 
@@ -74,7 +74,7 @@ def list_canvas_cutters(canvas):
     modifiers = []
     for obj in canvas:
         for modifier in obj.modifiers:
-            if modifier.type == "BOOLEAN" and "boolean_" in modifier.name:
+            if modifier.type == 'BOOLEAN' and "boolean_" in modifier.name:
                 if modifier.object:
                     cutters.append(modifier.object)
                     modifiers.append(modifier)
@@ -90,7 +90,7 @@ def list_cutter_modifiers(canvases, cutters):
     modifiers = []
     for obj in canvases:
         for modifier in obj.modifiers:
-            if modifier.type == "BOOLEAN":
+            if modifier.type == 'BOOLEAN':
                 if modifier.object in cutters:
                     modifiers.append(modifier)
 
@@ -104,7 +104,7 @@ def list_slices(context, brushes):
         if obj.bool_tool.slice == True:
             if len(obj.modifiers) >= 1:
                 if any(modifier.object in brushes for modifier in obj.modifiers):
-                    if any('boolean_' in modifier.name for modifier in obj.modifiers):
+                    if any("boolean_" in modifier.name for modifier in obj.modifiers):
                         slices.append(obj)
     return slices
 
@@ -115,7 +115,7 @@ def list_cutter_users(cutters):
     canvas = list_canvases()
     for obj in canvas:
         for modifier in obj.modifiers:
-            if modifier.type == "BOOLEAN" and modifier.object in cutters:
+            if modifier.type == 'BOOLEAN' and modifier.object in cutters:
                 cutter_users.append(obj)
 
     return cutter_users
@@ -126,7 +126,7 @@ def list_cutter_users(cutters):
 
 # Add Boolean Modifier
 def add_boolean_modifier(canvas, cutter, mode, solver, apply=False):
-    modifier = canvas.modifiers.new("boolean_" + cutter.name, "BOOLEAN")
+    modifier = canvas.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
@@ -154,10 +154,10 @@ def convert_to_mesh(context, brush):
     bpy.ops.object.select_all(action='DESELECT')
     brush.select_set(True)
     context.view_layer.objects.active = brush
-    
+
     # convert_to_mesh
-    bpy.ops.object.convert(target="MESH")
-    
+    bpy.ops.object.convert(target='MESH')
+
     # restore_selection
     for obj in context.selected_objects:
         obj.select_set(True)

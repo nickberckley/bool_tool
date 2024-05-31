@@ -30,17 +30,17 @@ def boolean_operators_menu(self, context):
     col = layout.column(align=True)
 
     col.label(text="Auto Boolean")
-    col.operator('object.bool_tool_auto_difference', text="Difference", icon="SELECT_SUBTRACT")
-    col.operator('object.bool_tool_auto_union', text="Union", icon="SELECT_EXTEND")
-    col.operator('object.bool_tool_auto_intersect', text="Intersect", icon="SELECT_INTERSECT")
-    col.operator('object.bool_tool_auto_slice', text="Slice", icon="SELECT_DIFFERENCE")
+    col.operator("object.bool_tool_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.bool_tool_auto_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.bool_tool_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.bool_tool_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
 
     col.separator()
     col.label(text="Brush Boolean")
-    col.operator('object.bool_tool_brush_difference', text="Difference", icon="SELECT_SUBTRACT")
-    col.operator('object.bool_tool_brush_union', text="Union", icon="SELECT_EXTEND")
-    col.operator('object.bool_tool_brush_intersect', text="Intersect", icon="SELECT_INTERSECT")
-    col.operator('object.bool_tool_brush_slice', text="Slice", icon="SELECT_DIFFERENCE")
+    col.operator("object.bool_tool_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.bool_tool_brush_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.bool_tool_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.bool_tool_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
 
 
 def boolean_extras_menu(self, context):
@@ -49,18 +49,18 @@ def boolean_extras_menu(self, context):
 
     # canvas_operators
     active_object = context.active_object
-    if active_object.bool_tool.canvas == True and any(modifier.name.startswith('boolean_') for modifier in active_object.modifiers):
+    if active_object.bool_tool.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
         col.separator()
-        col.operator('object.toggle_boolean_all', text="Toggle All Cuters")
-        col.operator('object.apply_boolean_all', text="Apply All Cutters")
-        col.operator('object.remove_boolean_all', text="Remove All Cutters")
+        col.operator("object.toggle_boolean_all", text="Toggle All Cuters")
+        col.operator("object.apply_boolean_all", text="Apply All Cutters")
+        col.operator("object.remove_boolean_all", text="Remove All Cutters")
 
     # cutter_operators
     if active_object.bool_tool.cutter:
         col.separator()
-        col.operator('object.toggle_boolean_brush', text="Toggle Cutter")
-        col.operator('object.apply_boolean_brush', text="Apply Cutter")
-        col.operator('object.remove_boolean_brush', text="Remove Cutter")
+        col.operator("object.toggle_boolean_brush", text="Toggle Cutter")
+        col.operator("object.apply_boolean_brush", text="Apply Cutter")
+        col.operator("object.remove_boolean_brush", text="Remove Cutter")
 
 
 
@@ -136,8 +136,8 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
         # buttons
         col = row.column(align=True)
-        col.operator('object.apply_boolean_brush', text="", icon='CHECKMARK').specified_cutter = active_cutter.name
-        col.operator('object.remove_boolean_brush', text="", icon='X').specified_cutter = active_cutter.name
+        col.operator("object.apply_boolean_brush", text="", icon='CHECKMARK').specified_cutter = active_cutter.name
+        col.operator("object.remove_boolean_brush", text="", icon='X').specified_cutter = active_cutter.name
 
 
 
@@ -156,7 +156,7 @@ class VIEW3D_MT_boolean(bpy.types.Menu):
 def bool_tool_menu(self, context):
     layout = self.layout
     layout.separator()
-    layout.menu('VIEW3D_MT_boolean')
+    layout.menu("VIEW3D_MT_boolean")
 
 
 def boolean_select_menu(self, context):
@@ -167,9 +167,9 @@ def boolean_select_menu(self, context):
             layout.separator()
 
         if active_obj.bool_tool.canvas == True:
-            layout.operator('object.select_boolean_all', text="Select Boolean Cutters")
+            layout.operator("object.select_boolean_all", text="Select Boolean Cutters")
         if active_obj.bool_tool.cutter:
-            layout.operator('object.select_cutter_canvas', text="Select Boolean Canvas")
+            layout.operator("object.select_cutter_canvas", text="Select Boolean Canvas")
 
 
 
@@ -180,12 +180,12 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
         # select_&_label
-        if item.operation == "DIFFERENCE":
-            icon = "SELECT_SUBTRACT"
-        elif item.operation == "UNION":
-            icon = "SELECT_EXTEND"
-        elif item.operation == "INTERSECT":
-            icon = "SELECT_INTERSECT"
+        if item.operation == 'DIFFERENCE':
+            icon = 'SELECT_SUBTRACT'
+        elif item.operation == 'UNION':
+            icon = 'SELECT_EXTEND'
+        elif item.operation == 'INTERSECT':
+            icon = 'SELECT_INTERSECT'
 
         row = layout.row(align=True)
         row.label(text="", icon=icon)
@@ -200,7 +200,7 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
     def filter_items(self, context, data, propname):
         filtered = []
         ordered = []
-        
+
         items = getattr(data, propname)
         filtered = [self.bitflag_filter_item] * len(items)
         filtered_items = self.get_props_filtered_items()
@@ -209,13 +209,13 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
             if not item in filtered_items:
                 filtered[i] &= ~self.bitflag_filter_item
         return filtered, ordered
-    
+
     def get_props_filtered_items(self):
         canvas = bpy.context.object
         filtered_cutters = []
         if canvas.bool_tool.canvas == True:
             for modifier in canvas.modifiers:
-                if modifier.type == "BOOLEAN":
+                if modifier.type == 'BOOLEAN':
                     if not modifier.object:
                         return
                     else:
@@ -241,10 +241,9 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # sidebar_category
     prefs = bpy.context.preferences.addons[__package__].preferences
     update_sidebar_category(prefs, bpy.context)
-    
+
     # MENU
     bpy.types.VIEW3D_MT_object.append(bool_tool_menu)
     bpy.types.VIEW3D_MT_select_object.append(boolean_select_menu)

@@ -10,7 +10,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     show_in_sidebar: bpy.props.BoolProperty(
         name = "Show Addon Panel in Sidebar",
         description = "Add add-on operators and properties to 3D viewport sidebar category\n"
-                        "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel",
+                    "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel",
         default = True,
     )
     sidebar_category: bpy.props.StringProperty(
@@ -23,8 +23,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     solver: bpy.props.EnumProperty(
         name = "Boolean Solver",
         description = "Which solver to use for automatic and brush booleans",
-        items = [('FAST', 'Fast', ''),
-                 ('EXACT', 'Exact', '')],
+        items = [('FAST', "Fast", ""),
+                 ('EXACT', "Exact", "")],
         default = 'EXACT',
     )
     wireframe: bpy.props.BoolProperty(
@@ -47,7 +47,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         layout.use_property_decorate = False
 
         # sidebar_category
-        col = layout.column(align=True, heading='Show in Sidebar')
+        col = layout.column(align=True, heading="Show in Sidebar")
         row = col.row(align=True)
         sub = row.row(align=True)
         sub.prop(self, "show_in_sidebar", text="")

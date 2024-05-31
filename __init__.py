@@ -13,10 +13,10 @@ bl_info = {
 import bpy
 from .operators import register as operators_register, unregister as operators_unregister
 from . import (
+    experimental,
     preferences,
     properties,
     ui,
-    utilities,
 )
 
 
@@ -26,7 +26,7 @@ def register():
     preferences.register()
     properties.register()
     ui.register()
-    utilities.register()
+    experimental.register()
 
     operators_register()
 
@@ -34,6 +34,6 @@ def unregister():
     preferences.unregister()
     properties.unregister()
     ui.unregister()
-    utilities.unregister()
+    experimental.unregister()
 
     operators_unregister()

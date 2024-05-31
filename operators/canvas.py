@@ -11,13 +11,13 @@ from ..functions import (
 
 
 #### ------------------------------ OPERATORS ------------------------------ ####
-    
+
 # Toggle All Cutters
 class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
     bl_idname = "object.toggle_boolean_all"
     bl_label = "Toggle Boolean Cutters"
     bl_description = "Toggle all boolean cutters affecting selected canvases"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -42,8 +42,8 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
         # toggle_cutters_visibility
         for brush in brushes:
             brush.hide_viewport = not brush.hide_viewport
-            
-        return {"FINISHED"}
+
+        return {'FINISHED'}
 
 
 # Remove All Cutters
@@ -51,7 +51,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     bl_idname = "object.remove_boolean_all"
     bl_label = "Remove Boolean Cutters"
     bl_description = "Remove all boolean cutters from selected canvases"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -77,17 +77,17 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
             if obj.bool_tool.canvas == True:
                 obj.bool_tool.canvas == False
-                
+
         # only_free_cutters_that_other_objects_dont_use
         other_canvas = list_canvases()
         for obj in other_canvas:
             if obj not in (canvas, slices):
                 if any(modifier.object in brushes for modifier in obj.modifiers):
                     brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
-        
+
         for brush in brushes:
             # restore_visibility
-            brush.display_type = "TEXTURED"
+            brush.display_type = 'TEXTURED'
             object_visibility_set(brush, value=True)
             brush.hide_render = False
             if brush.bool_tool.cutter:
@@ -101,8 +101,8 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
 
         # purge_empty_collection
         delete_empty_collection()
-        
-        return {"FINISHED"}
+
+        return {'FINISHED'}
 
 
 # Apply All Cutters
@@ -110,7 +110,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     bl_idname = "object.apply_boolean_all"
     bl_label = "Apply All Boolean Cutters"
     bl_description = "Apply all boolean cutters on selected canvases"
-    bl_options = {"UNDO"}
+    bl_options = {'UNDO'}
 
     @classmethod
     def poll(cls, context):
@@ -157,63 +157,22 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
         # purge_empty_collection
         delete_empty_collection()
 
-        return {"FINISHED"}
-
-
-# Select Boolean Brush
-class OBJECT_OT_boolean_cutter_select(bpy.types.Operator):
-    bl_idname = "object.boolean_cutter_select"
-    bl_label = "Select Boolean Cutter"
-    bl_description = "Select object that is used as boolean cutter by this modifier"
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
-    def execute(self, context):
-        if context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER':
-            modifier = context.object.modifiers.active
-            if modifier and modifier.type == "BOOLEAN":
-                cutter = modifier.object
-
-                bpy.ops.object.select_all(action='DESELECT')
-                cutter.select_set(True)
-                context.view_layer.objects.active = cutter
-
-        return {"FINISHED"}
+        return {'FINISHED'}
 
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-addon_keymaps = []
-
 classes = (
     OBJECT_OT_toggle_boolean_all,
     OBJECT_OT_remove_boolean_all,
     OBJECT_OT_apply_boolean_all,
-
-    OBJECT_OT_boolean_cutter_select,
 )
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # KEYMAP
-    addon = bpy.context.window_manager.keyconfigs.addon
-    km = addon.keymaps.new(name='Property Editor', space_type='PROPERTIES')
-    kmi = km.keymap_items.new("object.boolean_cutter_select", type='LEFTMOUSE', value='DOUBLE_CLICK')
-    kmi.active = True
-    addon_keymaps.append(km)
-
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-    # KEYMAP
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
-    addon_keymaps.clear()
