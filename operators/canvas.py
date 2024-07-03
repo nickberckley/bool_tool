@@ -4,7 +4,7 @@ from ..functions import (
     is_canvas,
     object_visibility_set,
     list_canvases,
-    list_slices,
+    list_canvas_slices,
     list_canvas_cutters,
     delete_empty_collection,
     filter_unused_cutters,
@@ -27,18 +27,22 @@ class OBJECT_OT_toggle_boolean_all(bpy.types.Operator):
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.booleans.canvas == True]
         brushes, modifiers = list_canvas_cutters(canvas)
+        slices = list_canvas_slices(canvas)
 
         # toggle_modifiers
         for mod in modifiers:
             mod.show_viewport = not mod.show_viewport
             mod.show_render = not mod.show_render
 
-        # list_cutters_only_used_by_active_canvas
-        other_canvas = list_canvases()
-        for obj in other_canvas:
-            if obj not in canvas:
-                if any(modifier.object in brushes and modifier.show_viewport for modifier in obj.modifiers):
-                    brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
+        # Hide Slices
+        for slice in slices:
+            slice.hide_viewport = not slice.hide_viewport
+            for mod in slice.modifiers:
+                if mod.type == 'BOOLEAN' and mod.object in brushes:
+                    mod.show_viewport = not mod.show_viewport
+                    mod.show_render = not mod.show_render
+
+        filter_unused_cutters(brushes, canvas, slices, include_visible=True)
 
         # toggle_cutters_visibility
         for brush in brushes:
@@ -61,7 +65,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.booleans.canvas == True]
         brushes, __ = list_canvas_cutters(canvas)
-        slices = list_slices(context, brushes)
+        slices = list_canvas_slices(canvas)
 
         # Remove Slices
         for slice in slices:
@@ -116,7 +120,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
     def execute(self, context):
         canvas = [obj for obj in bpy.context.selected_objects if obj.booleans.canvas == True]
         brushes, __ = list_canvas_cutters(canvas)
-        slices = list_slices(context, brushes)
+        slices = list_canvas_slices(canvas)
 
         # Apply Modifiers
         for obj in itertools.chain(canvas, slices):

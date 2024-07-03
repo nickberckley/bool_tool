@@ -20,6 +20,13 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
     bl_description = "Toggle this boolean cutter. If cutter isn't the active object it will be toggled for every canvas that uses it"
     bl_options = {'UNDO'}
 
+    method: bpy.props.EnumProperty(
+        name = "Method",
+        items = (('ALL', "All", "Remove cutter from all canvases that use it"),
+                 ('SPECIFIED', "Specified", "Remove cutter from specified canvas")),
+        default = 'ALL',
+    )
+
     specified_cutter: bpy.props.StringProperty(
     )
     specified_canvas: bpy.props.StringProperty(
@@ -30,27 +37,44 @@ class OBJECT_OT_toggle_boolean_brush(bpy.types.Operator):
         return basic_poll(context)
 
     def execute(self, context):
-        if self.specified_cutter:
+        if self.method == 'SPECIFIED':
             canvas = [bpy.data.objects[self.specified_canvas]]
-            brushes = [bpy.data.objects[self.specified_cutter]]
-        else:
+            cutters = [bpy.data.objects[self.specified_cutter]]
+            slices = list_canvas_slices(canvas)
+        elif self.method == 'ALL':
             canvas = list_canvases()
-            brushes = list_selected_cutters(context)
+            cutters = list_selected_cutters(context)
 
-        if brushes:
+        if cutters:
             for obj in canvas:
-                # toggle_slices_visibility
+                # toggle_slices_visibility (for_all_method)
                 if obj.booleans.slice == True:
-                    if any(modifier.object in brushes for modifier in obj.modifiers):
+                    if any(modifier.object in cutters for modifier in obj.modifiers):
                         obj.hide_viewport = not obj.hide_viewport
                         obj.hide_render = not obj.hide_render
 
                 # toggle_modifiers_visibility
                 for modifier in obj.modifiers:
                     if "boolean_" in modifier.name:
-                        if modifier.object in brushes:
+                        if modifier.object in cutters:
                             modifier.show_viewport = not modifier.show_viewport
                             modifier.show_render = not modifier.show_render
+
+
+            if self.method == 'SPECIFIED':
+                # toggle_slices_visibility (for_specified_method)
+                for obj in slices:
+                    for mod in obj.modifiers:
+                        if mod.type == 'BOOLEAN' and mod.object in cutters:
+                            obj.hide_viewport = not obj.hide_viewport
+                            obj.hide_render = not obj.hide_render
+                            mod.show_viewport = not mod.show_viewport
+                            mod.show_render = not mod.show_render
+
+                # hide_cutter_if_not_used_by_any_visible_modifiers
+                filter_unused_cutters(cutters, canvas, slices, include_visible=True)
+                for cutter in cutters:
+                    cutter.hide_viewport = not cutter.hide_viewport
 
         else:
             self.report({'INFO'}, "No boolean cutters are selected")

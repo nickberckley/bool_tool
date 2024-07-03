@@ -97,18 +97,6 @@ def list_cutter_modifiers(canvases, cutters):
     return modifiers
 
 
-# List All Slices
-def list_slices(context, brushes):
-    slices = []
-    for obj in context.view_layer.objects:
-        if obj.booleans.slice == True:
-            if len(obj.modifiers) >= 1:
-                if any(modifier.object in brushes for modifier in obj.modifiers):
-                    if any("boolean_" in modifier.name for modifier in obj.modifiers):
-                        slices.append(obj)
-    return slices
-
-
 def list_canvas_slices(canvases):
     """Returns list of slices for specified canvases"""
 
@@ -222,13 +210,18 @@ def create_slice(context, canvas, slices, modifier=False):
         slice.local_view_set(space_data, True)
 
 
-def filter_unused_cutters(cutters, *canvas):
+def filter_unused_cutters(cutters, *canvas, include_visible=False):
     """Takes in list of cutters and returns only those that have no other user besides specified canvas"""
+    """When `include_visible` is True it will return cutters that aren't used by any visible modifiers"""
 
     other_canvas = list_canvases()
     for obj in other_canvas:
         if obj not in canvas:
-            if any(modifier.object in cutters for modifier in obj.modifiers):
-                cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+            if include_visible:
+                if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
+                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+            else:
+                if any(modifier.object in cutters for modifier in obj.modifiers):
+                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
 
     return cutters

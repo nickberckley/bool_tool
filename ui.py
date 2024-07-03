@@ -58,7 +58,7 @@ def boolean_extras_menu(self, context):
     # cutter_operators
     if active_object.booleans.cutter:
         col.separator()
-        col.operator("object.toggle_boolean_brush", text="Toggle Cutter")
+        col.operator("object.toggle_boolean_brush", text="Toggle Cutter").method='ALL'
         col.operator("object.apply_boolean_brush", text="Apply Cutter").method='ALL'
         col.operator("object.remove_boolean_brush", text="Remove Cutter").method='ALL'
 
@@ -138,6 +138,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
             # Toggle
             op_toggle = row.operator("object.toggle_boolean_brush", text="", icon='HIDE_OFF' if mod.show_viewport else 'HIDE_ON')
+            op_toggle.method = 'SPECIFIED'
             op_toggle.specified_cutter = mod.object.name
             op_toggle.specified_canvas = canvas.name
 
