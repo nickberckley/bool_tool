@@ -7,6 +7,7 @@ from ..functions import (
     list_slices,
     list_canvas_cutters,
     delete_empty_collection,
+    filter_unused_cutters,
 )
 
 
@@ -79,12 +80,7 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
             if obj.booleans.canvas == True:
                 obj.booleans.canvas = False
 
-        # only_free_cutters_that_other_objects_dont_use
-        other_canvas = list_canvases()
-        for obj in other_canvas:
-            if obj not in (canvas, slices):
-                if any(modifier.object in brushes for modifier in obj.modifiers):
-                    brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
+        filter_unused_cutters(brushes, canvas, slices)
 
         for brush in brushes:
             # restore_visibility
@@ -139,14 +135,9 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
             if obj.booleans.slice == True:
                 obj.booleans.slice = False
 
-        # only_delete_cutters_that_other_objects_dont_use
-        other_canvas = list_canvases()
-        for obj in other_canvas:
-            if obj not in (canvas, slices):
-                if any(modifier.object in brushes for modifier in obj.modifiers):
-                    brushes[:] = [brush for brush in brushes if brush not in [modifier.object for modifier in obj.modifiers]]
-
         # purge_orphans
+        filter_unused_cutters(brushes, canvas, slices)
+
         purged_cutters = []
         for brush in brushes:
             if brush not in purged_cutters:

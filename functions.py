@@ -207,3 +207,15 @@ def create_slice(context, canvas, slices, modifier=False):
     space_data = context.space_data
     if space_data.local_view:
         slice.local_view_set(space_data, True)
+
+
+def filter_unused_cutters(cutters, *canvas):
+    """Takes in list of cutters and returns only those that have no other user besides specified canvas"""
+
+    other_canvas = list_canvases()
+    for obj in other_canvas:
+        if obj not in canvas:
+            if any(modifier.object in cutters for modifier in obj.modifiers):
+                cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+
+    return cutters
