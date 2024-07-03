@@ -63,14 +63,14 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
         brushes, __ = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
-        # remove_slices
+        # Remove Slices
         for slice in slices:
             bpy.data.objects.remove(slice)
             if slice in canvas:
                 canvas.remove(slice)
 
         for obj in canvas:
-            # remove_modifiers
+            # Remove Modifiers
             for modifier in obj.modifiers:
                 if modifier.type == 'BOOLEAN' and "boolean_" in modifier.name:
                     if modifier.object in brushes:
@@ -118,7 +118,7 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
         brushes, __ = list_canvas_cutters(canvas)
         slices = list_slices(context, brushes)
 
-        # apply_modifiers
+        # Apply Modifiers
         for obj in itertools.chain(canvas, slices):
             bpy.context.view_layer.objects.active = obj
             for modifier in obj.modifiers:
@@ -129,11 +129,9 @@ class OBJECT_OT_apply_boolean_all(bpy.types.Operator):
                         context.active_object.data = context.active_object.data.copy()
                         bpy.ops.object.modifier_apply(modifier=modifier.name)
 
-            # remove_custom_properties
-            if obj.booleans.canvas == True:
-                obj.booleans.canvas = False
-            if obj.booleans.slice == True:
-                obj.booleans.slice = False
+            # remove_boolean_properties
+            obj.booleans.canvas = False
+            obj.booleans.slice = False
 
         # purge_orphans
         filter_unused_cutters(brushes, canvas, slices)

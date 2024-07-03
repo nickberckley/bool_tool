@@ -18,6 +18,11 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
         default = False,
     )
 
+    slice_of: bpy.props.PointerProperty(
+        name = "Slice of...",
+        type = bpy.types.Object,
+    )
+
     cutters_active_index: bpy.props.IntProperty(
         name = "Active Cutter Index",
         default = -1,

@@ -109,6 +109,18 @@ def list_slices(context, brushes):
     return slices
 
 
+def list_canvas_slices(canvases):
+    """Returns list of slices for specified canvases"""
+
+    slices = []
+    for obj in bpy.data.objects:
+        if obj.booleans.slice:
+            if obj.booleans.slice_of in canvases:
+                slices.append(obj)
+
+    return slices
+
+
 # List Context Cutter Users (Canvases)
 def list_cutter_users(cutters):
     cutter_users = []
@@ -186,6 +198,7 @@ def create_slice(context, canvas, slices, modifier=False):
     if modifier == True:
         slice.booleans.canvas = True
         slice.booleans.slice = True
+        slice.booleans.slice_of = canvas
     slices.append(slice)
 
     # add_to_canvas_collections

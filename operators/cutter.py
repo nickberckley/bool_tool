@@ -5,6 +5,7 @@ from ..functions import (
     list_canvases,
     list_selected_cutters,
     list_canvas_cutters,
+    list_canvas_slices,
     delete_empty_collection,
     filter_unused_cutters,
 )
@@ -84,6 +85,7 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         if self.method == 'SPECIFIED':
             canvas = [bpy.data.objects[self.specified_canvas]]
             cutters = [bpy.data.objects[self.specified_cutter]]
+            slices = list_canvas_slices(canvas)
         elif self.method == 'ALL':
             canvas = list_canvases()
             cutters = list_selected_cutters(context)
@@ -91,24 +93,28 @@ class OBJECT_OT_remove_boolean_brush(bpy.types.Operator):
         if cutters:
             # Remove Modifiers
             for obj in canvas:
-                slice_obj = False
                 for modifier in obj.modifiers:
                     if "boolean_" in modifier.name:
                         if modifier.object in cutters:
-                            slice_obj = True
                             obj.modifiers.remove(modifier)
-
-                # remove_slices
-                if obj.booleans.slice == True:
-                    if slice_obj:
-                        bpy.data.objects.remove(obj)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([obj])
                 if len(other_cutters) == 0:
                     obj.booleans.canvas = False
 
+                # Remove Slices (for_all_method)
+                if obj.booleans.slice == True:
+                    bpy.data.objects.remove(obj)
+
+
             if self.method == 'SPECIFIED':
+                # Remove Slices (for_specified_method)
+                for obj in slices:
+                    for mod in obj.modifiers:
+                        if mod.type == 'BOOLEAN' and mod.object in cutters:
+                            bpy.data.objects.remove(obj)
+
                 filter_unused_cutters(cutters, canvas)
 
             for cutter in cutters:
@@ -160,6 +166,7 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
         if self.method == 'SPECIFIED':
             canvas = [bpy.data.objects[self.specified_canvas]]
             cutters = [bpy.data.objects[self.specified_cutter]]
+            slices = list_canvas_slices(canvas)
         elif self.method == 'ALL':
             canvas = list_canvases()
             cutters = list_selected_cutters(context)
@@ -181,8 +188,17 @@ class OBJECT_OT_apply_boolean_brush(bpy.types.Operator):
                 other_cutters, __ = list_canvas_cutters([obj])
                 if len(other_cutters) == 0:
                     obj.booleans.canvas = False
+                obj.booleans.slice = False
+
 
             if self.method == 'SPECIFIED':
+                # Apply Modifier for Slices (for_specified_method)
+                for obj in slices:
+                    for mod in obj.modifiers:
+                        if mod.type == 'BOOLEAN' and mod.object in cutters:
+                            context.view_layer.objects.active = obj
+                            bpy.ops.object.modifier_apply(modifier=mod.name)
+
                 filter_unused_cutters(cutters, canvas)
 
             # purge_orphaned_brushes
