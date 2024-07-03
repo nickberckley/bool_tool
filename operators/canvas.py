@@ -71,12 +71,13 @@ class OBJECT_OT_remove_boolean_all(bpy.types.Operator):
         for obj in canvas:
             # remove_modifiers
             for modifier in obj.modifiers:
-                if "boolean_" in modifier.name:
+                if modifier.type == 'BOOLEAN' and "boolean_" in modifier.name:
                     if modifier.object in brushes:
                         obj.modifiers.remove(modifier)
 
+            # remove_boolean_properties
             if obj.booleans.canvas == True:
-                obj.booleans.canvas == False
+                obj.booleans.canvas = False
 
         # only_free_cutters_that_other_objects_dont_use
         other_canvas = list_canvases()

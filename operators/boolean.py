@@ -26,8 +26,6 @@ class BrushBoolean():
             for brush, slice in zip(brushes, slices):
                 # modifiers_on_slices
                 add_boolean_modifier(slice, brush, "INTERSECT", prefs.solver)
-                cutter_index = slice.booleans.cutters.add()
-                cutter_index.cutter = brush
 
         for brush in brushes:
             # hide_brush
@@ -56,8 +54,6 @@ class BrushBoolean():
             # custom_properties
             canvas.booleans.canvas = True
             brush.booleans.cutter = self.mode.capitalize()
-            cutter_index = canvas.booleans.cutters.add()
-            cutter_index.cutter = brush
 
         bpy.context.view_layer.objects.active = canvas
         return {'FINISHED'}

@@ -27,9 +27,6 @@ def populate_boolean_properties(scene):
                             if cutter.get("BoolTool_FTransform"):
                                 del cutter["BoolTool_FTransform"]
 
-                            cutter_index = obj.booleans.cutters.add()
-                            cutter_index.cutter = cutter
-
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####

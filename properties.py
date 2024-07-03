@@ -3,12 +3,6 @@ import bpy
 
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
-class BooleanCutters(bpy.types.PropertyGroup):
-    cutter: bpy.props.PointerProperty(
-        type = bpy.types.Object,
-    )
-
-
 class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
     # OBJECT-level Properties
 
@@ -24,10 +18,6 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
         default = False,
     )
 
-    cutters: bpy.props.CollectionProperty(
-        name = "Cutters",
-        type = BooleanCutters,
-    )
     cutters_active_index: bpy.props.IntProperty(
         name = "Active Cutter Index",
         default = -1,
@@ -38,7 +28,6 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 classes = [
-    BooleanCutters,
     OBJECT_PG_bool_tool,
 ]
 
