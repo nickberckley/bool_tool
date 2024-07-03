@@ -33,6 +33,11 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
                     "It's better for visualizating the shape, but might be harder to see and might have performance cost",
         default = False,
     )
+    show_in_editmode: bpy.props.BoolProperty(
+        name = "Enable 'Show in Edit Mode' by Default",
+        description = "Every new boolean modifier created with brush boolean wil have 'Show in Edit Mode' enabled by default",
+        default = True,
+    )
 
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
@@ -66,6 +71,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         row = col.row(align=True)
         row.prop(self, "solver", text="Solver", expand=True)
         col.prop(self, "wireframe")
+        col.prop(self, "show_in_editmode")
 
         # experimental
         layout.separator()

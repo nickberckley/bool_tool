@@ -126,10 +126,14 @@ def list_cutter_users(cutters):
 
 # Add Boolean Modifier
 def add_boolean_modifier(canvas, cutter, mode, solver, apply=False):
+    prefs = bpy.context.preferences.addons[__package__].preferences
+
     modifier = canvas.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
+    if prefs.show_in_editmode:
+        modifier.show_in_editmode = True
 
     if apply:
         context_override = {'object': canvas}
