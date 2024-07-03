@@ -1,5 +1,5 @@
 import bpy
-from .functions import is_canvas
+from .functions import is_canvas, list_canvas_cutters
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -118,26 +118,39 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
         return prefs.show_in_sidebar and context.active_object and is_canvas(context.active_object)
 
     def draw(self, context):
+        layout = self.layout
         canvas = context.active_object
-        active_index = canvas.booleans.cutters_active_index
-        active_cutter = canvas.booleans.cutters[active_index].cutter
+        __, modifiers = list_canvas_cutters([canvas])
 
-        # ui_list
-        row = self.layout.row(align=False)
-        col = row.column()
-        col.template_list("VIEW3D_UL_boolean_cutters",
-            list_id = "Boolean Cutters",
-            dataptr = canvas,
-            propname = "modifiers",
-            active_dataptr = canvas.booleans,
-            active_propname = "cutters_active_index",
-            rows = 4,
-        )
+        for mod in modifiers:
+            col = layout.column(align=True)
+            row = col.row(align=True)
 
-        # buttons
-        col = row.column(align=True)
-        col.operator("object.apply_boolean_brush", text="", icon='CHECKMARK').specified_cutter = active_cutter.name
-        col.operator("object.remove_boolean_brush", text="", icon='X').specified_cutter = active_cutter.name
+            # icon
+            if mod.operation == 'DIFFERENCE':
+                icon = 'SELECT_SUBTRACT'
+            elif mod.operation == 'UNION':
+                icon = 'SELECT_EXTEND'
+            elif mod.operation == 'INTERSECT':
+                icon = 'SELECT_INTERSECT'
+
+            row.prop(mod.object, "name", text="", icon=icon)
+
+            # Toggle
+            op_toggle = row.operator("object.toggle_boolean_brush", text="", icon='HIDE_OFF' if mod.show_viewport else 'HIDE_ON')
+            op_toggle.specified_cutter = mod.object.name
+            op_toggle.specified_canvas = canvas.name
+
+            # Apply
+            op_apply = row.operator("object.apply_boolean_brush", text="", icon='CHECKMARK')
+            op_apply.specified_cutter = mod.object.name
+            op_apply.specified_canvas = canvas.name
+
+            # Remove
+            op_remove = row.operator("object.remove_boolean_brush", text="", icon='X')
+            op_remove.specified_cutter = mod.object.name
+            op_remove.specified_canvas = canvas.name
+
 
 
 
@@ -173,65 +186,12 @@ def boolean_select_menu(self, context):
 
 
 
-#### ------------------------------ /ui_list/ ------------------------------ ####
-
-class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
-    """List of boolean cutters for active canvas object"""
-
-    def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
-        # select_&_label
-        if item.operation == 'DIFFERENCE':
-            icon = 'SELECT_SUBTRACT'
-        elif item.operation == 'UNION':
-            icon = 'SELECT_EXTEND'
-        elif item.operation == 'INTERSECT':
-            icon = 'SELECT_INTERSECT'
-
-        row = layout.row(align=True)
-        row.label(text="", icon=icon)
-        row.label(text=item.object.name)
-
-        # # toggle
-        # EnableIcon = "RESTRICT_VIEW_ON"
-        # toggle = row.operator("object.toggle_boolean_brush", icon=EnableIcon, text="")
-        # toggle.specified_cutter = item.name
-
-
-    def filter_items(self, context, data, propname):
-        filtered = []
-        ordered = []
-
-        items = getattr(data, propname)
-        filtered = [self.bitflag_filter_item] * len(items)
-        filtered_items = self.get_props_filtered_items()
-
-        for i, item in enumerate(items):
-            if not item in filtered_items:
-                filtered[i] &= ~self.bitflag_filter_item
-        return filtered, ordered
-
-    def get_props_filtered_items(self):
-        canvas = bpy.context.object
-        filtered_cutters = []
-        if canvas.booleans.canvas == True:
-            for modifier in canvas.modifiers:
-                if modifier.type == 'BOOLEAN':
-                    if not modifier.object:
-                        return
-                    else:
-                        filtered_cutters.append(modifier)
-
-        return filtered_cutters
-
-
-
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 addon_keymaps = []
 
 classes = [
     VIEW3D_MT_boolean,
-    VIEW3D_UL_boolean_cutters,
     VIEW3D_PT_boolean,
     VIEW3D_PT_boolean_properties,
     VIEW3D_PT_boolean_cutters,
