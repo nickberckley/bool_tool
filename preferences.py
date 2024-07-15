@@ -38,6 +38,11 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         description = "Every new boolean modifier created with brush boolean wil have 'Show in Edit Mode' enabled by default",
         default = True,
     )
+    parent: bpy.props.BoolProperty(
+        name = "Parent Cutters to Object",
+        description = "Cutters will be parented to first canvas they're applied to. Works best when one cutter has one canvas",
+        default = True,
+    )
 
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
@@ -72,6 +77,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         row.prop(self, "solver", text="Solver", expand=True)
         col.prop(self, "wireframe")
         col.prop(self, "show_in_editmode")
+        col.prop(self, "parent")
 
         # experimental
         layout.separator()

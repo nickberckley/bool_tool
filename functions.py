@@ -177,14 +177,17 @@ def delete_empty_collection():
 
 # Create Slice
 def create_slice(context, canvas, slices, modifier=False):
+    prefs = bpy.context.preferences.addons[__package__].preferences
+
     slice = canvas.copy()
     context.collection.objects.link(slice)
     slice.data = canvas.data.copy()
     slice.name = slice.data.name = canvas.name + "_slice"
 
     # parent_to_canvas
-    slice.parent = canvas
-    slice.matrix_parent_inverse = canvas.matrix_world.inverted()
+    if prefs.parent:
+        slice.parent = canvas
+        slice.matrix_parent_inverse = canvas.matrix_world.inverted()
 
     # set_boolean_properties
     if modifier == True:
@@ -214,18 +217,26 @@ def create_slice(context, canvas, slices, modifier=False):
         slice.local_view_set(space_data, True)
 
 
-def filter_unused_cutters(cutters, *canvas, include_visible=False):
+def filter_unused_cutters(cutters, *canvas, include_visible=False, do_leftovers=False):
     """Takes in list of cutters and returns only those that have no other user besides specified canvas"""
     """When `include_visible` is True it will return cutters that aren't used by any visible modifiers"""
 
+    prefs = bpy.context.preferences.addons[__package__].preferences
     other_canvas = list_canvases()
+
+    leftovers = []
+    original_cutters = cutters[:]
+
     for obj in other_canvas:
         if obj not in canvas:
             if include_visible:
-                if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
-                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+                poll = any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers)
             else:
-                if any(modifier.object in cutters for modifier in obj.modifiers):
-                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+                poll = any(modifier.object in cutters for modifier in obj.modifiers)
 
-    return cutters
+            if poll:
+                cutters[:] = [cutter for cutter in cutters[:] if cutter not in [modifier.object for modifier in obj.modifiers]]
+                if prefs.parent and do_leftovers:
+                    leftovers = [cutter for cutter in original_cutters if cutter not in cutters]
+
+    return cutters, leftovers

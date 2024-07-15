@@ -32,8 +32,9 @@ class BrushBoolean():
             brush.hide_render = True
             brush.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
             object_visibility_set(brush, value=False)
-            brush.parent = canvas
-            brush.matrix_parent_inverse = canvas.matrix_world.inverted()
+            if prefs.parent and brush.parent == None:
+                brush.parent = canvas
+                brush.matrix_parent_inverse = canvas.matrix_world.inverted()
 
             # cutters_collection
             collection_name = "boolean_cutters"
