@@ -298,6 +298,7 @@ def register():
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
     kmi = km.keymap_items.new("object.boolean_apply_cutter", 'NUMPAD_ENTER', 'PRESS', ctrl=True)
+    kmi.properties.method = 'ALL'
     kmi.active = True
     addon_keymaps.append(km)
 
