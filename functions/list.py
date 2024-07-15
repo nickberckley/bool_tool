@@ -133,25 +133,20 @@ def list_cutter_modifiers(canvases, cutters):
     return modifiers
 
 
-def list_unused_cutters(cutters, *canvas, include_visible=False, do_leftovers=False):
+def list_unused_cutters(cutters, *canvases, do_leftovers=False):
     """Takes in list of cutters and returns only those that have no other user besides specified canvas"""
     """When `include_visible` is True it will return cutters that aren't used by any visible modifiers"""
 
     prefs = bpy.context.preferences.addons[base_package].preferences
-    other_canvas = list_canvases()
+    other_canvases = list_canvases()
 
     leftovers = []
     original_cutters = cutters[:]
 
-    for obj in other_canvas:
-        if obj not in canvas:
-            if include_visible:
-                poll = any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers)
-            else:
-                poll = any(modifier.object in cutters for modifier in obj.modifiers)
-
-            if poll:
-                cutters[:] = [cutter for cutter in cutters[:] if cutter not in [modifier.object for modifier in obj.modifiers]]
+    for obj in other_canvases:
+        if obj not in canvases:
+            if any(modifier.object in cutters for modifier in obj.modifiers):
+                cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
                 if prefs.parent and do_leftovers:
                     leftovers = [cutter for cutter in original_cutters if cutter not in cutters]
 

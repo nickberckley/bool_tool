@@ -10,6 +10,7 @@ from ..functions.set import (
     delete_empty_collection,
 )
 from ..functions.list import (
+    list_canvases,
     list_canvas_slices,
     list_canvas_cutters,
     list_cutter_users,
@@ -50,10 +51,14 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
                     mod.show_render = not mod.show_render
 
 
-        unused_cutters, __ = list_unused_cutters(cutters, canvases, slices, include_visible=True)
-
         # Hide Unused Cutters
-        for cutter in unused_cutters:
+        other_canvases = list_canvases()
+        for obj in other_canvases:
+            if obj not in canvases:
+                if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
+                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+
+        for cutter in cutters:
             cutter.hide_viewport = not cutter.hide_viewport
 
         return {'FINISHED'}

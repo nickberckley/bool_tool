@@ -79,8 +79,13 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                             mod.show_render = not mod.show_render
 
                 # hide_cutter_if_not_used_by_any_visible_modifiers
-                unused_cutters, __ = list_unused_cutters(cutters, canvases, slices, include_visible=True)
-                for cutter in unused_cutters:
+                other_canvases = list_canvases()
+                for obj in other_canvases:
+                    if obj not in canvases:
+                        if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
+                            cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+
+                for cutter in cutters:
                     cutter.hide_viewport = not cutter.hide_viewport
 
         else:
