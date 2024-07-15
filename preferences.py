@@ -29,8 +29,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     wireframe: bpy.props.BoolProperty(
         name = "Display Cutters as Wireframe",
-        description = "When enabled cutters will be displayed as wireframes, instead of bounding boxes./n"
-                    "It's better for visualizating the shape, but might be harder to see and might have performance cost",
+        description = "When enabled cutters will be displayed as wireframes, instead of bounding boxes.\n"
+                    "It's better for visualizating the shape, but might be harder to see and have performance cost",
         default = False,
     )
     show_in_editmode: bpy.props.BoolProperty(
@@ -51,7 +51,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
-        description = "Enable experimental features./n"
+        description = "Enable experimental features.\n"
                     "WARNING: Only do that if you're aware of what those features are. They can damage your scene",
         default = False,
     )
@@ -61,7 +61,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        # sidebar_category
+        # UI
         col = layout.column(align=True, heading="Show in Sidebar")
         row = col.row(align=True)
         sub = row.row(align=True)
@@ -70,7 +70,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         sub.active = self.show_in_sidebar
         sub.prop(self, "sidebar_category", text="")
 
-        # preferences
+        # Defaults
         layout.separator()
         col = layout.column(align=True)
         row = col.row(align=True)
@@ -79,7 +79,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         col.prop(self, "show_in_editmode")
         col.prop(self, "parent")
 
-        # experimental
+        # Experimentals
         layout.separator()
         col = layout.column(align=True)
         col.prop(self, "versioning")

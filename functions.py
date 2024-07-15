@@ -68,6 +68,25 @@ def list_selected_cutters(context):
     return cutters
 
 
+# List Selected Canvases
+def list_selected_canvases(context):
+    canvases = []
+    active_object = context.active_object
+    selected_objects = context.selected_objects
+
+    if selected_objects:
+        for obj in selected_objects:
+            if obj != active_object and obj.type == 'MESH':
+                if obj.booleans.canvas:
+                    canvases.append(obj)
+
+    if active_object:
+        if active_object.booleans.canvas:
+            canvases.append(active_object)
+
+    return canvases
+
+
 # List Cutters for Context Canvases
 def list_canvas_cutters(canvas):
     cutters = []

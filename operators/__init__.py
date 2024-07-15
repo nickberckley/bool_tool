@@ -9,14 +9,17 @@ from . import (
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
+modules = [
+    boolean,
+    canvas,
+    cutter,
+    select,
+]
+
 def register():
-    boolean.register()
-    canvas.register()
-    cutter.register()
-    select.register()
+    for module in modules:
+        module.register()
 
 def unregister():
-    boolean.unregister()
-    canvas.unregister()
-    cutter.unregister()
-    select.unregister()
+    for module in reversed(modules):
+        module.unregister()

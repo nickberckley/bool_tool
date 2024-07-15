@@ -30,17 +30,17 @@ def boolean_operators_menu(self, context):
     col = layout.column(align=True)
 
     col.label(text="Auto Boolean")
-    col.operator("object.bool_tool_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
-    col.operator("object.bool_tool_auto_union", text="Union", icon='SELECT_EXTEND')
-    col.operator("object.bool_tool_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
-    col.operator("object.bool_tool_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    col.operator("object.boolean_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.boolean_auto_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.boolean_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.boolean_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
 
     col.separator()
     col.label(text="Brush Boolean")
-    col.operator("object.bool_tool_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
-    col.operator("object.bool_tool_brush_union", text="Union", icon='SELECT_EXTEND')
-    col.operator("object.bool_tool_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
-    col.operator("object.bool_tool_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    col.operator("object.boolean_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.boolean_brush_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.boolean_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.boolean_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
 
 
 def boolean_extras_menu(self, context):
@@ -51,16 +51,16 @@ def boolean_extras_menu(self, context):
     active_object = context.active_object
     if active_object.booleans.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
         col.separator()
-        col.operator("object.toggle_boolean_all", text="Toggle All Cuters")
-        col.operator("object.apply_boolean_all", text="Apply All Cutters")
-        col.operator("object.remove_boolean_all", text="Remove All Cutters")
+        col.operator("object.boolean_toggle_all", text="Toggle All Cuters")
+        col.operator("object.boolean_apply_all", text="Apply All Cutters")
+        col.operator("object.boolean_remove_all", text="Remove All Cutters")
 
     # cutter_operators
     if active_object.booleans.cutter:
         col.separator()
-        col.operator("object.toggle_boolean_brush", text="Toggle Cutter").method='ALL'
-        col.operator("object.apply_boolean_brush", text="Apply Cutter").method='ALL'
-        col.operator("object.remove_boolean_brush", text="Remove Cutter").method='ALL'
+        col.operator("object.boolean_toggle_cutter", text="Toggle Cutter").method='ALL'
+        col.operator("object.boolean_apply_cutter", text="Apply Cutter").method='ALL'
+        col.operator("object.boolean_remove_cutter", text="Remove Cutter").method='ALL'
 
 
 
@@ -137,19 +137,19 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
             row.prop(mod.object, "name", text="", icon=icon)
 
             # Toggle
-            op_toggle = row.operator("object.toggle_boolean_brush", text="", icon='HIDE_OFF' if mod.show_viewport else 'HIDE_ON')
+            op_toggle = row.operator("object.boolean_toggle_cutter", text="", icon='HIDE_OFF' if mod.show_viewport else 'HIDE_ON')
             op_toggle.method = 'SPECIFIED'
             op_toggle.specified_cutter = mod.object.name
             op_toggle.specified_canvas = canvas.name
 
             # Apply
-            op_apply = row.operator("object.apply_boolean_brush", text="", icon='CHECKMARK')
+            op_apply = row.operator("object.boolean_apply_cutter", text="", icon='CHECKMARK')
             op_apply.method = 'SPECIFIED'
             op_apply.specified_cutter = mod.object.name
             op_apply.specified_canvas = canvas.name
 
             # Remove
-            op_remove = row.operator("object.remove_boolean_brush", text="", icon='X')
+            op_remove = row.operator("object.boolean_remove_cutter", text="", icon='X')
             op_remove.method = 'SPECIFIED'
             op_remove.specified_cutter = mod.object.name
             op_remove.specified_canvas = canvas.name
@@ -182,9 +182,9 @@ def boolean_select_menu(self, context):
             layout.separator()
 
         if active_obj.booleans.canvas == True:
-            layout.operator("object.select_boolean_all", text="Select Boolean Cutters")
+            layout.operator("object.boolean_select_all", text="Boolean Cutters")
         if active_obj.booleans.cutter:
-            layout.operator("object.select_cutter_canvas", text="Select Boolean Canvas")
+            layout.operator("object.select_cutter_canvas", text="Boolean Canvases")
 
 
 

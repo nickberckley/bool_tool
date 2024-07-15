@@ -3,7 +3,7 @@ import bpy
 
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
-class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
+class OBJECT_PG_booleans(bpy.types.PropertyGroup):
     # OBJECT-level Properties
 
     canvas: bpy.props.BoolProperty(
@@ -33,7 +33,7 @@ class OBJECT_PG_bool_tool(bpy.types.PropertyGroup):
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 classes = [
-    OBJECT_PG_bool_tool,
+    OBJECT_PG_booleans,
 ]
 
 def register():
@@ -41,7 +41,7 @@ def register():
         bpy.utils.register_class(cls)
 
     # PROPERTY
-    bpy.types.Object.booleans = bpy.props.PointerProperty(type = OBJECT_PG_bool_tool, name="Boolean Tools")
+    bpy.types.Object.booleans = bpy.props.PointerProperty(type=OBJECT_PG_booleans, name="Boolean Tools")
 
 
 def unregister():

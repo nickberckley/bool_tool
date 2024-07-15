@@ -14,27 +14,28 @@ from ..functions import (
 class BrushBoolean():
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
+
         canvas = bpy.context.active_object
-        brushes = list_candidate_objects(context)
+        cutters = list_candidate_objects(context)
 
         if self.mode == "SLICE":
-            # create_slicer_clones
+            # Create Slices
             slices = []
-            for i in range(len(brushes)):
+            for i in range(len(cutters)):
                 create_slice(context, canvas, slices, modifier=True)
 
-            for brush, slice in zip(brushes, slices):
-                # modifiers_on_slices
-                add_boolean_modifier(slice, brush, "INTERSECT", prefs.solver)
+            for cutter, slice in zip(cutters, slices):
+                # add_modifiers_on_slices
+                add_boolean_modifier(slice, cutter, "INTERSECT", prefs.solver)
 
-        for brush in brushes:
-            # hide_brush
-            brush.hide_render = True
-            brush.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
-            object_visibility_set(brush, value=False)
-            if prefs.parent and brush.parent == None:
-                brush.parent = canvas
-                brush.matrix_parent_inverse = canvas.matrix_world.inverted()
+        for cutter in cutters:
+            # hide_cutter
+            cutter.hide_render = True
+            cutter.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
+            object_visibility_set(cutter, value=False)
+            if prefs.parent and cutter.parent == None:
+                cutter.parent = canvas
+                cutter.matrix_parent_inverse = canvas.matrix_world.inverted()
 
             # cutters_collection
             collection_name = "boolean_cutters"
@@ -46,15 +47,16 @@ class BrushBoolean():
                 cutters_collection.hide_render = True
                 cutters_collection.color_tag = 'COLOR_01'
                 bpy.context.view_layer.layer_collection.children[collection_name].exclude = True
-            if cutters_collection not in brush.users_collection:
-                cutters_collection.objects.link(brush)
 
-            # add_modifier
-            add_boolean_modifier(canvas, brush, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
+            if cutters_collection not in cutter.users_collection:
+                cutters_collection.objects.link(cutter)
 
-            # custom_properties
+            # Add Modifier
+            add_boolean_modifier(canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
+
+            # add_boolean_properties
             canvas.booleans.canvas = True
-            brush.booleans.cutter = self.mode.capitalize()
+            cutter.booleans.cutter = self.mode.capitalize()
 
         bpy.context.view_layer.objects.active = canvas
         return {'FINISHED'}
@@ -68,7 +70,7 @@ class BrushBoolean():
 
 
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
-    bl_idname = "object.bool_tool_brush_union"
+    bl_idname = "object.boolean_brush_union"
     bl_label = "Boolean Cutter Union"
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
@@ -81,7 +83,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 
 
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
-    bl_idname = "object.bool_tool_brush_intersect"
+    bl_idname = "object.boolean_brush_intersect"
     bl_label = "Boolean Cutter Intersection"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
@@ -94,7 +96,7 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 
 
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
-    bl_idname = "object.bool_tool_brush_difference"
+    bl_idname = "object.boolean_brush_difference"
     bl_label = "Boolean Cutter Difference"
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
@@ -107,7 +109,7 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
 
 
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
-    bl_idname = "object.bool_tool_brush_slice"
+    bl_idname = "object.boolean_brush_slice"
     bl_label = "Boolean Cutter Slice"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
@@ -125,26 +127,27 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 class AutoBoolean:
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
+
         canvas = bpy.context.active_object
-        brushes = list_candidate_objects(context)
+        cutters = list_candidate_objects(context)
 
         if self.mode == "SLICE":
-            # create_slicer_clones
+            # Create Slices
             slices = []
-            for i in range(len(brushes)):
+            for i in range(len(cutters)):
                 create_slice(context, canvas, slices)
 
-            for brush, slice in zip(brushes, slices):
-                # modifiers_on_slices
-                add_boolean_modifier(slice, brush, "INTERSECT", prefs.solver, apply=True)
+            for cutter, slice in zip(cutters, slices):
+                # add_modifiers_to_slices
+                add_boolean_modifier(slice, cutter, "INTERSECT", prefs.solver, apply=True)
 
-        for brush in brushes:
-            # add_modifier
+        for cutter in cutters:
+            # Add Modifier
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            add_boolean_modifier(canvas, brush, mode, prefs.solver, apply=True)
+            add_boolean_modifier(canvas, cutter, mode, prefs.solver, apply=True)
 
-            # delete_brush
-            bpy.data.objects.remove(brush)
+            # Delete Cutter
+            bpy.data.objects.remove(cutter)
 
             if self.mode == "SLICE":
                 slice.select_set(True)
@@ -161,7 +164,7 @@ class AutoBoolean:
 
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
-    bl_idname = "object.bool_tool_auto_union"
+    bl_idname = "object.boolean_auto_union"
     bl_label = "Boolean Union"
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
@@ -174,7 +177,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
 
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
-    bl_idname = "object.bool_tool_auto_difference"
+    bl_idname = "object.boolean_auto_difference"
     bl_label = "Boolean Difference"
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
@@ -187,7 +190,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
 
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
-    bl_idname = "object.bool_tool_auto_intersect"
+    bl_idname = "object.boolean_auto_intersect"
     bl_label = "Boolean Intersect"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
@@ -200,7 +203,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 
 
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
-    bl_idname = "object.bool_tool_auto_slice"
+    bl_idname = "object.boolean_auto_slice"
     bl_label = "Boolean Slice"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
@@ -217,7 +220,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
 
 addon_keymaps = []
 
-classes = (
+classes = [
     OBJECT_OT_boolean_brush_union,
     OBJECT_OT_boolean_brush_difference,
     OBJECT_OT_boolean_brush_intersect,
@@ -227,7 +230,7 @@ classes = (
     OBJECT_OT_boolean_auto_difference,
     OBJECT_OT_boolean_auto_intersect,
     OBJECT_OT_boolean_auto_slice,
-)
+]
 
 
 def register():
