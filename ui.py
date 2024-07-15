@@ -1,5 +1,6 @@
 import bpy
-from .functions import is_canvas, list_canvas_cutters
+from .functions.poll import is_canvas
+from .functions.list import list_canvas_cutters
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####

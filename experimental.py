@@ -1,7 +1,8 @@
 import bpy
 from bpy.app.handlers import persistent
-from .functions import (
-    add_boolean_modifier,
+
+from .functions.set import add_boolean_modifier
+from .functions.list import (
     list_selected_cutters,
     list_cutter_users,
 )

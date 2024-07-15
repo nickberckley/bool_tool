@@ -1,12 +1,9 @@
 import bpy
 from .. import __package__ as base_package
-from ..functions import (
-    basic_poll,
-    add_boolean_modifier,
-    object_visibility_set,
-    list_candidate_objects,
-    create_slice,
-)
+
+from ..functions.poll import basic_poll
+from ..functions.set import add_boolean_modifier, object_visibility_set, create_slice
+from ..functions.list import list_candidate_objects
 
 
 #### ------------------------------ /brush_boolean/ ------------------------------ ####

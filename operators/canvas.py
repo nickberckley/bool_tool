@@ -1,16 +1,20 @@
 import bpy, itertools
 from .. import __package__ as base_package
-from ..functions import (
+
+from ..functions.poll import (
     basic_poll,
-    is_canvas,
+    is_canvas
+)
+from ..functions.set import (
     object_visibility_set,
-    list_canvases,
+    delete_empty_collection,
+)
+from ..functions.list import (
     list_canvas_slices,
     list_canvas_cutters,
     list_cutter_users,
     list_selected_canvases,
-    delete_empty_collection,
-    filter_unused_cutters,
+    list_unused_cutters,
 )
 
 
@@ -46,7 +50,7 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
                     mod.show_render = not mod.show_render
 
 
-        unused_cutters, __ = filter_unused_cutters(cutters, canvases, slices, include_visible=True)
+        unused_cutters, __ = list_unused_cutters(cutters, canvases, slices, include_visible=True)
 
         # Hide Unused Cutters
         for cutter in unused_cutters:
@@ -92,7 +96,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
 
         # Restore Orphaned Cutters
-        unused_cutters, leftovers = filter_unused_cutters(cutters, canvases, slices, do_leftovers=True)
+        unused_cutters, leftovers = list_unused_cutters(cutters, canvases, slices, do_leftovers=True)
 
         for cutter in unused_cutters:
             # restore_visibility
@@ -159,7 +163,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
 
         # Purge Orphaned Cutters
-        unused_cutters, leftovers = filter_unused_cutters(cutters, canvases, slices, do_leftovers=True)
+        unused_cutters, leftovers = list_unused_cutters(cutters, canvases, slices, do_leftovers=True)
 
         purged_cutters = []
         for cutter in unused_cutters:

@@ -1,15 +1,20 @@
 import bpy
 from .. import __package__ as base_package
-from ..functions import (
+
+from ..functions.poll import (
     basic_poll,
+)
+from ..functions.set import (
     object_visibility_set,
+    delete_empty_collection,
+)
+from ..functions.list import (
     list_canvases,
     list_selected_cutters,
     list_canvas_cutters,
     list_canvas_slices,
     list_cutter_users,
-    delete_empty_collection,
-    filter_unused_cutters,
+    list_unused_cutters,
 )
 
 
@@ -74,7 +79,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                             mod.show_render = not mod.show_render
 
                 # hide_cutter_if_not_used_by_any_visible_modifiers
-                unused_cutters, __ = filter_unused_cutters(cutters, canvases, slices, include_visible=True)
+                unused_cutters, __ = list_unused_cutters(cutters, canvases, slices, include_visible=True)
                 for cutter in unused_cutters:
                     cutter.hide_viewport = not cutter.hide_viewport
 
@@ -144,7 +149,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                         if mod.type == 'BOOLEAN' and mod.object in cutters:
                             bpy.data.objects.remove(slice)
 
-                cutters, leftovers = filter_unused_cutters(cutters, canvases, do_leftovers=True)
+                cutters, leftovers = list_unused_cutters(cutters, canvases, do_leftovers=True)
 
 
             # Restore Orphaned Cutters
@@ -243,7 +248,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                             context.view_layer.objects.active = slice
                             bpy.ops.object.modifier_apply(modifier=mod.name)
 
-                cutters, leftovers = filter_unused_cutters(cutters, canvases, do_leftovers=True)
+                cutters, leftovers = list_unused_cutters(cutters, canvases, do_leftovers=True)
 
 
             # Purge Orphaned Cutters

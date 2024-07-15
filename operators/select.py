@@ -1,8 +1,10 @@
 import bpy
-from ..functions import (
+
+from ..functions.poll import (
     basic_poll,
     is_canvas,
-    list_canvases,
+)
+from ..functions.list import (
     list_selected_cutters,
     list_selected_canvases,
     list_canvas_cutters,
