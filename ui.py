@@ -48,20 +48,21 @@ def boolean_extras_menu(self, context):
     layout = self.layout
     col = layout.column(align=True)
 
-    # canvas_operators
-    active_object = context.active_object
-    if active_object.booleans.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
-        col.separator()
-        col.operator("object.boolean_toggle_all", text="Toggle All Cuters")
-        col.operator("object.boolean_apply_all", text="Apply All Cutters")
-        col.operator("object.boolean_remove_all", text="Remove All Cutters")
+    if context.active_object:
+        # canvas_operators
+        active_object = context.active_object
+        if active_object.booleans.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
+            col.separator()
+            col.operator("object.boolean_toggle_all", text="Toggle All Cuters")
+            col.operator("object.boolean_apply_all", text="Apply All Cutters")
+            col.operator("object.boolean_remove_all", text="Remove All Cutters")
 
-    # cutter_operators
-    if active_object.booleans.cutter:
-        col.separator()
-        col.operator("object.boolean_toggle_cutter", text="Toggle Cutter").method='ALL'
-        col.operator("object.boolean_apply_cutter", text="Apply Cutter").method='ALL'
-        col.operator("object.boolean_remove_cutter", text="Remove Cutter").method='ALL'
+        # cutter_operators
+        if active_object.booleans.cutter:
+            col.separator()
+            col.operator("object.boolean_toggle_cutter", text="Toggle Cutter").method='ALL'
+            col.operator("object.boolean_apply_cutter", text="Apply Cutter").method='ALL'
+            col.operator("object.boolean_remove_cutter", text="Remove Cutter").method='ALL'
 
 
 
