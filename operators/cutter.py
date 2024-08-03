@@ -4,9 +4,10 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
 )
-from ..functions.set import (
+from ..functions.object import (
     object_visibility_set,
     delete_empty_collection,
+    delete_cutter,
 )
 from ..functions.list import (
     list_canvases,
@@ -258,9 +259,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
             # Purge Orphaned Cutters
             for cutter in cutters:
-                orphaned_mesh = cutter.data
-                bpy.data.objects.remove(cutter)
-                bpy.data.meshes.remove(orphaned_mesh)
+                delete_cutter(context, cutter)
 
             # purge_empty_collection
             delete_empty_collection()

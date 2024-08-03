@@ -1,6 +1,6 @@
 import bpy
 from .. import __package__ as base_package
-from .set import convert_to_mesh
+from .object import convert_to_mesh
 
 
 #### ------------------------------ /all/ ------------------------------ ####
