@@ -23,7 +23,7 @@ from ..functions.select import (
 
 class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_idname = "object.carve_box"
-    bl_label = "Box Carver"
+    bl_label = "Box Carve"
     bl_description = ("Boolean cut square shapes into mesh objects")
 
     bl_space_type = 'VIEW_3D'
@@ -113,9 +113,10 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         args = (self, context)
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay_rectangle, args, 'WINDOW', 'POST_PIXEL')
 
-        # Keyboard Events
+        # Modifier Keys
         self.snap = False
         self.move = False
+        self.fix = False
 
         # overlay_position
         self.position_x = 0
@@ -138,7 +139,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
     def modal(self, context, event):
-        context.area.header_text_set("CTRL: Snap Invert, ALT: Move")
+        context.area.header_text_set("CTRL: Snap Invert, SPACEBAR: Move, SHIFT: Fixed Aspect")
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -151,7 +152,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         # SNAP
         # change_the_snap_increment_value_using_the_wheel_mouse
-        if self.move is False:
+        if (self.move is False) and (self.fix is False):
             for i, a in enumerate(context.screen.areas):
                 if a.type == 'VIEW_3D':
                     space = context.screen.areas[i].spaces.active
@@ -167,10 +168,15 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
         # MOVE
-        self.move = False
+        # make_spacebar_modifier_key
+        if event.type == 'SPACE':
+            if event.value == 'PRESS':
+                self.move = True
+            elif event.value == 'RELEASE':
+                self.move = False
 
-        # initial_position_variable_before_moving_the_brush
-        if event.alt:
+        if self.move:
+            # initial_position_variable_before_moving_the_brush
             if self.initial_position is False:
                 self.position_x = 0
                 self.position_y = 0
@@ -206,7 +212,15 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
                     cursor_snap(self, context, event, mouse_position)
                 else:
                     if len(self.mouse_path) > 0:
-                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                        # Fixed Size
+                        self.fix = event.shift
+                        if self.fix:
+                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
+                            self.mouse_path[len(self.mouse_path) - 1] = \
+                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                        else:
+                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
             else:
                 self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
                 self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
