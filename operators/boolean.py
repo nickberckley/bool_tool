@@ -2,7 +2,7 @@ import bpy
 from .. import __package__ as base_package
 
 from ..functions.poll import basic_poll
-from ..functions.set import add_boolean_modifier, object_visibility_set, create_slice
+from ..functions.object import add_boolean_modifier, set_cutter_properties, create_slice
 from ..functions.list import list_candidate_objects
 
 
@@ -21,41 +21,17 @@ class BrushBoolean():
             for i in range(len(cutters)):
                 create_slice(context, canvas, slices, modifier=True)
 
+            # add_modifiers_on_slices
             for cutter, slice in zip(cutters, slices):
-                # add_modifiers_on_slices
                 add_boolean_modifier(slice, cutter, "INTERSECT", prefs.solver)
 
         for cutter in cutters:
-            # hide_cutter
-            cutter.hide_render = True
-            cutter.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
-            object_visibility_set(cutter, value=False)
-            if prefs.parent and cutter.parent == None:
-                cutter.parent = canvas
-                cutter.matrix_parent_inverse = canvas.matrix_world.inverted()
-
-            # cutters_collection
-            collection_name = "boolean_cutters"
-            cutters_collection = bpy.data.collections.get(collection_name)
-            if cutters_collection is None:
-                cutters_collection = bpy.data.collections.new(collection_name)
-                context.scene.collection.children.link(cutters_collection)
-                cutters_collection.hide_viewport = True
-                cutters_collection.hide_render = True
-                cutters_collection.color_tag = 'COLOR_01'
-                bpy.context.view_layer.layer_collection.children[collection_name].exclude = True
-
-            if cutters_collection not in cutter.users_collection:
-                cutters_collection.objects.link(cutter)
-
-            # Add Modifier
+            set_cutter_properties(context, canvas, cutter, self.mode)
             add_boolean_modifier(canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
 
-            # add_boolean_properties
-            canvas.booleans.canvas = True
-            cutter.booleans.cutter = self.mode.capitalize()
+        context.view_layer.objects.active = canvas
+        canvas.booleans.canvas = True
 
-        bpy.context.view_layer.objects.active = canvas
         return {'FINISHED'}
 
     def invoke(self, context, event):
