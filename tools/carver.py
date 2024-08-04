@@ -25,20 +25,22 @@ class CarverToolshelf():
     def draw_settings(context, layout, tool):
         props = tool.operator_properties("object.carve")
         if context.object:
-            active_tool = context.workspace.tools.from_space_view3d_mode(context.object.mode, create=False).idname
+            mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+            active_tool = context.workspace.tools.from_space_view3d_mode(mode, create=False).idname
 
         layout.prop(props, "mode")
         layout.prop(props, "depth")
         layout.prop(props, "pin")
 
-        if context.object and active_tool == "object.carve_circle":
-            layout.prop(props, "subdivision", text="Vertices")
+        if context.object:
+            if active_tool == "object.carve_circle":
+                layout.prop(props, "subdivision", text="Vertices")
 
-        if props.mode == 'MODIFIER':
-            row = layout.row()
-            row.prop(props, "hide")
+            if props.mode == 'MODIFIER':
+                row = layout.row()
+                row.prop(props, "hide")
 
-        layout.popover("TOPBAR_PT_carver_extras", text="...")
+            layout.popover("TOPBAR_PT_carver_extras", text="...")
 
 class TOPBAR_PT_carver_extras(bpy.types.Panel):
     bl_label = "Carver Extras"
@@ -49,7 +51,9 @@ class TOPBAR_PT_carver_extras(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
-        tool = context.workspace.tools.from_space_view3d_mode(context.object.mode, create=False)
+
+        mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+        tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         tool = tool.operator_properties("object.carve")
 
         layout.prop(tool, "aspect", expand=True)
