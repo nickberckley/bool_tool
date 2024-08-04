@@ -166,7 +166,7 @@ def mini_grid(self, context, color):
                         (mouse_coord[0] - snap_value, mouse_coord[1] - 25 - snap_value),
                         (mouse_coord[0] + 25 + snap_value, mouse_coord[1] - snap_value),
                         (mouse_coord[0] - 25 - snap_value, mouse_coord[1] - snap_value),]
-        draw_shader(color, 0.66, 'LINES', grid_coords, size=2)
+        draw_shader((1.0, 1.0, 1.0), 0.66, 'LINES', grid_coords, size=1.5)
 
 
 def get_bounding_box_coords(coords):
