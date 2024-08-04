@@ -38,6 +38,22 @@ class CarverToolshelf():
             row = layout.row()
             row.prop(props, "hide")
 
+        layout.popover("TOPBAR_PT_carver_extras", text="...")
+
+class TOPBAR_PT_carver_extras(bpy.types.Panel):
+    bl_label = "Carver Extras"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        tool = context.workspace.tools.from_space_view3d_mode(context.object.mode, create=False)
+        tool = tool.operator_properties("object.carve")
+
+        layout.prop(tool, "aspect", expand=True)
+        layout.prop(tool, "origin", expand=True)
 
 
 #### ------------------------------ TOOLS ------------------------------ ####
@@ -113,18 +129,33 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         default = 'VIEW',
     )
 
+    # SHAPE-properties
+    subdivision: bpy.props.IntProperty(
+        name = "Circle Subdivisions",
+        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
+        min = 3, soft_max = 128,
+        default = 16,
+    )
+    aspect: bpy.props.EnumProperty(
+        name = "Aspect",
+        items = (('FREE', "Free", "Use an unconstrained aspect"),
+                ('FIXED', "Fixed", "Use a fixed 1:1 aspect")),
+        default = 'FREE',
+    )
+    origin: bpy.props.EnumProperty(
+        name = "Origin",
+        description = "The initial position for placement",
+        items = (('EDGE', "Edge", ""),
+                ('CENTER', "Center", "")),
+        default = 'EDGE',
+    )
+
     # CUTTER-properties
     hide: bpy.props.BoolProperty(
         name = "Hide Cutter",
         description = ("Hide cutter objects in the viewport after they're created\n"
                        "NOTE: They are hidden in render regardless of this property"),
         default = True
-    )
-    subdivision: bpy.props.IntProperty(
-        name = "Circle Subdivisions",
-        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
-        min = 3, soft_max = 128,
-        default = 16,
     )
 
     # ADVANCED-properties
@@ -155,8 +186,9 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         # Modifier Keys
         self.snap = False
         self.move = False
-        self.fix = False
-        self.origin = False
+        self.initial_origin = self.origin
+        self.initial_aspect = self.aspect
+
 
         # overlay_position
         self.position_x = 0
@@ -193,7 +225,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         # SNAP
         # change_the_snap_increment_value_using_the_wheel_mouse
-        if (self.move is False) and (self.fix is False):
+        if self.move is False:
             for i, a in enumerate(context.screen.areas):
                 if a.type == 'VIEW_3D':
                     space = context.screen.areas[i].spaces.active
@@ -208,11 +240,24 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             self.snap = not self.snap
 
 
+        # ASPECT
+        if event.shift:
+            if self.initial_aspect == 'FREE':
+                self.aspect = 'FIXED'
+            elif self.initial_aspect == 'FIXED':
+                self.aspect = 'FREE'
+        else:
+            self.aspect = self.initial_aspect
+
+
         # ORIGIN
         if event.alt:
-            self.origin = True
+            if self.initial_origin == 'EDGE':
+                self.origin = 'CENTER'
+            elif self.initial_origin == 'CENTER':
+                self.origin = 'EDGE'
         else:
-            self.origin = False
+            self.origin = self.initial_origin
 
 
         # MOVE
@@ -261,13 +306,12 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
                 else:
                     if len(self.mouse_path) > 0:
                         # Fixed Size
-                        self.fix = event.shift
-                        if self.fix:
+                        if self.aspect == 'FIXED':
                             side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
                             self.mouse_path[len(self.mouse_path) - 1] = \
                                             (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
                                              self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
-                        else:
+                        elif self.aspect == 'FREE':
                             self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
             else:
                 self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
@@ -356,6 +400,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 classes = [
     OBJECT_OT_carve_box,
+    TOPBAR_PT_carver_extras,
 ]
 
 main_tools = [
