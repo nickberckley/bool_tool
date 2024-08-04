@@ -303,20 +303,19 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         # mouse_move
         if event.type == 'MOUSEMOVE':
             if self.move is False:
-                if self.snap:
-                    # find_the_closest_position_on_the_overlay_grid_and_snap_the_mouse_on_it
-                    mouse_position = [[event.mouse_region_x, event.mouse_region_y]]
-                    cursor_snap(self, context, event, mouse_position)
-                else:
-                    if len(self.mouse_path) > 0:
-                        # Fixed Size
-                        if self.aspect == 'FIXED':
-                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
-                            self.mouse_path[len(self.mouse_path) - 1] = \
-                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
-                        elif self.aspect == 'FREE':
-                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                if len(self.mouse_path) > 0:
+                    # Fixed Aspect
+                    if self.aspect == 'FIXED':
+                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
+                        self.mouse_path[len(self.mouse_path) - 1] = \
+                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                    elif self.aspect == 'FREE':
+                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+
+                    # Snapping (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                    if self.snap:
+                        cursor_snap(self, context, event, self.mouse_path)
             else:
                 self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
                 self.position_y += (event.mouse_region_y - self.last_mouse_region_y)

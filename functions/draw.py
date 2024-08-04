@@ -157,7 +157,6 @@ def mini_grid(self, context, color):
         grid_coords = [(0, mouse_coord[1]), (screen_width, mouse_coord[1]),
                         (mouse_coord[0], 0), (mouse_coord[0], screen_height)]
 
-        # Draw
         grid_coords += [(mouse_coord[0] + snap_value, mouse_coord[1] + 25 + snap_value),
                         (mouse_coord[0] + snap_value, mouse_coord[1] - 25 - snap_value),
                         (mouse_coord[0] + 25 + snap_value, mouse_coord[1] + snap_value),
