@@ -1,7 +1,9 @@
-import bpy, gpu
+import bpy, gpu, mathutils, math
 from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
+
+color = (0.48, 0.04, 0.04, 1.0)
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
@@ -37,10 +39,8 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
     gpu.state.blend_set('NONE')
 
 
-def carver_overlay_rectangle(self, context):
-    "Rectangle overlay for box carver operator"
-
-    color = (0.48, 0.04, 0.04, 1.0)
+def carver_overlay(self, context):
+    """Shape (rectangle, circle) overlay for carver tool"""
 
     if len(self.mouse_path) > 1:
         x0 = self.mouse_path[0][0]
@@ -48,15 +48,70 @@ def carver_overlay_rectangle(self, context):
         x1 = self.mouse_path[1][0]
         y1 = self.mouse_path[1][1]
 
-    coords = [(x0 + self.position_x, y0 + self.position_y), (x1 + self.position_x, y0 + self.position_y),
-              (x1 + self.position_x, y1 + self.position_y), (x0 + self.position_x, y1 + self.position_y)]
-    self.rectangle_coords = coords
+    if self.shape == 'CIRCLE':
+        tris_verts, __ = draw_circle(self, x0, y0, self.subdivision, 0)
+        coords = tris_verts[1:] # remove_the_vertex_in_the_center
+    elif self.shape == 'BOX':
+        tris_verts, __ = draw_circle(self, x0, y0, 4, 45)
+        coords = tris_verts[1:] # remove_the_vertex_in_the_center
+    self.verts = coords
 
     draw_shader(color, 0.4, 'SOLID', coords, size=2)
     if self.snap and self.move == False:
         mini_grid(self, context, color)
 
     gpu.state.blend_set('NONE')
+
+
+def draw_circle(self, mouse_pos_x, mouse_pos_y, subdivision, rotation):
+    """Returns the coordinates & indices of a circle using a triangle fan"""
+
+    def create_2d_circle(self, step, rotation=0):
+        """Create the vertices of a 2d circle at (0, 0)"""
+
+        verts = []
+        for angle in range(0, 360, int(step)):
+            verts.append(math.cos(math.radians(angle + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / 2))
+            verts.append(math.sin(math.radians(angle + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / 2))
+            verts.append(0.0)
+
+        verts.append(math.cos(math.radians(0.0 + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / 2))
+        verts.append(math.sin(math.radians(0.0 + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / 2))
+        verts.append(0.0)
+
+        return verts
+
+    tris_verts = []
+    indices = []
+    segments = int(360 / (360 / subdivision))
+    # rotation = (self.mouse_path[1][1] - self.mouse_path[0][1]) / 2
+
+    verts = create_2d_circle(self, 360 / int(subdivision), rotation)
+
+    # Grow from the Center
+    if self.origin:
+        # create_the_first_vertex_at_mouse_position_for_the_center_of_the_circle
+        tris_verts.append(mathutils.Vector((mouse_pos_x + self.position_y , mouse_pos_y + self.position_y)))
+
+        # for_each_vertex_of_the_circle_add_the_mouse_position_and_the_translation
+        for idx in range(int(len(verts) / 3) - 1):
+            tris_verts.append(mathutils.Vector((verts[idx * 3] + mouse_pos_x + self.position_x, verts[idx * 3 + 1] + mouse_pos_y + self.position_y)))
+            i1 = idx + 1
+            i2 = idx + 2 if idx + 2 <= segments else 1
+            indices.append((0, i1, i2))
+
+    # Grow from the Top Left Corner
+    if self.origin == False:
+        min_x = min(verts[0::3]) if self.mouse_path[1][0] > mouse_pos_x else -min(verts[0::3])
+        min_y = min(verts[1::3]) if self.mouse_path[1][1] > mouse_pos_y else -min(verts[1::3])
+
+        for idx in range(len(verts) // 3):
+            tris_verts.append(mathutils.Vector((
+                verts[idx * 3] - min_x + mouse_pos_x + self.position_x,
+                verts[idx * 3 + 1] - min_y + mouse_pos_y + self.position_y,
+                verts[idx * 3 + 2])))
+
+    return tris_verts, indices
 
 
 def mini_grid(self, context, color):

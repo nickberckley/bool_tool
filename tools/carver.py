@@ -2,7 +2,7 @@ import bpy, mathutils
 from .. import __package__ as base_package
 
 from ..functions.draw import (
-    carver_overlay_rectangle,
+    carver_overlay,
 )
 from ..functions.object import (
     add_boolean_modifier,
@@ -10,7 +10,7 @@ from ..functions.object import (
     delete_cutter,
 )
 from ..functions.mesh import (
-    create_cut_rectangle,
+    create_cutter_shape,
     extrude,
 )
 from ..functions.select import (
@@ -19,12 +19,33 @@ from ..functions.select import (
 )
 
 
+#### ------------------------------ /toolshelf_draw/ ------------------------------ ####
+
+class CarverToolshelf():
+    def draw_settings(context, layout, tool):
+        props = tool.operator_properties("object.carve")
+        if context.object:
+            active_tool = context.workspace.tools.from_space_view3d_mode(context.object.mode, create=False).idname
+
+        layout.prop(props, "mode")
+        layout.prop(props, "depth")
+        layout.prop(props, "pin")
+
+        if context.object and active_tool == "object.carve_circle":
+            layout.prop(props, "subdivision", text="Vertices")
+
+        if props.mode == 'MODIFIER':
+            row = layout.row()
+            row.prop(props, "hide")
+
+
+
 #### ------------------------------ TOOLS ------------------------------ ####
 
-class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
+class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
-    bl_description = ("Boolean cut square shapes into mesh objects")
+    bl_description = ("Boolean cut rectangular shapes into mesh objects")
 
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
@@ -32,22 +53,28 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_icon = "ops.sculpt.box_trim"
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'BOX')]}),
     )
 
-    def draw_settings(context, layout, tool):
-        props = tool.operator_properties("object.carve_box")
-
-        layout.prop(props, "mode")
-        layout.prop(props, "depth")
-        layout.prop(props, "pin")
-
-        if props.mode == 'MODIFIER':
-            row = layout.row()
-            row.prop(props, "hide")
-
-
 class MESH_WT_carve_box(OBJECT_WT_carve_box):
+    bl_context_mode = 'EDIT_MESH'
+
+
+class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
+    bl_idname = "object.carve_circle"
+    bl_label = "Circle Carve"
+    bl_description = ("Boolean cut circlular shapes into mesh objects")
+
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'OBJECT'
+
+    bl_icon = "ops.sculpt.lasso_trim"
+    # bl_widget = 'VIEW3D_GGT_placement'
+    bl_keymap = (
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'CIRCLE')]}),
+    )
+
+class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
     bl_context_mode = 'EDIT_MESH'
 
 
@@ -55,12 +82,18 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
 #### ------------------------------ OPERATORS ------------------------------ ####
 
 class OBJECT_OT_carve_box(bpy.types.Operator):
-    bl_idname = "object.carve_box"
+    bl_idname = "object.carve"
     bl_label = "Box Carve"
     bl_description = "Boolean cut square shapes into mesh objects"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
 
     # OPERATOR-properties
+    shape: bpy.props.EnumProperty(
+        name = "Shape",
+        items = (('BOX', "Box", ""),
+                 ('CIRCLE', "Circle", "")),
+        default = 'BOX',
+    )
     mode: bpy.props.EnumProperty(
         name = "Mode",
         items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut"),
@@ -87,6 +120,12 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
                        "NOTE: They are hidden in render regardless of this property"),
         default = True
     )
+    subdivision: bpy.props.IntProperty(
+        name = "Circle Subdivisions",
+        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
+        min = 3, soft_max = 128,
+        default = 16,
+    )
 
     # ADVANCED-properties
     pin: bpy.props.BoolProperty(
@@ -107,16 +146,17 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         self.mouse_path = [(0, 0), (0, 0)]
         self.view_vector = mathutils.Vector()
-        self.rectangle_coords = []
+        self.verts = []
         self.cutter = None
 
         args = (self, context)
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay_rectangle, args, 'WINDOW', 'POST_PIXEL')
+        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')
 
         # Modifier Keys
         self.snap = False
         self.move = False
         self.fix = False
+        self.origin = False
 
         # overlay_position
         self.position_x = 0
@@ -165,6 +205,13 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         self.snap = context.scene.tool_settings.use_snap
         if event.ctrl:
             self.snap = not self.snap
+
+
+        # ORIGIN
+        if event.alt:
+            self.origin = True
+        else:
+            self.origin = False
 
 
         # MOVE
@@ -256,7 +303,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             min_distance = 5
 
             if delta_x > min_distance or delta_y > min_distance:
-                create_cut_rectangle(self, context)
+                create_cutter_shape(self, context)
                 extrude(self, self.cutter.data)
                 self.Cut(context)
 
@@ -310,21 +357,30 @@ classes = [
     OBJECT_OT_carve_box,
 ]
 
-tools = [
+main_tools = [
     OBJECT_WT_carve_box,
     MESH_WT_carve_box,
 ]
+secondary_tools = [
+    OBJECT_WT_carve_circle,
+    MESH_WT_carve_circle,
+]
+
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    for tool in tools:
+    for tool in main_tools:
         bpy.utils.register_tool(tool, separator=False, after="builtin.primitive_cube_add", group=True)
+    for tool in secondary_tools:
+        bpy.utils.register_tool(tool, separator=False, after="object.carve_box", group=False)
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    for tool in tools:
+    for tool in main_tools:
+        bpy.utils.unregister_tool(tool)
+    for tool in secondary_tools:
         bpy.utils.unregister_tool(tool)
