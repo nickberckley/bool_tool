@@ -179,7 +179,8 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
     def modal(self, context, event):
-        context.area.header_text_set("CTRL: Snap Invert, SPACEBAR: Move, SHIFT: Fixed Aspect")
+        snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Fixed Aspect, [ALT]: Center Origin " + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
