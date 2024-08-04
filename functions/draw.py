@@ -18,7 +18,6 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
-        batch.draw(shader)
 
     elif type == 'LINES':
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
@@ -26,16 +25,20 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         shader.uniform_float("lineWidth", size)
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
-        batch.draw(shader)
 
     if type == 'SOLID':
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
-        # shader.bind()
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, 'TRI_FAN', {"pos": coords})
-        batch.draw(shader)
 
+    if type == 'OUTLINE':
+        shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+        shader.uniform_float("color", (color[0], color[1], color[2], alpha))
+        batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": coords})
+
+    batch.draw(shader)
     gpu.state.point_size_set(1.0)
+    gpu.state.line_width_set(size)
     gpu.state.blend_set('NONE')
 
 
@@ -57,6 +60,8 @@ def carver_overlay(self, context):
     self.verts = coords
 
     draw_shader(color, 0.4, 'SOLID', coords, size=2)
+    draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self.verts), size=2)
+
     if self.snap and self.move == False:
         mini_grid(self, context, color)
 
@@ -70,7 +75,6 @@ def draw_circle(self, mouse_pos_x, mouse_pos_y, subdivision, rotation):
         """Create the vertices of a 2d circle at (0, 0)"""
 
         modifier = 2 if self.shape == 'CIRCLE' else 1.4 # magic_number
-
         verts = []
         for angle in range(0, 360, int(step)):
             verts.append(math.cos(math.radians(angle + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / modifier))
@@ -162,3 +166,22 @@ def mini_grid(self, context, color):
                         (mouse_coord[0] + 25 + snap_value, mouse_coord[1] - snap_value),
                         (mouse_coord[0] - 25 - snap_value, mouse_coord[1] - snap_value),]
         draw_shader(color, 0.66, 'LINES', grid_coords, size=2)
+
+
+def get_bounding_box_coords(coords):
+    """Calculates the bounding box coordinates from a list of vertices in a counter-clockwise order"""
+
+    min_x = min(v[0] for v in coords)
+    max_x = max(v[0] for v in coords)
+    min_y = min(v[1] for v in coords)
+    max_y = max(v[1] for v in coords)
+
+    bounding_box_coords = [
+        mathutils.Vector((min_x, min_y, 0)),  # bottom-left
+        mathutils.Vector((max_x, min_y, 0)),  # bottom-right
+        mathutils.Vector((max_x, max_y, 0)),  # top-right
+        mathutils.Vector((min_x, max_y, 0)),  # top-left
+        mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
+    ]
+
+    return bounding_box_coords
