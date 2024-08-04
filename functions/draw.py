@@ -60,7 +60,7 @@ def carver_overlay(self, context):
     self.verts = coords
 
     draw_shader(color, 0.4, 'SOLID', coords, size=2)
-    draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self.verts), size=2)
+    draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
 
     if self.snap and self.move == False:
         mini_grid(self, context, color)
@@ -168,13 +168,14 @@ def mini_grid(self, context, color):
         draw_shader((1.0, 1.0, 1.0), 0.66, 'LINES', grid_coords, size=1.5)
 
 
-def get_bounding_box_coords(coords):
+def get_bounding_box_coords(self, coords):
     """Calculates the bounding box coordinates from a list of vertices in a counter-clockwise order"""
 
     min_x = min(v[0] for v in coords)
     max_x = max(v[0] for v in coords)
     min_y = min(v[1] for v in coords)
     max_y = max(v[1] for v in coords)
+    self.center_origin = [(min_x, min_y), (max_x, max_y)]
 
     bounding_box_coords = [
         mathutils.Vector((min_x, min_y, 0)),  # bottom-left

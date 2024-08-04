@@ -198,6 +198,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         self.position_x = 0
         self.position_y = 0
         self.initial_position = False
+        self.center_origin = []
 
 
     def invoke(self, context, event):

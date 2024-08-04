@@ -73,8 +73,12 @@ def selection_fallback(self, context, objects, include_cutters=False):
     """NOTE: bounding box isn't always returning correct results for objects, but full surface check would be too expensive"""
 
     # convert_2d_rectangle_coordinates_to_world_coordinates
-    rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]), min(self.mouse_path[0][1], self.mouse_path[1][1])))
-    rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]), max(self.mouse_path[0][1], self.mouse_path[1][1])))
+    if self.origin == 'EDGE':
+        rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]), min(self.mouse_path[0][1], self.mouse_path[1][1])))
+        rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]), max(self.mouse_path[0][1], self.mouse_path[1][1])))
+    else:
+        rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]), min(self.center_origin[0][1], self.center_origin[1][1])))
+        rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]), max(self.center_origin[0][1], self.center_origin[1][1])))
 
     intersecting_objects = []
     for obj in objects:
