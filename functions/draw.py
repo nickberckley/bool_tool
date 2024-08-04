@@ -69,14 +69,16 @@ def draw_circle(self, mouse_pos_x, mouse_pos_y, subdivision, rotation):
     def create_2d_circle(self, step, rotation=0):
         """Create the vertices of a 2d circle at (0, 0)"""
 
+        modifier = 2 if self.shape == 'CIRCLE' else 1.4 # magic_number
+
         verts = []
         for angle in range(0, 360, int(step)):
-            verts.append(math.cos(math.radians(angle + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / 2))
-            verts.append(math.sin(math.radians(angle + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / 2))
+            verts.append(math.cos(math.radians(angle + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / modifier))
+            verts.append(math.sin(math.radians(angle + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / modifier))
             verts.append(0.0)
 
-        verts.append(math.cos(math.radians(0.0 + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / 2))
-        verts.append(math.sin(math.radians(0.0 + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / 2))
+        verts.append(math.cos(math.radians(0.0 + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / modifier))
+        verts.append(math.sin(math.radians(0.0 + rotation)) * ((self.mouse_path[1][1] - self.mouse_path[0][1]) / modifier))
         verts.append(0.0)
 
         return verts
