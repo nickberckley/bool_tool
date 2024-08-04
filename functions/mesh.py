@@ -4,8 +4,8 @@ from bpy_extras import view3d_utils
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def create_cut_rectangle(self, context):
-    """Creates rectangle mesh that is going to be used by Carver tool"""
+def create_cutter_shape(self, context):
+    """Creates flat mesh from the vertices provided in `self.verts` (which is created by `carver_overlay`)"""
 
     far_limit = 10000.0
     coords = self.mouse_path[0][0], self.mouse_path[0][1]
@@ -34,9 +34,9 @@ def create_cut_rectangle(self, context):
         plane_point = mathutils.Vector((0.0, 0.0, 0.0))
 
     # find_the_intersection_of_a_line_going_through_each_vertex_and_the_infinite_plane
-    for v_co in self.rectangle_coords:
-        vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, v_co)
-        p0 = view3d_utils.region_2d_to_location_3d(region, rv3d,v_co, vec)
+    for vert in self.verts:
+        vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
+        p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
         p1 = p0 + plane_direction
         faces.append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
 

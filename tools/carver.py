@@ -2,7 +2,7 @@ import bpy, mathutils
 from .. import __package__ as base_package
 
 from ..functions.draw import (
-    carver_overlay_rectangle,
+    carver_overlay,
 )
 from ..functions.object import (
     add_boolean_modifier,
@@ -10,7 +10,7 @@ from ..functions.object import (
     delete_cutter,
 )
 from ..functions.mesh import (
-    create_cut_rectangle,
+    create_cutter_shape,
     extrude,
 )
 from ..functions.select import (
@@ -19,12 +19,53 @@ from ..functions.select import (
 )
 
 
+#### ------------------------------ /toolshelf_draw/ ------------------------------ ####
+
+class CarverToolshelf():
+    def draw_settings(context, layout, tool):
+        props = tool.operator_properties("object.carve")
+        if context.object:
+            mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+            active_tool = context.workspace.tools.from_space_view3d_mode(mode, create=False).idname
+
+        layout.prop(props, "mode")
+        layout.prop(props, "depth")
+        layout.prop(props, "pin")
+
+        if context.object:
+            if active_tool == "object.carve_circle":
+                layout.prop(props, "subdivision", text="Vertices")
+
+            if props.mode == 'MODIFIER':
+                row = layout.row()
+                row.prop(props, "hide")
+
+            layout.popover("TOPBAR_PT_carver_extras", text="...")
+
+class TOPBAR_PT_carver_extras(bpy.types.Panel):
+    bl_label = "Carver Extras"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+        tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
+        tool = tool.operator_properties("object.carve")
+
+        layout.prop(tool, "aspect", expand=True)
+        layout.prop(tool, "origin", expand=True)
+
+
 #### ------------------------------ TOOLS ------------------------------ ####
 
-class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
+class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
-    bl_description = ("Boolean cut square shapes into mesh objects")
+    bl_description = ("Boolean cut rectangular shapes into mesh objects")
 
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
@@ -32,22 +73,28 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_icon = "ops.sculpt.box_trim"
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'PRESS'}, None),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'BOX')]}),
     )
 
-    def draw_settings(context, layout, tool):
-        props = tool.operator_properties("object.carve_box")
-
-        layout.prop(props, "mode")
-        layout.prop(props, "depth")
-        layout.prop(props, "pin")
-
-        if props.mode == 'MODIFIER':
-            row = layout.row()
-            row.prop(props, "hide")
-
-
 class MESH_WT_carve_box(OBJECT_WT_carve_box):
+    bl_context_mode = 'EDIT_MESH'
+
+
+class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
+    bl_idname = "object.carve_circle"
+    bl_label = "Circle Carve"
+    bl_description = ("Boolean cut circlular shapes into mesh objects")
+
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'OBJECT'
+
+    bl_icon = "ops.sculpt.lasso_trim"
+    # bl_widget = 'VIEW3D_GGT_placement'
+    bl_keymap = (
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'CIRCLE')]}),
+    )
+
+class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
     bl_context_mode = 'EDIT_MESH'
 
 
@@ -55,12 +102,18 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
 #### ------------------------------ OPERATORS ------------------------------ ####
 
 class OBJECT_OT_carve_box(bpy.types.Operator):
-    bl_idname = "object.carve_box"
+    bl_idname = "object.carve"
     bl_label = "Box Carve"
     bl_description = "Boolean cut square shapes into mesh objects"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
 
     # OPERATOR-properties
+    shape: bpy.props.EnumProperty(
+        name = "Shape",
+        items = (('BOX', "Box", ""),
+                 ('CIRCLE', "Circle", "")),
+        default = 'BOX',
+    )
     mode: bpy.props.EnumProperty(
         name = "Mode",
         items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut"),
@@ -78,6 +131,27 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         items = (('VIEW', "View", "Depth is automatically calculated from view orientation"),
                  ('CURSOR', "Cursor", "Depth is automatically set at 3D cursor location")),
         default = 'VIEW',
+    )
+
+    # SHAPE-properties
+    subdivision: bpy.props.IntProperty(
+        name = "Circle Subdivisions",
+        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
+        min = 3, soft_max = 128,
+        default = 16,
+    )
+    aspect: bpy.props.EnumProperty(
+        name = "Aspect",
+        items = (('FREE', "Free", "Use an unconstrained aspect"),
+                ('FIXED', "Fixed", "Use a fixed 1:1 aspect")),
+        default = 'FREE',
+    )
+    origin: bpy.props.EnumProperty(
+        name = "Origin",
+        description = "The initial position for placement",
+        items = (('EDGE', "Edge", ""),
+                ('CENTER', "Center", "")),
+        default = 'EDGE',
     )
 
     # CUTTER-properties
@@ -107,21 +181,24 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         self.mouse_path = [(0, 0), (0, 0)]
         self.view_vector = mathutils.Vector()
-        self.rectangle_coords = []
+        self.verts = []
         self.cutter = None
 
         args = (self, context)
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay_rectangle, args, 'WINDOW', 'POST_PIXEL')
+        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')
 
         # Modifier Keys
         self.snap = False
         self.move = False
-        self.fix = False
+        self.initial_origin = self.origin
+        self.initial_aspect = self.aspect
+
 
         # overlay_position
         self.position_x = 0
         self.position_y = 0
         self.initial_position = False
+        self.center_origin = []
 
 
     def invoke(self, context, event):
@@ -139,7 +216,8 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
     def modal(self, context, event):
-        context.area.header_text_set("CTRL: Snap Invert, SPACEBAR: Move, SHIFT: Fixed Aspect")
+        snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Fixed Aspect, [ALT]: Center Origin, " + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -152,19 +230,39 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         # SNAP
         # change_the_snap_increment_value_using_the_wheel_mouse
-        if (self.move is False) and (self.fix is False):
+        if self.move is False:
             for i, a in enumerate(context.screen.areas):
                 if a.type == 'VIEW_3D':
                     space = context.screen.areas[i].spaces.active
 
             if event.type == 'WHEELUPMOUSE':
-                 space.overlay.grid_subdivisions += 1
-            elif event.type == 'WHEELDOWNMOUSE':
                  space.overlay.grid_subdivisions -= 1
+            elif event.type == 'WHEELDOWNMOUSE':
+                 space.overlay.grid_subdivisions += 1
 
         self.snap = context.scene.tool_settings.use_snap
         if event.ctrl:
             self.snap = not self.snap
+
+
+        # ASPECT
+        if event.shift:
+            if self.initial_aspect == 'FREE':
+                self.aspect = 'FIXED'
+            elif self.initial_aspect == 'FIXED':
+                self.aspect = 'FREE'
+        else:
+            self.aspect = self.initial_aspect
+
+
+        # ORIGIN
+        if event.alt:
+            if self.initial_origin == 'EDGE':
+                self.origin = 'CENTER'
+            elif self.initial_origin == 'CENTER':
+                self.origin = 'EDGE'
+        else:
+            self.origin = self.initial_origin
 
 
         # MOVE
@@ -206,21 +304,19 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         # mouse_move
         if event.type == 'MOUSEMOVE':
             if self.move is False:
-                if self.snap:
-                    # find_the_closest_position_on_the_overlay_grid_and_snap_the_mouse_on_it
-                    mouse_position = [[event.mouse_region_x, event.mouse_region_y]]
-                    cursor_snap(self, context, event, mouse_position)
-                else:
-                    if len(self.mouse_path) > 0:
-                        # Fixed Size
-                        self.fix = event.shift
-                        if self.fix:
-                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
-                            self.mouse_path[len(self.mouse_path) - 1] = \
-                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
-                        else:
-                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                if len(self.mouse_path) > 0:
+                    # Fixed Aspect
+                    if self.aspect == 'FIXED':
+                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
+                        self.mouse_path[len(self.mouse_path) - 1] = \
+                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                    elif self.aspect == 'FREE':
+                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+
+                    # Snapping (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                    if self.snap:
+                        cursor_snap(self, context, event, self.mouse_path)
             else:
                 self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
                 self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
@@ -256,7 +352,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             min_distance = 5
 
             if delta_x > min_distance or delta_y > min_distance:
-                create_cut_rectangle(self, context)
+                create_cutter_shape(self, context)
                 extrude(self, self.cutter.data)
                 self.Cut(context)
 
@@ -308,23 +404,33 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 classes = [
     OBJECT_OT_carve_box,
+    TOPBAR_PT_carver_extras,
 ]
 
-tools = [
+main_tools = [
     OBJECT_WT_carve_box,
     MESH_WT_carve_box,
 ]
+secondary_tools = [
+    OBJECT_WT_carve_circle,
+    MESH_WT_carve_circle,
+]
+
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    for tool in tools:
+    for tool in main_tools:
         bpy.utils.register_tool(tool, separator=False, after="builtin.primitive_cube_add", group=True)
+    for tool in secondary_tools:
+        bpy.utils.register_tool(tool, separator=False, after="object.carve_box", group=False)
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    for tool in tools:
+    for tool in main_tools:
+        bpy.utils.unregister_tool(tool)
+    for tool in secondary_tools:
         bpy.utils.unregister_tool(tool)
