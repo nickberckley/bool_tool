@@ -45,22 +45,17 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
 def carver_overlay(self, context):
     """Shape (rectangle, circle) overlay for carver tool"""
 
-    if len(self.mouse_path) > 1:
-        x0 = self.mouse_path[0][0]
-        y0 = self.mouse_path[0][1]
-        x1 = self.mouse_path[1][0]
-        y1 = self.mouse_path[1][1]
-
     if self.shape == 'CIRCLE':
-        tris_verts, __ = draw_circle(self, x0, y0, self.subdivision, 0)
+        tris_verts = draw_circle(self, self.subdivision, 0)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
     elif self.shape == 'BOX':
-        tris_verts, __ = draw_circle(self, x0, y0, 4, 45)
+        tris_verts = draw_circle(self, 4, 45)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
     self.verts = coords
 
     draw_shader(color, 0.4, 'SOLID', coords, size=2)
-    draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+    if not self.rotate:
+        draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
 
     if self.snap and self.move == False:
         mini_grid(self, context, color)
@@ -68,13 +63,17 @@ def carver_overlay(self, context):
     gpu.state.blend_set('NONE')
 
 
-def draw_circle(self, mouse_pos_x, mouse_pos_y, subdivision, rotation):
+def draw_circle(self, subdivision, rotation):
     """Returns the coordinates & indices of a circle using a triangle fan"""
+    """NOTE: Origin point code is duplicated on purpose (to experiment with different math easily)"""
 
-    def create_2d_circle(self, step, rotation=0):
+    def create_2d_circle(self, step, rotation):
         """Create the vertices of a 2d circle at (0, 0)"""
 
-        modifier = 2 if self.shape == 'CIRCLE' else 1.4 # magic_number
+        modifier = 2 if self.shape == 'CIRCLE' else 1.41 # magic_number
+        if self.origin == 'CENTER':
+            modifier /= 2
+
         verts = []
         for angle in range(0, 360, int(step)):
             verts.append(math.cos(math.radians(angle + rotation)) * ((self.mouse_path[1][0] - self.mouse_path[0][0]) / modifier))
@@ -87,38 +86,44 @@ def draw_circle(self, mouse_pos_x, mouse_pos_y, subdivision, rotation):
 
         return verts
 
-    indices = []
-    segments = int(360 / (360 / subdivision))
-    # rotation = (self.mouse_path[1][1] - self.mouse_path[0][1]) / 2
-
+    tris_verts = []
     verts = create_2d_circle(self, 360 / int(subdivision), rotation)
 
-    # Grow from the Center
+    rotation_matrix = mathutils.Matrix.Rotation(self.rotation, 4, 'Z')
+    fixed_point = mathutils.Vector((self.mouse_path[0][0], self.mouse_path[0][1], 0.0))
+    current_mouse_position = mathutils.Vector((self.mouse_path[1][0], self.mouse_path[1][1], 0.0))
+    shape_center = fixed_point + (current_mouse_position - fixed_point) / 2
+
+    min_x = min(verts[0::3]) if self.mouse_path[1][0] > self.mouse_path[0][0] else -min(verts[0::3])
+    min_y = min(verts[1::3]) if self.mouse_path[1][1] > self.mouse_path[0][1] else -min(verts[1::3])
+
+    # ORIGIN: from the Center
     if self.origin == 'CENTER':
-        tris_verts = []
-        # create_the_first_vertex_at_mouse_position_for_the_center_of_the_circle
-        tris_verts.append(mathutils.Vector((mouse_pos_x + self.position_y , mouse_pos_y + self.position_y)))
-
-        # for_each_vertex_of_the_circle_add_the_mouse_position_and_the_translation
-        for idx in range(int(len(verts) / 3) - 1):
-            tris_verts.append(mathutils.Vector((verts[idx * 3] + mouse_pos_x + self.position_x, verts[idx * 3 + 1] + mouse_pos_y + self.position_y)))
-            i1 = idx + 1
-            i2 = idx + 2 if idx + 2 <= segments else 1
-            indices.append((0, i1, i2))
-
-    # Grow from the Top Left Corner
-    elif self.origin == 'EDGE':
-        tris_verts = []
-        min_x = min(verts[0::3]) if self.mouse_path[1][0] > mouse_pos_x else -min(verts[0::3])
-        min_y = min(verts[1::3]) if self.mouse_path[1][1] > mouse_pos_y else -min(verts[1::3])
-
         for idx in range(len(verts) // 3):
-            tris_verts.append(mathutils.Vector((
-                verts[idx * 3] - min_x + mouse_pos_x + self.position_x,
-                verts[idx * 3 + 1] - min_y + mouse_pos_y + self.position_y,
-                verts[idx * 3 + 2])))
+            x = verts[idx * 3]
+            y = verts[idx * 3 + 1]
+            z = verts[idx * 3 + 2]
+            vert = mathutils.Vector((x, y, z))
+            vert = rotation_matrix @ vert
+            vert = fixed_point + vert
+            vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
 
-    return tris_verts, indices
+            tris_verts.append(vert)
+
+    # ORIGIN: from the Top Left Corner
+    elif self.origin == 'EDGE':
+        for idx in range(len(verts) // 3):
+            x = verts[idx * 3]
+            y = verts[idx * 3 + 1]
+            z = verts[idx * 3 + 2]
+            vert = mathutils.Vector((x, y, z))
+            vert = rotation_matrix @ vert
+            vert = shape_center - vert
+            vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
+
+            tris_verts.append(vert)
+
+    return tris_verts
 
 
 def mini_grid(self, context, color):

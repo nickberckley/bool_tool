@@ -3,6 +3,7 @@ from .. import __package__ as base_package
 
 from ..functions.draw import (
     carver_overlay,
+    get_bounding_box_coords,
 )
 from ..functions.object import (
     add_boolean_modifier,
@@ -31,6 +32,7 @@ class CarverToolshelf():
         layout.prop(props, "mode")
         layout.prop(props, "depth")
         layout.prop(props, "pin")
+        layout.prop(props, "rotation")
 
         if context.object:
             if active_tool == "object.carve_circle":
@@ -140,6 +142,12 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         min = 3, soft_max = 128,
         default = 16,
     )
+    rotation: bpy.props.FloatProperty(
+        name = "Rotation",
+        subtype = "ANGLE",
+        soft_min = -360, soft_max = 360,
+        default = 0,
+    )
     aspect: bpy.props.EnumProperty(
         name = "Aspect",
         items = (('FREE', "Free", "Use an unconstrained aspect"),
@@ -190,9 +198,9 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         # Modifier Keys
         self.snap = False
         self.move = False
+        self.rotate = False
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
-
 
         # overlay_position
         self.position_x = 0
@@ -211,13 +219,14 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         self.mouse_path[0] = (event.mouse_region_x, event.mouse_region_y)
         self.mouse_path[1] = (event.mouse_region_x, event.mouse_region_y)
 
+        context.window.cursor_set("MUTE")
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
 
     def modal(self, context, event):
         snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Fixed Aspect, [ALT]: Center Origin, " + snap_text)
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, " + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -230,7 +239,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         # SNAP
         # change_the_snap_increment_value_using_the_wheel_mouse
-        if self.move is False:
+        if (self.move is False) and (self.rotate is False):
             for i, a in enumerate(context.screen.areas):
                 if a.type == 'VIEW_3D':
                     space = context.screen.areas[i].spaces.active
@@ -241,7 +250,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
                  space.overlay.grid_subdivisions += 1
 
         self.snap = context.scene.tool_settings.use_snap
-        if event.ctrl:
+        if event.ctrl and (self.move is False) and (self.rotate is False):
             self.snap = not self.snap
 
 
@@ -265,8 +274,18 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             self.origin = self.initial_origin
 
 
+        # ROTATE
+        if event.type == 'R':
+            if event.value == 'PRESS':
+                context.window.cursor_set("NONE")
+                self.rotate = True
+            elif event.value == 'RELEASE':
+                context.window.cursor_set("MUTE")
+                context.window.cursor_warp(self.mouse_path[1][0], int(self.mouse_path[0][1] - self.mouse_path[1][1]))
+                self.rotate = False
+
+
         # MOVE
-        # make_spacebar_modifier_key
         if event.type == 'SPACE':
             if event.value == 'PRESS':
                 self.move = True
@@ -303,26 +322,33 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
         # mouse_move
         if event.type == 'MOUSEMOVE':
-            if self.move is False:
-                if len(self.mouse_path) > 0:
-                    # Fixed Aspect
-                    if self.aspect == 'FIXED':
-                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
-                        self.mouse_path[len(self.mouse_path) - 1] = \
-                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
-                    elif self.aspect == 'FREE':
-                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+            if self.rotate:
+                self.rotation = event.mouse_region_x * 0.01
 
-                    # Snapping (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                    if self.snap:
-                        cursor_snap(self, context, event, self.mouse_path)
             else:
-                self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
-                self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+                if self.move is False:
+                    if len(self.mouse_path) > 0:
+                        # ASPECT
+                        if self.aspect == 'FIXED':
+                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
+                            self.mouse_path[len(self.mouse_path) - 1] = \
+                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
 
-                self.last_mouse_region_x = event.mouse_region_x
-                self.last_mouse_region_y = event.mouse_region_y
+                        elif self.aspect == 'FREE':
+                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+
+                        # SNAP (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                        if self.snap:
+                            cursor_snap(self, context, event, self.mouse_path)
+
+                else:
+                    # MOVE
+                    self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
+                    self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+
+                    self.last_mouse_region_x = event.mouse_region_x
+                    self.last_mouse_region_y = event.mouse_region_y
 
 
         # Confirm
@@ -371,6 +397,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
     def cancel(self, context):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
         context.area.header_text_set(None)
+        context.window.cursor_set("DEFAULT")
 
 
     def Cut(self, context):
