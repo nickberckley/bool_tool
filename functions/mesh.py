@@ -14,7 +14,7 @@ def create_cutter_shape(self, context):
     depth_location = view3d_utils.region_2d_to_vector_3d(region, rv3d, coords)
     self.view_vector = depth_location
 
-    faces = []
+    faces = {}
     vertices = []
     loc = []
 
@@ -50,64 +50,30 @@ def create_cutter_shape(self, context):
 
             faces.append(vertices[idx])
     else:
+        faces['original'] = []
         for vert in self.verts:
             vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
             p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
             p1 = p0 + plane_direction
-            faces.append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
+            faces['original'].append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
+
+        if len(self.duplicates) > 0:
+            for i, duplicate in self.duplicates.items():
+                faces[str(i)] = []
+                for vert in duplicate:
+                    vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
+                    p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
+                    p1 = p0 + plane_direction
+                    faces[str(i)].append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
 
     bm.verts.index_update()
     if self.shape == 'POLYLINE' and len(vertices) > 1:
         bm.edges.new([vertices[-1], vertices[0]])
-    to_face = bm.faces.new(faces)
-
-
-    # ARRAY
-    rows = {}
-    if self.rows > 1:
-        screen_offset = ((self.gap_rows * 100), 0)
-        for i in range(self.rows - 1):
-            accumulated_offset = (screen_offset[0] * (i + 1), screen_offset[1] * (i + 1))
-            rows[i] = duplicate_cutter_shape(self, bm, to_face, accumulated_offset)
-
-    if self.columns > 1:
-        screen_offset = ((0, -self.gap_rows * 100))
-        for i in range(self.columns - 1):
-            accumulated_offset = (screen_offset[0] * (i + 1), screen_offset[1] * (i + 1))
-            duplicate_cutter_shape(self, bm, to_face, accumulated_offset)
-            for i, row in rows.items():
-                duplicate_cutter_shape(self, bm, row, accumulated_offset)
+    
+    for i, face in faces.items():
+        to_face = bm.faces.new(face)
 
     bm.to_mesh(mesh)
-
-
-def duplicate_cutter_shape(self, bm, face, offset):
-    """Creates array from duplicated cutter shapes"""
-
-    def screen_space_offset_to_world_offset(region, rv3d, screen_offset):
-        screen_offset_vector = mathutils.Vector(screen_offset)
-        center_2d = mathutils.Vector((region.width / 2, region.height / 2))
-        
-        # convert_center_and_offset_to_world_space
-        start_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, center_2d, (0, 0, 0))
-        end_2d = center_2d + screen_offset_vector
-        end_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, end_2d, (0, 0, 0))
-
-        world_offset = end_3d - start_3d
-        return world_offset
-
-    # screen-space_offset
-    region = bpy.context.region
-    rv3d = bpy.context.space_data.region_3d
-    offset = screen_space_offset_to_world_offset(region, rv3d, offset)
-
-    new_verts = []
-    for vert in face.verts:
-        new_vert = bm.verts.new(vert.co + offset)
-        new_verts.append(new_vert)
-    duplicated_face = bm.faces.new(new_verts)
-
-    return duplicated_face
 
 
 def extrude(self, mesh):

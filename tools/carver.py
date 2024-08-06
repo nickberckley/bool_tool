@@ -265,6 +265,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.view_vector = mathutils.Vector()
         self.verts = []
         self.cutter = None
+        self.duplicates = []
 
         args = (self, context)
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')

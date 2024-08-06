@@ -50,6 +50,7 @@ def carver_overlay(self, context):
         tris_verts, rows, columns = draw_circle(self, self.subdivision, 0)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
         self.verts = coords
+        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
@@ -67,6 +68,7 @@ def carver_overlay(self, context):
         tris_verts, rows, columns = draw_circle(self, 4, 45)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
         self.verts = coords
+        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
