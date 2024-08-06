@@ -225,6 +225,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.snap = False
         self.move = False
         self.rotate = False
+
+        # Cache
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
 
@@ -241,7 +243,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
             self.cancel(context)
             return {'CANCELLED'}
 
-        self.selected_objects = context.selected_objects.copy()
+        self.selected_objects = context.selected_objects
+        self.initial_selection = context.selected_objects
         self.mouse_path[0] = (event.mouse_region_x, event.mouse_region_y)
         self.mouse_path[1] = (event.mouse_region_x, event.mouse_region_y)
 
@@ -386,7 +389,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 
         # Confirm
-        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type in 'RET' and event.value == 'PRESS'):
+        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type == 'RET' and event.value == 'PRESS'):
             # selection_fallback
             if self.shape != 'POLYLINE':
                 if len(self.selected_objects) == 0:
@@ -403,14 +406,15 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     if empty:
                         return {'FINISHED'}
             else:
-                # expand_selection_fallback_on_every_polyline_click
-                self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
-                for obj in self.selected_objects:
-                    obj.select_set(True)
+                if len(self.initial_selection) == 0:
+                    # expand_selection_fallback_on_every_polyline_click
+                    self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
+                    for obj in self.selected_objects:
+                        obj.select_set(True)
 
             # Polyline
             if self.shape == 'POLYLINE':
-                if not (event.type in 'RET' and event.value == 'PRESS'):
+                if not (event.type == 'RET' and event.value == 'PRESS'):
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
