@@ -92,6 +92,7 @@ def extrude(self, mesh):
 
 def combined_bounding_box(objects):
     """Calculate the combined bounding box of multiple objects."""
+    
     min_corner = mathutils.Vector((float('inf'), float('inf'), float('inf')))
     max_corner = mathutils.Vector((-float('inf'), -float('inf'), -float('inf')))
 

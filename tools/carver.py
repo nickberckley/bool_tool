@@ -378,7 +378,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 
         # Confirm
-        elif (event.type in 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type in 'RET' and event.value == 'PRESS'):
+        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type in 'RET' and event.value == 'PRESS'):
             # selection_fallback
             if len(self.selected_objects) == 0:
                 self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
@@ -407,6 +407,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     # Confirm Cut (Polyline)
                     if self.closed == False:
                         self.mouse_path.pop() # dont_add_current_mouse_position_as_vert
+
+                    if ((len(self.mouse_path) / 2) < 3) or (self.closed == True and self.mouse_path[-1] == self.mouse_path[-2]):
+                        self.report({'INFO'}, "At least two points are required to make polygonal shape")
+                        self.cancel(context)
+                        return {'FINISHED'}
+
                     self.confirm(context)
                     return {'FINISHED'}
 

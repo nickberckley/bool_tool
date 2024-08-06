@@ -69,7 +69,6 @@ def carver_overlay(self, context):
         for idx, vals in enumerate(self.mouse_path):
             coords.append([vals[0] + self.position_x, vals[1] + self.position_y])
             indices.append([idx])
-        self.verts = coords
 
         type = 'LINE_LOOP' if self.closed else 'LINES'
         draw_shader(color, 1.0, type, coords, size=2)
