@@ -31,23 +31,21 @@ class CarverToolshelf():
         layout.prop(props, "mode")
         layout.prop(props, "depth")
         layout.prop(props, "pin")
-        layout.prop(props, "rotation")
 
         if context.object:
-            if active_tool == "object.carve_circle":
-                layout.prop(props, "subdivision", text="Vertices")
+            if active_tool != "object.carve_polyline":
+                layout.popover("TOPBAR_PT_carver_shape", text="Shape")
+                layout.popover("TOPBAR_PT_carver_array", text="Array")
+            else:
+                layout.prop(props, "closed")
 
             if props.mode == 'MODIFIER':
                 row = layout.row()
                 row.prop(props, "hide")
 
-            if active_tool != "object.carve_polyline":
-                layout.popover("TOPBAR_PT_carver_extras", text="...")
-            else:
-                layout.prop(props, "closed")
-
-class TOPBAR_PT_carver_extras(bpy.types.Panel):
-    bl_label = "Carver Extras"
+class TOPBAR_PT_carver_shape(bpy.types.Panel):
+    bl_label = "Carver Shape"
+    bl_idname = "TOPBAR_PT_carver_shape"
     bl_region_type = 'HEADER'
     bl_space_type = 'TOPBAR'
     bl_category = 'Tool'
@@ -58,10 +56,36 @@ class TOPBAR_PT_carver_extras(bpy.types.Panel):
 
         mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
-        tool = tool.operator_properties("object.carve")
+        op = tool.operator_properties("object.carve")
 
-        layout.prop(tool, "aspect", expand=True)
-        layout.prop(tool, "origin", expand=True)
+        if tool.idname == "object.carve_circle":
+            layout.prop(op, "subdivision", text="Vertices")
+        layout.prop(op, "rotation")
+        layout.prop(op, "aspect", expand=True)
+        layout.prop(op, "origin", expand=True)
+
+class TOPBAR_PT_carver_array(bpy.types.Panel):
+    bl_label = "Carver Array"
+    bl_idname = "TOPBAR_PT_carver_array"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+        tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
+        op = tool.operator_properties("object.carve")
+
+        layout.prop(op, "rows")
+        layout.prop(op, "gap_rows", text="Gap")
+
+        layout.separator()
+        layout.prop(op, "columns")
+        layout.prop(op, "gap_columns", text="Gap")
+
 
 
 #### ------------------------------ TOOLS ------------------------------ ####
@@ -196,6 +220,30 @@ class OBJECT_OT_carve(bpy.types.Operator):
         default = True
     )
 
+    # ARRAY-properties
+    rows: bpy.props.IntProperty(
+        name = "Rows",
+        description = "Number of times shape is duplicated on X axis",
+        min = 1, soft_max = 16,
+        default = 1,
+    )
+    gap_rows: bpy.props.FloatProperty(
+        name = "Gap between Rows",
+        soft_min = 1, soft_max = 10,
+        default = 2,
+    )
+    columns: bpy.props.IntProperty(
+        name = "Columns",
+        description = "Number of times shape is duplicated on Y axis",
+        min = 1, soft_max = 16,
+        default = 1,
+    )
+    gap_columns: bpy.props.FloatProperty(
+        name = "Gap between Columns",
+        soft_min = 1, soft_max = 10,
+        default = 2,
+    )
+
     # ADVANCED-properties
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifier",
@@ -256,7 +304,10 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     def modal(self, context, event):
         snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
+        if self.shape == 'POLYLINE':
+            shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm"
+        else:
+            shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
         context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
@@ -314,6 +365,17 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 context.window.cursor_set("MUTE")
                 context.window.cursor_warp(self.mouse_path[1][0], int(self.mouse_path[0][1] - self.mouse_path[1][1]))
                 self.rotate = False
+
+
+        # ARRAY
+        if event.type == 'LEFT_ARROW' and event.value == 'PRESS':
+            self.rows -= 1
+        if event.type == 'RIGHT_ARROW' and event.value == 'PRESS':
+            self.rows += 1
+        if event.type == 'DOWN_ARROW' and event.value == 'PRESS':
+            self.columns -= 1
+        if event.type == 'UP_ARROW' and event.value == 'PRESS':
+            self.columns += 1
 
 
         # MOVE
@@ -529,7 +591,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 classes = [
     OBJECT_OT_carve,
-    TOPBAR_PT_carver_extras,
+    TOPBAR_PT_carver_shape,
+    TOPBAR_PT_carver_array,
 ]
 
 main_tools = [

@@ -35,6 +35,7 @@ def create_cutter_shape(self, context):
     elif self.depth == 'VIEW':
         plane_point = mathutils.Vector((0.0, 0.0, 0.0))
 
+
     # find_the_intersection_of_a_line_going_through_each_vertex_and_the_infinite_plane
     if self.shape == 'POLYLINE':
         for idx, vert in enumerate(list(dict.fromkeys(self.mouse_path))): # use_dict_to_remove_doubles
@@ -59,7 +60,54 @@ def create_cutter_shape(self, context):
     if self.shape == 'POLYLINE' and len(vertices) > 1:
         bm.edges.new([vertices[-1], vertices[0]])
     to_face = bm.faces.new(faces)
+
+
+    # ARRAY
+    rows = {}
+    if self.rows > 1:
+        screen_offset = ((self.gap_rows * 100), 0)
+        for i in range(self.rows - 1):
+            accumulated_offset = (screen_offset[0] * (i + 1), screen_offset[1] * (i + 1))
+            rows[i] = duplicate_cutter_shape(self, bm, to_face, accumulated_offset)
+
+    if self.columns > 1:
+        screen_offset = ((0, -self.gap_rows * 100))
+        for i in range(self.columns - 1):
+            accumulated_offset = (screen_offset[0] * (i + 1), screen_offset[1] * (i + 1))
+            duplicate_cutter_shape(self, bm, to_face, accumulated_offset)
+            for i, row in rows.items():
+                duplicate_cutter_shape(self, bm, row, accumulated_offset)
+
     bm.to_mesh(mesh)
+
+
+def duplicate_cutter_shape(self, bm, face, offset):
+    """Creates array from duplicated cutter shapes"""
+
+    def screen_space_offset_to_world_offset(region, rv3d, screen_offset):
+        screen_offset_vector = mathutils.Vector(screen_offset)
+        center_2d = mathutils.Vector((region.width / 2, region.height / 2))
+        
+        # convert_center_and_offset_to_world_space
+        start_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, center_2d, (0, 0, 0))
+        end_2d = center_2d + screen_offset_vector
+        end_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, end_2d, (0, 0, 0))
+
+        world_offset = end_3d - start_3d
+        return world_offset
+
+    # screen-space_offset
+    region = bpy.context.region
+    rv3d = bpy.context.space_data.region_3d
+    offset = screen_space_offset_to_world_offset(region, rv3d, offset)
+
+    new_verts = []
+    for vert in face.verts:
+        new_vert = bm.verts.new(vert.co + offset)
+        new_verts.append(new_vert)
+    duplicated_face = bm.faces.new(new_verts)
+
+    return duplicated_face
 
 
 def extrude(self, mesh):

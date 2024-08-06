@@ -44,24 +44,41 @@ def carver_overlay(self, context):
     """Shape (rectangle, circle) overlay for carver tool"""
 
     color = (0.48, 0.04, 0.04, 1.0)
+    secondary_color = (0.28, 0.04, 0.04, 1.0)
 
     if self.shape == 'CIRCLE':
-        tris_verts = draw_circle(self, self.subdivision, 0)
+        tris_verts, rows, columns = draw_circle(self, self.subdivision, 0)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
         self.verts = coords
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
             draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
+        # ARRAY
+        if self.rows > 1:
+            for i, duplicate in rows.items():
+                draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
+        if self.columns > 1:
+            for i, duplicate in columns.items():
+                draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
 
     elif self.shape == 'BOX':
-        tris_verts = draw_circle(self, 4, 45)
+        tris_verts, rows, columns = draw_circle(self, 4, 45)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
         self.verts = coords
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
             draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
+        # ARRAY
+        if self.rows > 1:
+            for i, duplicate in rows.items():
+                draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
+        if self.columns > 1:
+            for i, duplicate in columns.items():
+                draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
 
     elif self.shape == 'POLYLINE':
         coords, first_point = draw_polygon(self)
@@ -164,7 +181,25 @@ def draw_circle(self, subdivision, rotation):
 
             tris_verts.append(vert)
 
-    return tris_verts
+
+    # ARRAY
+    rows = {}
+    if self.rows > 1:
+        offset = mathutils.Vector(((self.gap_rows * 100), 0.0, 0.0))
+        for i in range(self.rows - 1):
+            accumulated_offset = offset * (i + 1)
+            rows[i] = [vert.copy() + accumulated_offset for vert in tris_verts]
+
+    columns = {}
+    if self.columns > 1:
+        offset = mathutils.Vector((0.0, -(self.gap_rows * 100), 0.0))
+        for i in range(self.columns - 1):
+            accumulated_offset = offset * (i + 1)
+            columns[i] = [vert.copy() + accumulated_offset for vert in tris_verts]
+            for row_idx, row in rows.items():
+                columns[(i, row_idx)] = [vert.copy() + accumulated_offset for vert in row]
+
+    return tris_verts, rows, columns
 
 
 def mini_grid(self, context, color):
