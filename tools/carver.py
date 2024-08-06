@@ -418,10 +418,13 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     if self.closed == False:
                         self.mouse_path.pop() # dont_add_current_mouse_position_as_vert
 
-                    if ((len(self.mouse_path) / 2) < 2) or (self.closed == True and self.mouse_path[-1] == self.mouse_path[-2]):
+                    if (len(self.mouse_path) / 2) < 2 or (len(self.mouse_path) / 2) == 2 and self.mouse_path[-1] == self.mouse_path[-2]:
                         self.report({'INFO'}, "At least two points are required to make polygonal shape")
                         self.cancel(context)
                         return {'FINISHED'}
+
+                    if self.closed and self.mouse_path[-1] == self.mouse_path[-2]:
+                        context.window.cursor_warp(event.mouse_region_x - 1, event.mouse_region_y)
 
                     # NOTE: Polyline needs separate selection fallback, because it needs to calculate selection bounding box...
                     # NOTE: after all points are already drawn, i.e. before execution.
