@@ -1,9 +1,8 @@
-import bpy, mathutils
+import bpy, mathutils, math
 from .. import __package__ as base_package
 
 from ..functions.draw import (
     carver_overlay,
-    get_bounding_box_coords,
 )
 from ..functions.object import (
     add_boolean_modifier,
@@ -42,7 +41,10 @@ class CarverToolshelf():
                 row = layout.row()
                 row.prop(props, "hide")
 
-            layout.popover("TOPBAR_PT_carver_extras", text="...")
+            if active_tool != "object.carve_polyline":
+                layout.popover("TOPBAR_PT_carver_extras", text="...")
+            else:
+                layout.prop(props, "closed")
 
 class TOPBAR_PT_carver_extras(bpy.types.Panel):
     bl_label = "Carver Extras"
@@ -100,12 +102,30 @@ class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
     bl_context_mode = 'EDIT_MESH'
 
 
+class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool, CarverToolshelf):
+    bl_idname = "object.carve_polyline"
+    bl_label = "Polyline Carve"
+    bl_description = ("Boolean cut custom polygonal shapes into mesh objects")
+
+    bl_space_type = 'VIEW_3D'
+    bl_context_mode = 'OBJECT'
+
+    bl_icon = "ops.sculpt.polyline_trim"
+    # bl_widget = 'VIEW3D_GGT_placement'
+    bl_keymap = (
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK'}, {"properties": [("shape", 'POLYLINE')]}),
+    )
+
+class MESH_WT_carve_polyline(OBJECT_WT_carve_polyline):
+    bl_context_mode = 'EDIT_MESH'
+
+
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
-class OBJECT_OT_carve_box(bpy.types.Operator):
+class OBJECT_OT_carve(bpy.types.Operator):
     bl_idname = "object.carve"
-    bl_label = "Box Carve"
+    bl_label = "Carve"
     bl_description = "Boolean cut square shapes into mesh objects"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
 
@@ -113,7 +133,8 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
     shape: bpy.props.EnumProperty(
         name = "Shape",
         items = (('BOX', "Box", ""),
-                 ('CIRCLE', "Circle", "")),
+                 ('CIRCLE', "Circle", ""),
+                 ('POLYLINE', "Polyline", "")),
         default = 'BOX',
     )
     mode: bpy.props.EnumProperty(
@@ -136,18 +157,6 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
     )
 
     # SHAPE-properties
-    subdivision: bpy.props.IntProperty(
-        name = "Circle Subdivisions",
-        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
-        min = 3, soft_max = 128,
-        default = 16,
-    )
-    rotation: bpy.props.FloatProperty(
-        name = "Rotation",
-        subtype = "ANGLE",
-        soft_min = -360, soft_max = 360,
-        default = 0,
-    )
     aspect: bpy.props.EnumProperty(
         name = "Aspect",
         items = (('FREE', "Free", "Use an unconstrained aspect"),
@@ -160,6 +169,23 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         items = (('EDGE', "Edge", ""),
                 ('CENTER', "Center", "")),
         default = 'EDGE',
+    )
+    rotation: bpy.props.FloatProperty(
+        name = "Rotation",
+        subtype = "ANGLE",
+        soft_min = -360, soft_max = 360,
+        default = 0,
+    )
+    subdivision: bpy.props.IntProperty(
+        name = "Circle Subdivisions",
+        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
+        min = 3, soft_max = 128,
+        default = 16,
+    )
+    closed: bpy.props.BoolProperty(
+        name = "Closed Polygon",
+        description = "When enabled, mouse position at the moment of execution will be registered as last point of the polygon",
+        default = True,
     )
 
     # CUTTER-properties
@@ -199,6 +225,8 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         self.snap = False
         self.move = False
         self.rotate = False
+
+        # Cache
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
 
@@ -207,6 +235,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         self.position_y = 0
         self.initial_position = False
         self.center_origin = []
+        self.distance_from_first = 0
 
 
     def invoke(self, context, event):
@@ -215,7 +244,8 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             self.cancel(context)
             return {'CANCELLED'}
 
-        self.selected_objects = context.selected_objects.copy()
+        self.selected_objects = context.selected_objects
+        self.initial_selection = context.selected_objects
         self.mouse_path[0] = (event.mouse_region_x, event.mouse_region_y)
         self.mouse_path[1] = (event.mouse_region_x, event.mouse_region_y)
 
@@ -225,8 +255,9 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
     def modal(self, context, event):
-        snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, " + snap_text)
+        snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
+        shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -255,7 +286,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
         # ASPECT
-        if event.shift:
+        if event.shift and (self.shape != 'POLYLINE'):
             if self.initial_aspect == 'FREE':
                 self.aspect = 'FIXED'
             elif self.initial_aspect == 'FIXED':
@@ -265,7 +296,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
         # ORIGIN
-        if event.alt:
+        if event.alt and (self.shape != 'POLYLINE'):
             if self.initial_origin == 'EDGE':
                 self.origin = 'CENTER'
             elif self.initial_origin == 'CENTER':
@@ -275,7 +306,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
         # ROTATE
-        if event.type == 'R':
+        if event.type == 'R' and (self.shape != 'POLYLINE'):
             if event.value == 'PRESS':
                 context.window.cursor_set("NONE")
                 self.rotate = True
@@ -314,6 +345,13 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
             self.initial_position = False
 
 
+        # Remove Point (Polyline)
+        if event.type == 'BACK_SPACE' and event.value == 'PRESS':
+            if len(self.mouse_path) > 2:
+                context.window.cursor_warp(self.mouse_path[-2][0], self.mouse_path[-2][1])
+                self.mouse_path = self.mouse_path[:-2]
+
+
         if event.type in {
                 'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE',
                 'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4', 'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9'}:
@@ -342,6 +380,14 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
                         if self.snap:
                             cursor_snap(self, context, event, self.mouse_path)
 
+                        if self.shape == 'POLYLINE':
+                            # get_distance_from_first_point
+                            distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
+                                                 (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
+                            max_radius = 30
+                            min_radius = 0
+                            self.distance_from_first = max(max_radius - distance, min_radius)
+
                 else:
                     # MOVE
                     self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
@@ -352,38 +398,66 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 
 
         # Confirm
-        elif event.type == 'LEFTMOUSE' and event.value == 'RELEASE':
+        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type == 'RET' and event.value == 'PRESS'):
             # selection_fallback
-            if len(self.selected_objects) == 0:
-                self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
-                for obj in self.selected_objects:
-                    obj.select_set(True)
-
+            if self.shape != 'POLYLINE':
                 if len(self.selected_objects) == 0:
-                    self.report({'INFO'}, "Only selected objects can be carved")
-                    self.cancel(context)
-                    return {'FINISHED'}
+                    self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
+                    for obj in self.selected_objects:
+                        obj.select_set(True)
+
+                    if len(self.selected_objects) == 0:
+                        self.report({'INFO'}, "Only selected objects can be carved")
+                        self.cancel(context)
+                        return {'FINISHED'}
+                else:
+                    empty = self.selection_fallback(context)
+                    if empty:
+                        return {'FINISHED'}
             else:
-                # filter_out_objects_not_inside_the_mouse_path
-                self.selected_objects = selection_fallback(self, context, self.selected_objects, include_cutters=True)
+                if len(self.initial_selection) == 0:
+                    # expand_selection_fallback_on_every_polyline_click
+                    self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
+                    for obj in self.selected_objects:
+                        obj.select_set(True)
 
-                # silently_fail_if_no_objects_inside_mouse_path
-                if len(self.selected_objects) == 0:
-                    self.cancel(context)
+            # Polyline
+            if self.shape == 'POLYLINE':
+                if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
+                    self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
+                    self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
+                else:
+                    # Confirm Cut (Polyline)
+                    if self.closed == False:
+                        self.mouse_path.pop() # dont_add_current_mouse_position_as_vert
+
+                    if (len(self.mouse_path) / 2) < 2 or (len(self.mouse_path) / 2) == 2 and self.mouse_path[-1] == self.mouse_path[-2]:
+                        self.report({'INFO'}, "At least two points are required to make polygonal shape")
+                        self.cancel(context)
+                        return {'FINISHED'}
+
+                    if self.closed and self.mouse_path[-1] == self.mouse_path[-2]:
+                        context.window.cursor_warp(event.mouse_region_x - 1, event.mouse_region_y)
+
+                    # NOTE: Polyline needs separate selection fallback, because it needs to calculate selection bounding box...
+                    # NOTE: after all points are already drawn, i.e. before execution.
+                    empty = self.selection_fallback(context)
+                    if empty:
+                        return {'FINISHED'}
+
+                    self.confirm(context)
                     return {'FINISHED'}
 
-            # protection_against_returning_no_rectangle_by_clicking
-            delta_x = abs(event.mouse_region_x - self.mouse_path[0][0])
-            delta_y = abs(event.mouse_region_y - self.mouse_path[0][1])
-            min_distance = 5
+            # Confirm Cut (Box, Circle)
+            else:
+                # protection_against_returning_no_rectangle_by_clicking
+                delta_x = abs(event.mouse_region_x - self.mouse_path[0][0])
+                delta_y = abs(event.mouse_region_y - self.mouse_path[0][1])
+                min_distance = 5
 
-            if delta_x > min_distance or delta_y > min_distance:
-                create_cutter_shape(self, context)
-                extrude(self, self.cutter.data)
-                self.Cut(context)
-
-                self.cancel(context)
-                return {'FINISHED'}
+                if delta_x > min_distance or delta_y > min_distance:
+                    self.confirm(context)
+                    return {'FINISHED'}
 
 
         # Cancel
@@ -394,14 +468,38 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
 
+    def confirm(self, context):
+        create_cutter_shape(self, context)
+        extrude(self, self.cutter.data)
+        self.Cut(context)
+        self.cancel(context)
+
+
     def cancel(self, context):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
         context.area.header_text_set(None)
         context.window.cursor_set("DEFAULT")
 
 
+    def selection_fallback(self, context):
+        # filter_out_objects_not_inside_the_selection_bounding_box
+        self.selected_objects = selection_fallback(self, context, self.selected_objects, include_cutters=True)
+
+        # silently_fail_if_no_objects_inside_selection_bounding_box
+        empty = False
+        if len(self.selected_objects) == 0:
+            self.cancel(context)
+            empty = True
+
+        return empty
+
+
     def Cut(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
+
+        # ensure_active_object
+        if not context.active_object:
+            context.view_layer.objects.active = self.selected_objects[0]
 
         # Add Modifier
         for obj in self.selected_objects:
@@ -430,7 +528,7 @@ class OBJECT_OT_carve_box(bpy.types.Operator):
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 classes = [
-    OBJECT_OT_carve_box,
+    OBJECT_OT_carve,
     TOPBAR_PT_carver_extras,
 ]
 
@@ -440,7 +538,9 @@ main_tools = [
 ]
 secondary_tools = [
     OBJECT_WT_carve_circle,
+    OBJECT_WT_carve_polyline,
     MESH_WT_carve_circle,
+    MESH_WT_carve_polyline,
 ]
 
 

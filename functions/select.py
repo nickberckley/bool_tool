@@ -74,9 +74,16 @@ def selection_fallback(self, context, objects, include_cutters=False):
 
     # convert_2d_rectangle_coordinates_to_world_coordinates
     if self.origin == 'EDGE':
-        rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]), min(self.mouse_path[0][1], self.mouse_path[1][1])))
-        rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]), max(self.mouse_path[0][1], self.mouse_path[1][1])))
-    else:
+        if self.shape != 'POLYLINE':
+            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]), min(self.mouse_path[0][1], self.mouse_path[1][1])))
+            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]), max(self.mouse_path[0][1], self.mouse_path[1][1])))
+        else:
+            x_values = [point[0] for point in self.mouse_path]
+            y_values = [point[1] for point in self.mouse_path]
+            rect_min = mathutils.Vector((min(x_values), min(y_values)))
+            rect_max = mathutils.Vector((max(x_values), max(y_values)))
+
+    elif self.origin == 'CENTER':
         rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]), min(self.center_origin[0][1], self.center_origin[1][1])))
         rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]), max(self.center_origin[0][1], self.center_origin[1][1])))
 

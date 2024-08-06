@@ -14,12 +14,14 @@ def create_cutter_shape(self, context):
     depth_location = view3d_utils.region_2d_to_vector_3d(region, rv3d, coords)
     self.view_vector = depth_location
 
-    # Create Mesh & Object
     faces = []
+    vertices = []
+    loc = []
+
+    # Create Mesh & Object
     mesh = bpy.data.meshes.new('cutter_cube')
     bm = bmesh.new()
     bm.from_mesh(mesh)
-
     obj = bpy.data.objects.new('cutter_cube', mesh)
     self.cutter = obj
     context.collection.objects.link(obj)
@@ -34,13 +36,28 @@ def create_cutter_shape(self, context):
         plane_point = mathutils.Vector((0.0, 0.0, 0.0))
 
     # find_the_intersection_of_a_line_going_through_each_vertex_and_the_infinite_plane
-    for vert in self.verts:
-        vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
-        p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
-        p1 = p0 + plane_direction
-        faces.append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
+    if self.shape == 'POLYLINE':
+        for idx, vert in enumerate(list(dict.fromkeys(self.mouse_path))): # use_dict_to_remove_doubles
+            vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
+            p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
+            p1 = p0 + plane_direction
+            loc.append(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction))
+            vertices.append(bm.verts.new(loc[idx]))
+
+            if idx > 0:
+                bm.edges.new([vertices[idx-1],vertices[idx]])
+
+            faces.append(vertices[idx])
+    else:
+        for vert in self.verts:
+            vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
+            p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
+            p1 = p0 + plane_direction
+            faces.append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
 
     bm.verts.index_update()
+    if self.shape == 'POLYLINE' and len(vertices) > 1:
+        bm.edges.new([vertices[-1], vertices[0]])
     to_face = bm.faces.new(faces)
     bm.to_mesh(mesh)
 
@@ -75,6 +92,7 @@ def extrude(self, mesh):
 
 def combined_bounding_box(objects):
     """Calculate the combined bounding box of multiple objects."""
+    
     min_corner = mathutils.Vector((float('inf'), float('inf'), float('inf')))
     max_corner = mathutils.Vector((-float('inf'), -float('inf'), -float('inf')))
 

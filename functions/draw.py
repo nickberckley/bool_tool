@@ -3,8 +3,6 @@ from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
 
-color = (0.48, 0.04, 0.04, 1.0)
-
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def draw_shader(color, alpha, type, coords, size=1, indices=None):
@@ -19,7 +17,7 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
 
-    elif type == 'LINES':
+    elif type in ('LINES', 'LINE_LOOP'):
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
         shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
         shader.uniform_float("lineWidth", size)
@@ -35,32 +33,75 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": coords})
+        gpu.state.line_width_set(size)
 
     batch.draw(shader)
     gpu.state.point_size_set(1.0)
-    gpu.state.line_width_set(size)
     gpu.state.blend_set('NONE')
 
 
 def carver_overlay(self, context):
     """Shape (rectangle, circle) overlay for carver tool"""
 
+    color = (0.48, 0.04, 0.04, 1.0)
+
     if self.shape == 'CIRCLE':
         tris_verts = draw_circle(self, self.subdivision, 0)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
+        self.verts = coords
+
+        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        if not self.rotate:
+            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
     elif self.shape == 'BOX':
         tris_verts = draw_circle(self, 4, 45)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
-    self.verts = coords
+        self.verts = coords
 
-    draw_shader(color, 0.4, 'SOLID', coords, size=2)
-    if not self.rotate:
-        draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        if not self.rotate:
+            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
+    elif self.shape == 'POLYLINE':
+        coords, first_point = draw_polygon(self)
+
+        draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
+        draw_shader(color, 1.0, 'POINTS', coords, size=5)
+        if self.closed:
+            draw_shader(color, 0.4, 'SOLID', coords, size=2)
+
+        # circle_around_first_point
+        if len(self.mouse_path) > 2:
+            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
+
 
     if self.snap and self.move == False:
         mini_grid(self, context, color)
 
     gpu.state.blend_set('NONE')
+
+
+
+def draw_polygon(self):
+    """Returns polygonal 2d shape in which each cursor click is taken as new vertice"""
+
+    coords = []
+    for idx, vals in enumerate(self.mouse_path):
+        coords.append([vals[0] + self.position_x, vals[1] + self.position_y])
+
+    # Circle around First Point
+    radius = self.distance_from_first
+    segments = 4
+
+    vertices = [coords[0]]
+    for i in range(segments + 1):
+        angle = i * (2 * math.pi / segments)
+        x = coords[0][0] + radius * math.cos(angle)
+        y = coords[0][1] + radius * math.sin(angle)
+        vertices.append((x, y))
+
+    return coords, vertices
 
 
 def draw_circle(self, subdivision, rotation):
