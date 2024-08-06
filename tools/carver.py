@@ -459,6 +459,10 @@ class OBJECT_OT_carve(bpy.types.Operator):
     def Cut(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
+        # ensure_active_object
+        if not context.active_object:
+            context.view_layer.objects.active = self.selected_objects[0]
+
         # Add Modifier
         for obj in self.selected_objects:
             if self.mode == 'DESTRUCTIVE':
