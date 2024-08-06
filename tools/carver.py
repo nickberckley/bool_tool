@@ -113,7 +113,7 @@ class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_icon = "ops.sculpt.polyline_trim"
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'POLYLINE')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK'}, {"properties": [("shape", 'POLYLINE')]}),
     )
 
 class MESH_WT_carve_polyline(OBJECT_WT_carve_polyline):
@@ -252,7 +252,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     def modal(self, context, event):
         snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, [SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, " + snap_text)
+        shape_text = "[BACKSPACE]: Remove Last Point, " if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, "
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + "[R]: Rotate, " + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -387,23 +388,25 @@ class OBJECT_OT_carve(bpy.types.Operator):
         # Confirm
         elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type in 'RET' and event.value == 'PRESS'):
             # selection_fallback
-            if len(self.selected_objects) == 0:
+            if self.shape != 'POLYLINE':
+                if len(self.selected_objects) == 0:
+                    self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
+                    for obj in self.selected_objects:
+                        obj.select_set(True)
+
+                    if len(self.selected_objects) == 0:
+                        self.report({'INFO'}, "Only selected objects can be carved")
+                        self.cancel(context)
+                        return {'FINISHED'}
+                else:
+                    empty = self.selection_fallback(context)
+                    if empty:
+                        return {'FINISHED'}
+            else:
+                # expand_selection_fallback_on_every_polyline_click
                 self.selected_objects = selection_fallback(self, context, context.view_layer.objects)
                 for obj in self.selected_objects:
                     obj.select_set(True)
-
-                if len(self.selected_objects) == 0:
-                    self.report({'INFO'}, "Only selected objects can be carved")
-                    self.cancel(context)
-                    return {'FINISHED'}
-            else:
-                # filter_out_objects_not_inside_the_mouse_path
-                self.selected_objects = selection_fallback(self, context, self.selected_objects, include_cutters=True)
-
-                # silently_fail_if_no_objects_inside_mouse_path
-                if len(self.selected_objects) == 0:
-                    self.cancel(context)
-                    return {'FINISHED'}
 
             # Polyline
             if self.shape == 'POLYLINE':
@@ -415,9 +418,15 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     if self.closed == False:
                         self.mouse_path.pop() # dont_add_current_mouse_position_as_vert
 
-                    if ((len(self.mouse_path) / 2) < 3) or (self.closed == True and self.mouse_path[-1] == self.mouse_path[-2]):
+                    if ((len(self.mouse_path) / 2) < 2) or (self.closed == True and self.mouse_path[-1] == self.mouse_path[-2]):
                         self.report({'INFO'}, "At least two points are required to make polygonal shape")
                         self.cancel(context)
+                        return {'FINISHED'}
+
+                    # NOTE: Polyline needs separate selection fallback, because it needs to calculate selection bounding box...
+                    # NOTE: after all points are already drawn, i.e. before execution.
+                    empty = self.selection_fallback(context)
+                    if empty:
                         return {'FINISHED'}
 
                     self.confirm(context)
@@ -454,6 +463,19 @@ class OBJECT_OT_carve(bpy.types.Operator):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
         context.area.header_text_set(None)
         context.window.cursor_set("DEFAULT")
+
+
+    def selection_fallback(self, context):
+        # filter_out_objects_not_inside_the_selection_bounding_box
+        self.selected_objects = selection_fallback(self, context, self.selected_objects, include_cutters=True)
+
+        # silently_fail_if_no_objects_inside_selection_bounding_box
+        empty = False
+        if len(self.selected_objects) == 0:
+            self.cancel(context)
+            empty = True
+
+        return empty
 
 
     def Cut(self, context):
