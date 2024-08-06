@@ -256,7 +256,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     def modal(self, context, event):
         snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[BACKSPACE]: Remove Last Point" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
+        shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
         context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region

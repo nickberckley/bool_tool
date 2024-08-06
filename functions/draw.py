@@ -73,7 +73,7 @@ def carver_overlay(self, context):
 
         # circle_around_first_point
         if len(self.mouse_path) > 2:
-            draw_shader(color, 0.6, 'OUTLINE', first_point, size=3)
+            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
 
 
     if self.snap and self.move == False:
@@ -92,7 +92,7 @@ def draw_polygon(self):
 
     # Circle around First Point
     radius = self.distance_from_first
-    segments = 16
+    segments = 4
 
     vertices = [coords[0]]
     for i in range(segments + 1):
