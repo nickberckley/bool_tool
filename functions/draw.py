@@ -3,8 +3,6 @@ from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
 
-color = (0.48, 0.04, 0.04, 1.0)
-
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def draw_shader(color, alpha, type, coords, size=1, indices=None):
@@ -19,7 +17,7 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
 
-    elif type == 'LINES':
+    elif type in ('LINES', 'LINE_LOOP'):
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
         shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
         shader.uniform_float("lineWidth", size)
@@ -45,17 +43,40 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
 def carver_overlay(self, context):
     """Shape (rectangle, circle) overlay for carver tool"""
 
+    color = (0.48, 0.04, 0.04, 1.0)
+
     if self.shape == 'CIRCLE':
         tris_verts = draw_circle(self, self.subdivision, 0)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
+        self.verts = coords
+
+        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        if not self.rotate:
+            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
     elif self.shape == 'BOX':
         tris_verts = draw_circle(self, 4, 45)
         coords = tris_verts[1:] # remove_the_vertex_in_the_center
-    self.verts = coords
+        self.verts = coords
 
-    draw_shader(color, 0.4, 'SOLID', coords, size=2)
-    if not self.rotate:
-        draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        if not self.rotate:
+            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, self.verts), size=2)
+
+    elif self.shape == 'POLYLINE':
+        coords = []
+        indices = []
+        for idx, vals in enumerate(self.mouse_path):
+            coords.append([vals[0] + self.position_x, vals[1] + self.position_y])
+            indices.append([idx])
+        self.verts = coords
+
+        type = 'LINE_LOOP' if self.closed else 'LINES'
+        draw_shader(color, 1.0, type, coords, size=2)
+        draw_shader(color, 1.0, 'POINTS', coords, size=5)
+        if self.closed:
+            draw_shader(color, 0.4, 'SOLID', coords, size=2)
+
 
     if self.snap and self.move == False:
         mini_grid(self, context, color)
