@@ -1,4 +1,4 @@
-import bpy, mathutils
+import bpy, mathutils, math
 from .. import __package__ as base_package
 
 from ..functions.draw import (
@@ -235,6 +235,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.position_y = 0
         self.initial_position = False
         self.center_origin = []
+        self.distance_from_first = 0
 
 
     def invoke(self, context, event):
@@ -254,8 +255,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 
     def modal(self, context, event):
-        snap_text = "[MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[BACKSPACE]: Remove Last Point, " if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, "
+        snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
+        shape_text = "[BACKSPACE]: Remove Last Point" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
         context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
@@ -379,6 +380,14 @@ class OBJECT_OT_carve(bpy.types.Operator):
                         if self.snap:
                             cursor_snap(self, context, event, self.mouse_path)
 
+                        if self.shape == 'POLYLINE':
+                            # get_distance_from_first_point
+                            distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
+                                                 (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
+                            max_radius = 30
+                            min_radius = 0
+                            self.distance_from_first = max(max_radius - distance, min_radius)
+
                 else:
                     # MOVE
                     self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
@@ -414,7 +423,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
             # Polyline
             if self.shape == 'POLYLINE':
-                if not (event.type == 'RET' and event.value == 'PRESS'):
+                if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
