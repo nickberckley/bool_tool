@@ -340,6 +340,13 @@ class OBJECT_OT_carve(bpy.types.Operator):
             self.initial_position = False
 
 
+        # Remove Point (Polyline)
+        if event.type == 'BACK_SPACE' and event.value == 'PRESS':
+            if len(self.mouse_path) > 2:
+                context.window.cursor_warp(self.mouse_path[-2][0], self.mouse_path[-2][1])
+                self.mouse_path = self.mouse_path[:-2]
+
+
         if event.type in {
                 'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE',
                 'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4', 'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9'}:
