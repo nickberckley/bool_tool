@@ -28,20 +28,21 @@ class CarverToolshelf():
             mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
             active_tool = context.workspace.tools.from_space_view3d_mode(mode, create=False).idname
 
-        layout.prop(props, "mode")
-        layout.prop(props, "depth")
+        layout.prop(props, "mode", text="")
+        layout.prop(props, "depth", text="")
+        layout.prop(props, "solver", expand=True)
         layout.prop(props, "pin")
 
         if context.object:
+            if props.mode == 'MODIFIER':
+                row = layout.row()
+                row.prop(props, "hide")
+
             if active_tool != "object.carve_polyline":
                 layout.popover("TOPBAR_PT_carver_shape", text="Shape")
                 layout.popover("TOPBAR_PT_carver_array", text="Array")
             else:
                 layout.prop(props, "closed")
-
-            if props.mode == 'MODIFIER':
-                row = layout.row()
-                row.prop(props, "hide")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
     bl_label = "Carver Shape"
@@ -260,6 +261,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
 
     # ADVANCED-properties
+    solver: bpy.props.EnumProperty(
+        name = "Solver",
+        items = [('FAST', "Fast", ""),
+                 ('EXACT', "Exact", "")],
+        default = 'FAST',
+    )
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifier",
         description = ("When enabled boolean modifier will be moved above every other modifier on the object (if there are any)\n"
@@ -590,8 +597,6 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 
     def Cut(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
-
         # ensure_active_object
         if not context.active_object:
             context.view_layer.objects.active = self.selected_objects[0]
@@ -599,9 +604,9 @@ class OBJECT_OT_carve(bpy.types.Operator):
         # Add Modifier
         for obj in self.selected_objects:
             if self.mode == 'DESTRUCTIVE':
-                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", prefs.solver, apply=True, pin=self.pin)
+                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", self.solver, apply=True, pin=self.pin)
             elif self.mode == 'MODIFIER':
-                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", prefs.solver, pin=self.pin)
+                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin)
                 obj.booleans.canvas = True
 
         if self.mode == 'DESTRUCTIVE':
