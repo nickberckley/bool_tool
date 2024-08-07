@@ -289,10 +289,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.snap = False
         self.move = False
         self.rotate = False
+        self.gap = False
 
         # Cache
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
+        self.cached_mouse_position = ()
 
         # overlay_position
         self.position_x = 0
@@ -324,7 +326,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
             shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm"
         else:
             shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
+        array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + array_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -375,11 +378,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
         # ROTATE
         if event.type == 'R' and (self.shape != 'POLYLINE'):
             if event.value == 'PRESS':
+                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
                 context.window.cursor_set("NONE")
                 self.rotate = True
             elif event.value == 'RELEASE':
                 context.window.cursor_set("MUTE")
-                context.window.cursor_warp(self.mouse_path[1][0], int(self.mouse_path[0][1] - self.mouse_path[1][1]))
+                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
                 self.rotate = False
 
 
@@ -392,6 +396,16 @@ class OBJECT_OT_carve(bpy.types.Operator):
             self.columns -= 1
         if event.type == 'UP_ARROW' and event.value == 'PRESS':
             self.columns += 1
+
+        if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
+            if event.value == 'PRESS':
+                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
+                context.window.cursor_set("NONE")
+                self.gap = True
+            elif event.value == 'RELEASE':
+                context.window.cursor_set("MUTE")
+                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                self.gap = False
 
 
         # MOVE
@@ -441,38 +455,42 @@ class OBJECT_OT_carve(bpy.types.Operator):
             if self.rotate:
                 self.rotation = event.mouse_region_x * 0.01
 
+            elif self.move:
+                # MOVE
+                self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
+                self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+
+                self.last_mouse_region_x = event.mouse_region_x
+                self.last_mouse_region_y = event.mouse_region_y
+
+            elif self.gap:
+                self.rows_gap = event.mouse_region_x * 0.1
+                self.columns_gap = event.mouse_region_y * 0.1
+
             else:
-                if self.move is False:
-                    if len(self.mouse_path) > 0:
-                        # ASPECT
-                        if self.aspect == 'FIXED':
-                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
-                            self.mouse_path[len(self.mouse_path) - 1] = \
-                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                if len(self.mouse_path) > 0:
+                    # ASPECT
+                    if self.aspect == 'FIXED':
+                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]),
+                                    abs(event.mouse_region_y - self.mouse_path[0][1]))
+                        self.mouse_path[len(self.mouse_path) - 1] = \
+                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
 
-                        elif self.aspect == 'FREE':
-                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                    elif self.aspect == 'FREE':
+                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
 
-                        # SNAP (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                        if self.snap:
-                            cursor_snap(self, context, event, self.mouse_path)
+                    # SNAP (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                    if self.snap:
+                        cursor_snap(self, context, event, self.mouse_path)
 
-                        if self.shape == 'POLYLINE':
-                            # get_distance_from_first_point
-                            distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
-                                                 (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
-                            max_radius = 30
-                            min_radius = 0
-                            self.distance_from_first = max(max_radius - distance, min_radius)
-
-                else:
-                    # MOVE
-                    self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
-                    self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
-
-                    self.last_mouse_region_x = event.mouse_region_x
-                    self.last_mouse_region_y = event.mouse_region_y
+                    if self.shape == 'POLYLINE':
+                        # get_distance_from_first_point
+                        distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
+                                                (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
+                        min_radius = 0
+                        max_radius = 30
+                        self.distance_from_first = max(max_radius - distance, min_radius)
 
 
         # Confirm
