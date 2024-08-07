@@ -154,6 +154,13 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
         cutters, __ = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
+        # excude_canvases_with_shape_keys
+        for canvas in itertools.chain(canvases, slices):
+            if canvas.data.shape_keys:
+                self.report({'ERROR'}, f"Modifiers can't be applied to {canvas.name} because it has shape keys")
+                canvases.remove(canvas)
+
+
         for canvas in itertools.chain(canvases, slices):
             context.view_layer.objects.active = canvas
 

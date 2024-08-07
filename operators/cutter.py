@@ -226,6 +226,13 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             canvases = list_canvases()
             cutters = list_selected_cutters(context)
 
+        # cancel_when_canvas_has_shape_keys
+        for canvas in canvases:
+            if canvas.data.shape_keys:
+                self.report({'ERROR'}, f"Modifiers can't be applied to {canvas.name} because it has shape keys")
+                return {'CANCELLED'}
+
+
         if cutters:
             # Apply Modifiers
             for canvas in canvases:

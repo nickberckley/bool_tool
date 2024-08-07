@@ -105,6 +105,9 @@ def selection_fallback(self, context, objects, include_cutters=False):
             continue
         if (include_cutters == False) and obj.booleans.cutter != "":
             continue
+        if (self.mode == 'DESTRUCTIVE') and obj.data.shape_keys:
+            self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
+            continue
 
         if is_inside_selection(context, obj, rect_min, rect_max):
             intersecting_objects.append(obj)
