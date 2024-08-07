@@ -488,7 +488,6 @@ class OBJECT_OT_carve(bpy.types.Operator):
             if self.shape == 'POLYLINE':
                 if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
-                    self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
                     # Confirm Cut (Polyline)
                     if self.closed == False:
