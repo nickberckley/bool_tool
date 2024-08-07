@@ -36,7 +36,7 @@ class BrushBoolean():
 
         for cutter in cutters:
             set_cutter_properties(context, canvas, cutter, self.mode)
-            add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver)
+            add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
         context.view_layer.objects.active = canvas
         canvas.booleans.canvas = True
@@ -114,12 +114,13 @@ class AutoBoolean:
         cutters = list_candidate_objects(context)
 
         # apply_modifiers
-        if prefs.apply_order in ('ALL', 'BEFORE'):
+        if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
             convert_to_mesh(context, canvas)
         else:
             if canvas.data.shape_keys:
                 self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
                 return {'CANCELLED'}
+
 
         if self.mode == "SLICE":
             # Create Slices
@@ -134,7 +135,7 @@ class AutoBoolean:
         for cutter in cutters:
             # Add Modifier
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            add_boolean_modifier(self, canvas, cutter, mode, prefs.solver, apply=True)
+            add_boolean_modifier(self, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin)
 
             # Delete Cutter
             delete_cutter(cutter)
@@ -142,6 +143,13 @@ class AutoBoolean:
             if self.mode == "SLICE":
                 slice.select_set(True)
                 context.view_layer.objects.active = slice
+
+
+        # remove_modifiers_before_final_boolean
+        if prefs.apply_order == 'BEFORE' and prefs.pin:
+            modifiers = list_pre_boolean_modifiers(canvas)
+            for mod in modifiers:
+                bpy.ops.object.modifier_apply(modifier=mod.name)
 
         return {'FINISHED'}
 

@@ -55,6 +55,13 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
                  ('BOOLEANS', "Only Apply Booleans", "Only apply boolean modifiers. This method will fail if object has shape keys")),
         default = 'ALL',
     )
+    pin: bpy.props.BoolProperty(
+        name = "Pin Boolean Modifiers",
+        description = ("When enabled boolean modifiers will be placed above every other modifier on the object (if there are any).\n"
+                       "Order of modifiers can drastically affect the result (especially when performing auto boolean).\n"
+                       "NOTE: This doesn't affect Carver tool, which has its own property for this"),
+        default = False,
+    )
 
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
@@ -89,8 +96,13 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         row.prop(self, "solver", text="Solver", expand=True)
         col.prop(self, "wireframe")
         col.prop(self, "show_in_editmode")
+
+        # Advanced
+        layout.separator()
+        col = layout.column(align=True, heading="Advanced")
         col.prop(self, "parent")
         col.prop(self, "apply_order")
+        col.prop(self, "pin")
 
         # Experimentals
         layout.separator()
