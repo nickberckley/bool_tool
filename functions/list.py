@@ -8,7 +8,7 @@ from .object import convert_to_mesh
 def list_canvases():
     """List all canvases in the scene"""
     canvas = []
-    for obj in bpy.data.objects:
+    for obj in bpy.context.scene.objects:
         if obj.booleans.canvas:
             canvas.append(obj)
 
@@ -96,7 +96,7 @@ def list_canvas_slices(canvases):
     """Returns list of slices for specified canvases"""
 
     slices = []
-    for obj in bpy.data.objects:
+    for obj in bpy.context.scene.objects:
         if obj.booleans.slice:
             if obj.booleans.slice_of in canvases:
                 slices.append(obj)
@@ -138,8 +138,8 @@ def list_unused_cutters(cutters, *canvases, do_leftovers=False):
     """When `include_visible` is True it will return cutters that aren't used by any visible modifiers"""
 
     prefs = bpy.context.preferences.addons[base_package].preferences
-    other_canvases = list_canvases()
 
+    other_canvases = list_canvases()
     leftovers = []
     original_cutters = cutters[:]
 

@@ -28,7 +28,7 @@ def duplicate_boolean_modifier(scene, depsgraph):
                             previous_number = str(int(number) - 1).zfill(len(number))
                             original_name = name + '.' + previous_number
 
-                        for obj in bpy.data.objects:
+                        for obj in scene.objects:
                             if obj.name == original_name:
                                 if obj.booleans.cutter:
                                     original_cutters.append(obj)

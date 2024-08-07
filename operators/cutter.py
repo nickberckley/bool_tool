@@ -46,8 +46,8 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
 
     def execute(self, context):
         if self.method == 'SPECIFIED':
-            canvases = [bpy.data.objects[self.specified_canvas]]
-            cutters = [bpy.data.objects[self.specified_cutter]]
+            canvases = [context.scene.objects[self.specified_canvas]]
+            cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             canvases = list_canvases()
@@ -123,8 +123,8 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
         leftovers = []
 
         if self.method == 'SPECIFIED':
-            canvases = [bpy.data.objects[self.specified_canvas]]
-            cutters = [bpy.data.objects[self.specified_cutter]]
+            canvases = [context.scene.objects[self.specified_canvas]]
+            cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             canvases = list_canvases()
@@ -219,8 +219,8 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
         leftovers = []
 
         if self.method == 'SPECIFIED':
-            canvases = [bpy.data.objects[self.specified_canvas]]
-            cutters = [bpy.data.objects[self.specified_cutter]]
+            canvases = [context.scene.objects[self.specified_canvas]]
+            cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             canvases = list_canvases()
