@@ -606,7 +606,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
         if self.mode == 'DESTRUCTIVE':
             # Remove Cutter
-            delete_cutter(context, self.cutter)
+            delete_cutter(self.cutter)
 
         elif self.mode == 'MODIFIER':
             # Set Cutter Properties

@@ -87,9 +87,9 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
         # Remove Slices
         for slice in slices:
-            bpy.data.objects.remove(slice)
             if slice in canvases:
                 canvases.remove(slice)
+            delete_cutter(slice)
 
         for canvas in canvases:
             # Remove Modifiers
@@ -193,7 +193,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
         purged_cutters = []
         for cutter in unused_cutters:
             if cutter not in purged_cutters:
-                delete_cutter(context, cutter)
+                delete_cutter(cutter)
                 purged_cutters.append(cutter)
 
         # purge_empty_collection

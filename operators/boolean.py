@@ -7,6 +7,7 @@ from ..functions.object import (
     add_boolean_modifier,
     set_cutter_properties,
     create_slice,
+    delete_cutter,
 )
 from ..functions.list import (
     list_candidate_objects,
@@ -136,7 +137,7 @@ class AutoBoolean:
             add_boolean_modifier(self, canvas, cutter, mode, prefs.solver, apply=True)
 
             # Delete Cutter
-            bpy.data.objects.remove(cutter)
+            delete_cutter(cutter)
 
             if self.mode == "SLICE":
                 slice.select_set(True)

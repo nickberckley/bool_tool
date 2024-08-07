@@ -141,7 +141,7 @@ def delete_empty_collection():
         bpy.data.collections.remove(collection)
 
 
-def delete_cutter(context, cutter):
+def delete_cutter(cutter):
     """Deletes cutter object and purges it's mesh data"""
 
     orphaned_mesh = cutter.data

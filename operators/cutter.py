@@ -145,7 +145,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 
                 # Remove Slices (for_all_method)
                 if canvas.booleans.slice == True:
-                    bpy.data.objects.remove(canvas)
+                    delete_cutter(canvas)
 
 
             if self.method == 'SPECIFIED':
@@ -153,7 +153,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                 for slice in slices:
                     for mod in slice.modifiers:
                         if mod.type == 'BOOLEAN' and mod.object in cutters:
-                            bpy.data.objects.remove(slice)
+                            delete_cutter(slice)
 
                 cutters, leftovers = list_unused_cutters(cutters, canvases, do_leftovers=True)
 
@@ -266,7 +266,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
             # Purge Orphaned Cutters
             for cutter in cutters:
-                delete_cutter(context, cutter)
+                delete_cutter(cutter)
 
             # purge_empty_collection
             delete_empty_collection()
