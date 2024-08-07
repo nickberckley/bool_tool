@@ -2,6 +2,7 @@ import bpy
 
 from ..functions.poll import (
     basic_poll,
+    modifier_poll,
     is_canvas,
 )
 from ..functions.list import (
@@ -68,17 +69,17 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context)
+        return (basic_poll(context) and modifier_poll(context, context.object) and
+                context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER')
 
     def execute(self, context):
-        if context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER':
-            modifier = context.object.modifiers.active
-            if modifier and modifier.type == "BOOLEAN":
-                cutter = modifier.object
+        modifier = context.object.modifiers.active
+        if modifier and modifier.type == "BOOLEAN":
+            cutter = modifier.object
 
-                bpy.ops.object.select_all(action='DESELECT')
-                cutter.select_set(True)
-                context.view_layer.objects.active = cutter
+            bpy.ops.object.select_all(action='DESELECT')
+            cutter.select_set(True)
+            context.view_layer.objects.active = cutter
 
         return {'FINISHED'}
 
