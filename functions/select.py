@@ -45,7 +45,7 @@ def cursor_snap(self, context, event, mouse_pos):
 
 
 def is_inside_selection(context, obj, rect_min, rect_max):
-    """Checks if the bounding box of an object intersects with the selection rectangle"""
+    """Checks if the bounding box of an object intersects with the selection bounding box"""
 
     region = context.region
     rv3d = context.space_data.region_3d
@@ -74,18 +74,28 @@ def selection_fallback(self, context, objects, include_cutters=False):
 
     # convert_2d_rectangle_coordinates_to_world_coordinates
     if self.origin == 'EDGE':
-        if self.shape != 'POLYLINE':
-            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]), min(self.mouse_path[0][1], self.mouse_path[1][1])))
-            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]), max(self.mouse_path[0][1], self.mouse_path[1][1])))
-        else:
+        if self.shape == 'POLYLINE':
             x_values = [point[0] for point in self.mouse_path]
             y_values = [point[1] for point in self.mouse_path]
             rect_min = mathutils.Vector((min(x_values), min(y_values)))
             rect_max = mathutils.Vector((max(x_values), max(y_values)))
+        else:
+            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                        min(self.mouse_path[0][1], self.mouse_path[1][1])))
+            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                        max(self.mouse_path[0][1], self.mouse_path[1][1])))
 
     elif self.origin == 'CENTER':
-        rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]), min(self.center_origin[0][1], self.center_origin[1][1])))
-        rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]), max(self.center_origin[0][1], self.center_origin[1][1])))
+        rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]),
+                                     min(self.center_origin[0][1], self.center_origin[1][1])))
+        rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]),
+                                     max(self.center_origin[0][1], self.center_origin[1][1])))
+
+    # ARRAY
+    if self.rows > 1:
+        rect_max.x = rect_min.x + (rect_max.x - rect_min.x) * self.rows + (self.gap_rows * (self.rows - 1))
+    if self.columns > 1:
+        rect_min.y = rect_max.y - (rect_max.y - rect_min.y) * self.columns - (self.gap_columns * (self.columns - 1))
 
     intersecting_objects = []
     for obj in objects:

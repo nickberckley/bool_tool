@@ -267,8 +267,7 @@ def array(self, verts):
 
     columns = {}
     if self.columns > 1:
-        offset_2 = (self.center_origin[1][1] - self.center_origin[0][1]) + (self.gap_columns)
-        offset = mathutils.Vector((0.0, -offset_2, 0.0))
+        offset = mathutils.Vector((0.0, -((self.center_origin[1][1] - self.center_origin[0][1]) + (self.gap_columns)), 0.0))
         for i in range(self.columns - 1):
             accumulated_offset = offset * (i + 1)
             columns[i] = [vert.copy() + accumulated_offset for vert in verts]
