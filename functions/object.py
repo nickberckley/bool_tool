@@ -94,14 +94,14 @@ def object_visibility_set(obj, value=False):
     obj.visible_volume_scatter = value
 
 
-def convert_to_mesh(context, brush):
-    "Converts active object into mesh"
+def convert_to_mesh(context, obj):
+    "Converts active object into mesh (applying all modifiers and shape keys in process)"
 
     # store_selection
     stored_active = context.active_object
     bpy.ops.object.select_all(action='DESELECT')
-    brush.select_set(True)
-    context.view_layer.objects.active = brush
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
 
     # Convert
     bpy.ops.object.convert(target='MESH')

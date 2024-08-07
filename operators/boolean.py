@@ -2,8 +2,16 @@ import bpy
 from .. import __package__ as base_package
 
 from ..functions.poll import basic_poll
-from ..functions.object import add_boolean_modifier, set_cutter_properties, create_slice
-from ..functions.list import list_candidate_objects
+from ..functions.object import (
+    convert_to_mesh,
+    add_boolean_modifier,
+    set_cutter_properties,
+    create_slice,
+)
+from ..functions.list import (
+    list_candidate_objects,
+    list_pre_boolean_modifiers,
+)
 
 
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
@@ -103,6 +111,10 @@ class AutoBoolean:
 
         canvas = bpy.context.active_object
         cutters = list_candidate_objects(context)
+
+        # apply_modifiers
+        if prefs.apply_order in ('ALL', 'BEFORE'):
+            convert_to_mesh(context, canvas)
 
         if self.mode == "SLICE":
             # Create Slices

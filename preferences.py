@@ -38,11 +38,22 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         description = "Every new boolean modifier created with brush boolean wil have 'Show in Edit Mode' enabled by default",
         default = True,
     )
+
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
         description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas\n"
                        "NOTE: When using Carver tool on multiple objects cutters parent might be chosen seemingly randomly"),
         default = True,
+    )
+    apply_order: bpy.props.EnumProperty(
+        name = "When Applying Cutters...",
+        description = ("What happens when boolean cutters are applied on object.\n"
+                       "Either when performing auto-boolean, using 'Apply All Cutters' operator.\n"
+                       "NOTE: This doesn't apply to Carver tool on 'Destructive' mode; or when applying individual cutters"),
+        items = (('ALL', "Apply All Modifiers", "All modifiers on object will be applied (this includes shape keys as well)"),
+                 ('BEFORE', "Apply Booleans & Everything Before", "Alongside boolean modifiers all modifiers will be applied that come before the last boolean"),
+                 ('BOOLEANS', "Only Apply Booleans", "Only apply boolean modifiers. This method will fail if object has shape keys")),
+        default = 'ALL',
     )
 
     versioning: bpy.props.BoolProperty(
@@ -79,6 +90,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         col.prop(self, "wireframe")
         col.prop(self, "show_in_editmode")
         col.prop(self, "parent")
+        col.prop(self, "apply_order")
 
         # Experimentals
         layout.separator()

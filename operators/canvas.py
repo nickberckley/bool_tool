@@ -6,6 +6,7 @@ from ..functions.poll import (
     is_canvas
 )
 from ..functions.object import (
+    convert_to_mesh,
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
@@ -17,6 +18,7 @@ from ..functions.list import (
     list_cutter_users,
     list_selected_canvases,
     list_unused_cutters,
+    list_pre_boolean_modifiers,
 )
 
 
@@ -152,16 +154,26 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
         cutters, __ = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
-        # Apply Modifiers
         for canvas in itertools.chain(canvases, slices):
-            bpy.context.view_layer.objects.active = canvas
-            for modifier in canvas.modifiers:
-                if "boolean_" in modifier.name:
-                    try:
-                        bpy.ops.object.modifier_apply(modifier=modifier.name)
-                    except:
-                        context.active_object.data = context.active_object.data.copy()
-                        bpy.ops.object.modifier_apply(modifier=modifier.name)
+            context.view_layer.objects.active = canvas
+
+            # Apply Modifiers
+            if prefs.apply_order == 'ALL':
+                convert_to_mesh(context, canvas)
+
+            elif prefs.apply_order == 'BEFORE':
+                modifiers = list_pre_boolean_modifiers(canvas)
+                for mod in modifiers:
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
+
+            elif prefs.apply_order == 'BOOLEANS':
+                for modifier in canvas.modifiers:
+                    if "boolean_" in modifier.name:
+                        try:
+                            bpy.ops.object.modifier_apply(modifier=modifier.name)
+                        except:
+                            context.active_object.data = context.active_object.data.copy()
+                            bpy.ops.object.modifier_apply(modifier=modifier.name)
 
             # remove_boolean_properties
             canvas.booleans.canvas = False
