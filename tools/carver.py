@@ -229,8 +229,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     gap_rows: bpy.props.FloatProperty(
         name = "Gap between Rows",
-        soft_min = 1, soft_max = 10,
-        default = 2,
+        soft_min = 1, soft_max = 250,
+        default = 50,
     )
     columns: bpy.props.IntProperty(
         name = "Columns",
@@ -240,8 +240,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     gap_columns: bpy.props.FloatProperty(
         name = "Gap between Columns",
-        soft_min = 1, soft_max = 10,
-        default = 2,
+        soft_min = 1, soft_max = 250,
+        default = 50,
     )
 
     # ADVANCED-properties

@@ -115,6 +115,7 @@ def draw_polygon(self):
         vertices.append(vector)
 
     # ARRAY
+    get_bounding_box_coords(self, coords)
     rows, columns = array(self, coords)
 
     return coords, vertices, rows, columns
@@ -186,7 +187,7 @@ def draw_circle(self, subdivision, rotation):
     return tris_verts, rows, columns
 
 
-def mini_grid(self, context, color):
+def mini_grid(self, context):
     """Draws snap mini-grid around the cursor based on the overlay grid"""
 
     region = context.region
@@ -233,13 +234,13 @@ def mini_grid(self, context, color):
         draw_shader((1.0, 1.0, 1.0), 0.66, 'LINES', grid_coords, size=1.5)
 
 
-def get_bounding_box_coords(self, coords):
+def get_bounding_box_coords(self, verts):
     """Calculates the bounding box coordinates from a list of vertices in a counter-clockwise order"""
 
-    min_x = min(v[0] for v in coords)
-    max_x = max(v[0] for v in coords)
-    min_y = min(v[1] for v in coords)
-    max_y = max(v[1] for v in coords)
+    min_x = min(v[0] for v in verts)
+    max_x = max(v[0] for v in verts)
+    min_y = min(v[1] for v in verts)
+    max_y = max(v[1] for v in verts)
     self.center_origin = [(min_x, min_y), (max_x, max_y)]
 
     bounding_box_coords = [
@@ -257,17 +258,17 @@ def array(self, verts):
     """Duplicates given list of vertices in rows and columns (on x and y axis)"""
     """Returns two dicts of lists of vertices for rows and columns separately"""
 
-    # ARRAY
     rows = {}
     if self.rows > 1:
-        offset = mathutils.Vector(((self.gap_rows * 100), 0.0, 0.0))
+        offset = mathutils.Vector(((self.center_origin[1][0] - self.center_origin[0][0]) + (self.gap_rows), 0.0, 0.0))
         for i in range(self.rows - 1):
             accumulated_offset = offset * (i + 1)
             rows[i] = [vert.copy() + accumulated_offset for vert in verts]
 
     columns = {}
     if self.columns > 1:
-        offset = mathutils.Vector((0.0, -(self.gap_rows * 100), 0.0))
+        offset_2 = (self.center_origin[1][1] - self.center_origin[0][1]) + (self.gap_columns)
+        offset = mathutils.Vector((0.0, -offset_2, 0.0))
         for i in range(self.columns - 1):
             accumulated_offset = offset * (i + 1)
             columns[i] = [vert.copy() + accumulated_offset for vert in verts]
