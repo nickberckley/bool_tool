@@ -80,11 +80,13 @@ class TOPBAR_PT_carver_array(bpy.types.Panel):
         op = tool.operator_properties("object.carve")
 
         layout.prop(op, "rows")
-        layout.prop(op, "gap_rows", text="Gap")
+        layout.prop(op, "rows_direction", text="Direction", expand=True)
+        layout.prop(op, "rows_gap", text="Gap")
 
         layout.separator()
         layout.prop(op, "columns")
-        layout.prop(op, "gap_columns", text="Gap")
+        layout.prop(op, "columns_direction", text="Direction", expand=True)
+        layout.prop(op, "columns_gap", text="Gap")
 
 
 
@@ -227,20 +229,33 @@ class OBJECT_OT_carve(bpy.types.Operator):
         min = 1, soft_max = 16,
         default = 1,
     )
-    gap_rows: bpy.props.FloatProperty(
+    rows_gap: bpy.props.FloatProperty(
         name = "Gap between Rows",
-        soft_min = 1, soft_max = 250,
+        min = 0, soft_max = 250,
         default = 50,
     )
+    rows_direction: bpy.props.EnumProperty(
+        name = "Direction of Rows",
+        items = (('RIGHT', "Right", ""),
+                 ('LEFT', "Left", "")),
+        default = 'RIGHT',
+    )
+
     columns: bpy.props.IntProperty(
         name = "Columns",
         description = "Number of times shape is duplicated on Y axis",
         min = 1, soft_max = 16,
         default = 1,
     )
-    gap_columns: bpy.props.FloatProperty(
+    columns_direction: bpy.props.EnumProperty(
+        name = "Direction of Rows",
+        items = (('UP', "Up", ""),
+                 ('DOWN', "Down", "")),
+        default = 'DOWN',
+    )
+    columns_gap: bpy.props.FloatProperty(
         name = "Gap between Columns",
-        soft_min = 1, soft_max = 250,
+        min = 0, soft_max = 250,
         default = 50,
     )
 

@@ -93,9 +93,9 @@ def selection_fallback(self, context, objects, include_cutters=False):
 
     # ARRAY
     if self.rows > 1:
-        rect_max.x = rect_min.x + (rect_max.x - rect_min.x) * self.rows + (self.gap_rows * (self.rows - 1))
+        rect_max.x = rect_min.x + (rect_max.x - rect_min.x) * self.rows + (self.rows_gap * (self.rows - 1))
     if self.columns > 1:
-        rect_min.y = rect_max.y - (rect_max.y - rect_min.y) * self.columns - (self.gap_columns * (self.columns - 1))
+        rect_min.y = rect_max.y - (rect_max.y - rect_min.y) * self.columns - (self.columns_gap * (self.columns - 1))
 
     intersecting_objects = []
     for obj in objects:

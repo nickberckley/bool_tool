@@ -76,7 +76,7 @@ def carver_overlay(self, context):
 
     # Snapping Grid
     if self.snap and self.move == False:
-        mini_grid(self, context, color)
+        mini_grid(self, context)
 
     # ARRAY
     if self.rows > 1:
@@ -260,14 +260,22 @@ def array(self, verts):
 
     rows = {}
     if self.rows > 1:
-        offset = mathutils.Vector(((self.center_origin[1][0] - self.center_origin[0][0]) + (self.gap_rows), 0.0, 0.0))
+        # Offset
+        offset = mathutils.Vector((((self.center_origin[1][0] - self.center_origin[0][0]) + (self.rows_gap)), 0.0, 0.0))
+        if self.rows_direction == 'LEFT':
+            offset.x = -offset.x
+
         for i in range(self.rows - 1):
             accumulated_offset = offset * (i + 1)
             rows[i] = [vert.copy() + accumulated_offset for vert in verts]
 
     columns = {}
     if self.columns > 1:
-        offset = mathutils.Vector((0.0, -((self.center_origin[1][1] - self.center_origin[0][1]) + (self.gap_columns)), 0.0))
+        # Offset
+        offset = mathutils.Vector((0.0, -((self.center_origin[1][1] - self.center_origin[0][1]) + (self.columns_gap)), 0.0))
+        if self.columns_direction == 'UP':
+            offset.y = -offset.y
+
         for i in range(self.columns - 1):
             accumulated_offset = offset * (i + 1)
             columns[i] = [vert.copy() + accumulated_offset for vert in verts]
