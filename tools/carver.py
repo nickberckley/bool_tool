@@ -31,23 +31,21 @@ class CarverToolshelf():
         layout.prop(props, "mode")
         layout.prop(props, "depth")
         layout.prop(props, "pin")
-        layout.prop(props, "rotation")
 
         if context.object:
-            if active_tool == "object.carve_circle":
-                layout.prop(props, "subdivision", text="Vertices")
+            if active_tool != "object.carve_polyline":
+                layout.popover("TOPBAR_PT_carver_shape", text="Shape")
+                layout.popover("TOPBAR_PT_carver_array", text="Array")
+            else:
+                layout.prop(props, "closed")
 
             if props.mode == 'MODIFIER':
                 row = layout.row()
                 row.prop(props, "hide")
 
-            if active_tool != "object.carve_polyline":
-                layout.popover("TOPBAR_PT_carver_extras", text="...")
-            else:
-                layout.prop(props, "closed")
-
-class TOPBAR_PT_carver_extras(bpy.types.Panel):
-    bl_label = "Carver Extras"
+class TOPBAR_PT_carver_shape(bpy.types.Panel):
+    bl_label = "Carver Shape"
+    bl_idname = "TOPBAR_PT_carver_shape"
     bl_region_type = 'HEADER'
     bl_space_type = 'TOPBAR'
     bl_category = 'Tool'
@@ -58,10 +56,38 @@ class TOPBAR_PT_carver_extras(bpy.types.Panel):
 
         mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
-        tool = tool.operator_properties("object.carve")
+        op = tool.operator_properties("object.carve")
 
-        layout.prop(tool, "aspect", expand=True)
-        layout.prop(tool, "origin", expand=True)
+        if tool.idname == "object.carve_circle":
+            layout.prop(op, "subdivision", text="Vertices")
+        layout.prop(op, "rotation")
+        layout.prop(op, "aspect", expand=True)
+        layout.prop(op, "origin", expand=True)
+
+class TOPBAR_PT_carver_array(bpy.types.Panel):
+    bl_label = "Carver Array"
+    bl_idname = "TOPBAR_PT_carver_array"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+        tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
+        op = tool.operator_properties("object.carve")
+
+        layout.prop(op, "rows")
+        layout.prop(op, "rows_direction", text="Direction", expand=True)
+        layout.prop(op, "rows_gap", text="Gap")
+
+        layout.separator()
+        layout.prop(op, "columns")
+        layout.prop(op, "columns_direction", text="Direction", expand=True)
+        layout.prop(op, "columns_gap", text="Gap")
+
 
 
 #### ------------------------------ TOOLS ------------------------------ ####
@@ -196,6 +222,43 @@ class OBJECT_OT_carve(bpy.types.Operator):
         default = True
     )
 
+    # ARRAY-properties
+    rows: bpy.props.IntProperty(
+        name = "Rows",
+        description = "Number of times shape is duplicated on X axis",
+        min = 1, soft_max = 16,
+        default = 1,
+    )
+    rows_gap: bpy.props.FloatProperty(
+        name = "Gap between Rows",
+        min = 0, soft_max = 250,
+        default = 50,
+    )
+    rows_direction: bpy.props.EnumProperty(
+        name = "Direction of Rows",
+        items = (('RIGHT', "Right", ""),
+                 ('LEFT', "Left", "")),
+        default = 'RIGHT',
+    )
+
+    columns: bpy.props.IntProperty(
+        name = "Columns",
+        description = "Number of times shape is duplicated on Y axis",
+        min = 1, soft_max = 16,
+        default = 1,
+    )
+    columns_direction: bpy.props.EnumProperty(
+        name = "Direction of Rows",
+        items = (('UP', "Up", ""),
+                 ('DOWN', "Down", "")),
+        default = 'DOWN',
+    )
+    columns_gap: bpy.props.FloatProperty(
+        name = "Gap between Columns",
+        min = 0, soft_max = 250,
+        default = 50,
+    )
+
     # ADVANCED-properties
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifier",
@@ -217,6 +280,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.view_vector = mathutils.Vector()
         self.verts = []
         self.cutter = None
+        self.duplicates = []
 
         args = (self, context)
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')
@@ -225,10 +289,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.snap = False
         self.move = False
         self.rotate = False
+        self.gap = False
 
         # Cache
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
+        self.cached_mouse_position = ()
 
         # overlay_position
         self.position_x = 0
@@ -256,8 +322,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     def modal(self, context, event):
         snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm" if self.shape == 'POLYLINE' else "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate"
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + snap_text)
+        if self.shape == 'POLYLINE':
+            shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm"
+        else:
+            shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
+        array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + array_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -308,12 +378,34 @@ class OBJECT_OT_carve(bpy.types.Operator):
         # ROTATE
         if event.type == 'R' and (self.shape != 'POLYLINE'):
             if event.value == 'PRESS':
+                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
                 context.window.cursor_set("NONE")
                 self.rotate = True
             elif event.value == 'RELEASE':
                 context.window.cursor_set("MUTE")
-                context.window.cursor_warp(self.mouse_path[1][0], int(self.mouse_path[0][1] - self.mouse_path[1][1]))
+                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
                 self.rotate = False
+
+
+        # ARRAY
+        if event.type == 'LEFT_ARROW' and event.value == 'PRESS':
+            self.rows -= 1
+        if event.type == 'RIGHT_ARROW' and event.value == 'PRESS':
+            self.rows += 1
+        if event.type == 'DOWN_ARROW' and event.value == 'PRESS':
+            self.columns -= 1
+        if event.type == 'UP_ARROW' and event.value == 'PRESS':
+            self.columns += 1
+
+        if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
+            if event.value == 'PRESS':
+                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
+                context.window.cursor_set("NONE")
+                self.gap = True
+            elif event.value == 'RELEASE':
+                context.window.cursor_set("MUTE")
+                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                self.gap = False
 
 
         # MOVE
@@ -363,38 +455,42 @@ class OBJECT_OT_carve(bpy.types.Operator):
             if self.rotate:
                 self.rotation = event.mouse_region_x * 0.01
 
+            elif self.move:
+                # MOVE
+                self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
+                self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+
+                self.last_mouse_region_x = event.mouse_region_x
+                self.last_mouse_region_y = event.mouse_region_y
+
+            elif self.gap:
+                self.rows_gap = event.mouse_region_x * 0.1
+                self.columns_gap = event.mouse_region_y * 0.1
+
             else:
-                if self.move is False:
-                    if len(self.mouse_path) > 0:
-                        # ASPECT
-                        if self.aspect == 'FIXED':
-                            side = max(abs(event.mouse_region_x - self.mouse_path[0][0]), abs(event.mouse_region_y - self.mouse_path[0][1]))
-                            self.mouse_path[len(self.mouse_path) - 1] = \
-                                            (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                             self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                if len(self.mouse_path) > 0:
+                    # ASPECT
+                    if self.aspect == 'FIXED':
+                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]),
+                                    abs(event.mouse_region_y - self.mouse_path[0][1]))
+                        self.mouse_path[len(self.mouse_path) - 1] = \
+                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
+                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
 
-                        elif self.aspect == 'FREE':
-                            self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                    elif self.aspect == 'FREE':
+                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
 
-                        # SNAP (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                        if self.snap:
-                            cursor_snap(self, context, event, self.mouse_path)
+                    # SNAP (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                    if self.snap:
+                        cursor_snap(self, context, event, self.mouse_path)
 
-                        if self.shape == 'POLYLINE':
-                            # get_distance_from_first_point
-                            distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
-                                                 (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
-                            max_radius = 30
-                            min_radius = 0
-                            self.distance_from_first = max(max_radius - distance, min_radius)
-
-                else:
-                    # MOVE
-                    self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
-                    self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
-
-                    self.last_mouse_region_x = event.mouse_region_x
-                    self.last_mouse_region_y = event.mouse_region_y
+                    if self.shape == 'POLYLINE':
+                        # get_distance_from_first_point
+                        distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
+                                                (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
+                        min_radius = 0
+                        max_radius = 30
+                        self.distance_from_first = max(max_radius - distance, min_radius)
 
 
         # Confirm
@@ -424,7 +520,6 @@ class OBJECT_OT_carve(bpy.types.Operator):
             # Polyline
             if self.shape == 'POLYLINE':
                 if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
-                    self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
                     # Confirm Cut (Polyline)
@@ -529,7 +624,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 classes = [
     OBJECT_OT_carve,
-    TOPBAR_PT_carver_extras,
+    TOPBAR_PT_carver_shape,
+    TOPBAR_PT_carver_array,
 ]
 
 main_tools = [

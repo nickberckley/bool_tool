@@ -7,58 +7,44 @@ from bpy_extras import view3d_utils
 def create_cutter_shape(self, context):
     """Creates flat mesh from the vertices provided in `self.verts` (which is created by `carver_overlay`)"""
 
-    far_limit = 10000.0
+    # ALIGNMENT: View
     coords = self.mouse_path[0][0], self.mouse_path[0][1]
     region = context.region
     rv3d = context.region_data
     depth_location = view3d_utils.region_2d_to_vector_3d(region, rv3d, coords)
     self.view_vector = depth_location
-
-    faces = []
-    vertices = []
-    loc = []
-
-    # Create Mesh & Object
-    mesh = bpy.data.meshes.new('cutter_cube')
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    obj = bpy.data.objects.new('cutter_cube', mesh)
-    self.cutter = obj
-    context.collection.objects.link(obj)
-
-    # Orientation: VIEW
     plane_direction = depth_location.normalized()
 
-    # Depth
+    # depth
     if self.depth == 'CURSOR':
         plane_point = context.scene.cursor.location
     elif self.depth == 'VIEW':
         plane_point = mathutils.Vector((0.0, 0.0, 0.0))
 
-    # find_the_intersection_of_a_line_going_through_each_vertex_and_the_infinite_plane
-    if self.shape == 'POLYLINE':
-        for idx, vert in enumerate(list(dict.fromkeys(self.mouse_path))): # use_dict_to_remove_doubles
-            vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
-            p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
-            p1 = p0 + plane_direction
-            loc.append(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction))
-            vertices.append(bm.verts.new(loc[idx]))
 
-            if idx > 0:
-                bm.edges.new([vertices[idx-1],vertices[idx]])
+    # Create Mesh & Object
+    faces = {}
+    mesh = bpy.data.meshes.new('cutter_cube')
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
 
-            faces.append(vertices[idx])
-    else:
-        for vert in self.verts:
-            vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
-            p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
-            p1 = p0 + plane_direction
-            faces.append(bm.verts.new(mathutils.geometry.intersect_line_plane(p0, p1, plane_point, plane_direction)))
+    obj = bpy.data.objects.new('cutter_cube', mesh)
+    self.cutter = obj
+    context.collection.objects.link(obj)
+
+    # Create Faces from `self.verts`
+    create_face(context, plane_direction, plane_point,
+                bm, "original", faces, self.verts)
+
+    # ARRAY
+    if len(self.duplicates) > 0:
+        for i, duplicate in self.duplicates.items():
+            create_face(context, plane_direction, plane_point,
+                        bm, str(i), faces, duplicate)
 
     bm.verts.index_update()
-    if self.shape == 'POLYLINE' and len(vertices) > 1:
-        bm.edges.new([vertices[-1], vertices[0]])
-    to_face = bm.faces.new(faces)
+    for i, face in faces.items():
+        bm.faces.new(face)
     bm.to_mesh(mesh)
 
 
@@ -111,3 +97,28 @@ def combined_bounding_box(objects):
     # Calculate the diagonal of the combined bounding box
     bounding_box_diag = (max_corner - min_corner).length
     return bounding_box_diag
+
+
+def create_face(context, direction, depth, bm, name, faces, verts, polyline=False):
+    """Creates bmesh face with given list of vertices and appends it to given 'faces' dict"""
+
+    def intersect_line_plane(context, vert, direction, depth):
+        """Finds the intersection of a line going through each vertex and the infinite plane"""
+
+        region = context.region
+        rv3d = context.region_data
+
+        vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
+        p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
+        p1 = p0 + direction
+        loc = mathutils.geometry.intersect_line_plane(p0, p1, depth, direction)
+
+        return loc
+
+    face_verts = []
+    for i, vert in enumerate(verts):
+        loc = intersect_line_plane(context, vert, direction, depth)
+        vertex = bm.verts.new(loc)
+        face_verts.append(vertex)
+
+    faces[name] = face_verts
