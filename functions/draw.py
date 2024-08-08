@@ -49,6 +49,8 @@ def carver_overlay(self, context):
     if self.shape == 'CIRCLE':
         coords, rows, columns = draw_circle(self, self.subdivision, 0)
         coords = coords[1:] # remove_extra_vertex
+        self.verts = coords
+        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
@@ -56,6 +58,8 @@ def carver_overlay(self, context):
 
     elif self.shape == 'BOX':
         coords, rows, columns = draw_circle(self, 4, 45)
+        self.verts = coords
+        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
@@ -63,6 +67,8 @@ def carver_overlay(self, context):
 
     elif self.shape == 'POLYLINE':
         coords, first_point, rows, columns = draw_polygon(self)
+        self.verts = list(dict.fromkeys(self.mouse_path))
+        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
         draw_shader(color, 1.0, 'POINTS', coords, size=5)
@@ -71,7 +77,7 @@ def carver_overlay(self, context):
             if self.closed:
                 draw_shader(color, 0.4, 'SOLID', coords, size=2)
             # circle_around_first_point
-            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)       
+            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
 
 
     # Snapping Grid
@@ -79,19 +85,15 @@ def carver_overlay(self, context):
         mini_grid(self, context)
 
     # ARRAY
+    array_shader = 'LINE_LOOP' if self.shape == 'POLYLINE' and self.closed == False else 'SOLID'
     if self.rows > 1:
         for i, duplicate in rows.items():
-            draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
+            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2)
     if self.columns > 1:
         for i, duplicate in columns.items():
-            draw_shader(secondary_color, 0.4, 'SOLID', duplicate, size=2)
+            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2)
 
     gpu.state.blend_set('NONE')
-
-
-    # gather_operator_values
-    self.verts = coords
-    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
 
 def draw_polygon(self):
@@ -105,6 +107,7 @@ def draw_polygon(self):
     radius = self.distance_from_first
     segments = 4
 
+    # circle_around_first_point
     vertices = [coords[0]]
     for i in range(segments + 1):
         angle = i * (2 * math.pi / segments)
@@ -115,8 +118,16 @@ def draw_polygon(self):
         vertices.append(vector)
 
     # ARRAY
-    get_bounding_box_coords(self, coords)
-    rows, columns = array(self, coords)
+    # NOTE: This is needed to remove extra vertices for duplicates which are not removed because `dict.fromkeys()`...
+    # NOTE: can't be called on `coords` list, because it contains unfrozen Vectors.
+    unique_verts = []
+    for vert in coords:
+        if vert not in unique_verts:
+            unique_verts.append(vert)
+
+    array_coords = unique_verts if self.closed else unique_verts[:-1]
+    get_bounding_box_coords(self, array_coords)
+    rows, columns = array(self, array_coords)
 
     return coords, vertices, rows, columns
 
@@ -257,6 +268,10 @@ def get_bounding_box_coords(self, verts):
 def array(self, verts):
     """Duplicates given list of vertices in rows and columns (on x and y axis)"""
     """Returns two dicts of lists of vertices for rows and columns separately"""
+
+    # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
+    if len(self.center_origin) == 0:
+        get_bounding_box_coords(self, verts)
 
     rows = {}
     if self.rows > 1:

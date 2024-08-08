@@ -40,8 +40,9 @@ class CarverToolshelf():
 
             if active_tool != "object.carve_polyline":
                 layout.popover("TOPBAR_PT_carver_shape", text="Shape")
-                layout.popover("TOPBAR_PT_carver_array", text="Array")
-            else:
+            layout.popover("TOPBAR_PT_carver_array", text="Array")
+
+            if active_tool == "object.carve_polyline":
                 layout.prop(props, "closed")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
@@ -526,12 +527,15 @@ class OBJECT_OT_carve(bpy.types.Operator):
             if self.shape == 'POLYLINE':
                 if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
+                    if self.closed == False:
+                        # NOTE: Additional vert is needed for open loop because it doesn't use `LOOP_LINE` shader.
+                        self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
                     # Confirm Cut (Polyline)
                     if self.closed == False:
-                        self.mouse_path.pop() # dont_add_current_mouse_position_as_vert
+                        self.verts.pop() # dont_add_current_mouse_position_as_vert
 
-                    if (len(self.mouse_path) / 2) < 2 or (len(self.mouse_path) / 2) == 2 and self.mouse_path[-1] == self.mouse_path[-2]:
+                    if len(self.verts) / 2 <= 1:
                         self.report({'INFO'}, "At least two points are required to make polygonal shape")
                         self.cancel(context)
                         return {'FINISHED'}
