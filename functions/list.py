@@ -117,8 +117,8 @@ def list_cutter_users(cutters):
     """List canvases that use specified cutters"""
 
     cutter_users = []
-    canvas = list_canvases()
-    for obj in canvas:
+    canvases = list_canvases()
+    for obj in canvases:
         for modifier in obj.modifiers:
             if modifier.type == 'BOOLEAN' and modifier.object in cutters:
                 cutter_users.append(obj)

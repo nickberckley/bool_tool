@@ -11,7 +11,6 @@ from ..functions.object import (
 )
 from ..functions.list import (
     list_candidate_objects,
-    list_cutter_users,
     list_pre_boolean_modifiers,
 )
 

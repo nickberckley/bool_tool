@@ -51,8 +51,8 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
             cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
-            canvases = list_canvases()
             cutters = list_selected_cutters(context)
+            canvases = list_cutter_users(cutters)
 
         if cutters:
             for canvas in canvases:
@@ -128,8 +128,8 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
             cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
-            canvases = list_canvases()
             cutters = list_selected_cutters(context)
+            canvases = list_cutter_users(cutters)
 
         if cutters:
             # Remove Modifiers
@@ -224,8 +224,8 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             cutters = [context.scene.objects[self.specified_cutter]]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
-            canvases = list_canvases()
             cutters = list_selected_cutters(context)
+            canvases = list_cutter_users(cutters, exclude_shape_keys=True)
 
         # cancel_when_canvas_has_shape_keys
         for canvas in canvases:
