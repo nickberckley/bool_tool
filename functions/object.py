@@ -149,6 +149,14 @@ def delete_cutter(cutter):
     bpy.data.meshes.remove(orphaned_mesh)
 
 
+def change_parent(cutter, parent):
+    """Changes or removes parent from cutter object while keeping the transformation"""
+
+    matrix_copy = cutter.matrix_world.copy()
+    cutter.parent = parent
+    cutter.matrix_world = matrix_copy
+
+
 def create_slice(context, canvas, slices, modifier=False):
     """Creates copy of canvas to be used as slice"""
 

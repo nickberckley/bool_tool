@@ -8,6 +8,7 @@ from ..functions.object import (
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
+    change_parent,
 )
 from ..functions.list import (
     list_canvases,
@@ -168,7 +169,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 
                 # remove_parent_&_collection
                 if prefs.parent and cutter.parent in canvases:
-                    cutter.parent = None
+                    change_parent(cutter, None)
 
                 cutters_collection = bpy.data.collections.get("boolean_cutters")
                 if cutters_collection in cutter.users_collection:
@@ -183,7 +184,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                 for cutter in leftovers:
                     if cutter.parent in canvases:
                         other_canvases = list_cutter_users([cutter])
-                        cutter.parent = other_canvases[0]
+                        change_parent(cutter, other_canvases[0])
 
         else:
             self.report({'INFO'}, "Boolean cutters are not selected")
@@ -277,7 +278,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                 for cutter in leftovers:
                     if cutter.parent in canvases:
                         other_canvases = list_cutter_users([cutter])
-                        cutter.parent = other_canvases[0]
+                        change_parent(cutter, other_canvases[0])
 
         else:
             self.report({'INFO'}, "Boolean cutters are not selected")

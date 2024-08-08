@@ -157,6 +157,7 @@ def list_unused_cutters(cutters, *canvases, do_leftovers=False):
             if any(modifier.object in cutters for modifier in obj.modifiers):
                 cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
                 if prefs.parent and do_leftovers:
+                    # return_cutters_that_do_have_other_users_(so_that_parents_can_be_reassigned)
                     leftovers = [cutter for cutter in original_cutters if cutter not in cutters]
 
     return cutters, leftovers
