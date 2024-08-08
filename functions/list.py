@@ -18,20 +18,29 @@ def list_canvases():
 
 #### ------------------------------ /selected/ ------------------------------ ####
 
-def list_candidate_objects(context):
-    """List objects from selected ones that can be used as cutter"""
+def list_candidate_objects(self, context, canvas=None, unique=False):
+    """Filter out objects from selected ones that can't be used as a cutter"""
 
-    brushes = []
+    cutters = []
     for obj in context.selected_objects:
         if obj != context.active_object and obj.type in ('MESH', 'CURVE', 'FONT'):
             if obj.type in ('CURVE', 'FONT'):
                 if obj.data.bevel_depth != 0 or obj.data.extrude != 0:
                     convert_to_mesh(context, obj)
-                    brushes.append(obj)
+                    cutters.append(obj)
             else:
-                brushes.append(obj)
+                if unique and canvas:
+                    if obj.booleans.cutter == "":
+                        cutters.append(obj)
+                    else:
+                        if (canvas not in list_cutter_users([obj])):
+                            cutters.append(obj)
+                        else:
+                            self.report({'ERROR'}, f"{obj.name} is already a cutter for {canvas.name}")
+                else:
+                    cutters.append(obj)
 
-    return brushes
+    return cutters
 
 
 def list_selected_cutters(context):

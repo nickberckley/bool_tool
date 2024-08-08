@@ -11,6 +11,7 @@ from ..functions.object import (
 )
 from ..functions.list import (
     list_candidate_objects,
+    list_cutter_users,
     list_pre_boolean_modifiers,
 )
 
@@ -22,7 +23,11 @@ class BrushBoolean():
         prefs = bpy.context.preferences.addons[base_package].preferences
 
         canvas = bpy.context.active_object
-        cutters = list_candidate_objects(context)
+        cutters = list_candidate_objects(self, context, canvas=canvas, unique=True)
+
+        for cutter in cutters:
+            set_cutter_properties(context, canvas, cutter, self.mode)
+            add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
         if self.mode == "SLICE":
             # Create Slices
@@ -33,10 +38,6 @@ class BrushBoolean():
             # add_modifiers_on_slices
             for cutter, slice in zip(cutters, slices):
                 add_boolean_modifier(self, slice, cutter, "INTERSECT", prefs.solver)
-
-        for cutter in cutters:
-            set_cutter_properties(context, canvas, cutter, self.mode)
-            add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
         context.view_layer.objects.active = canvas
         canvas.booleans.canvas = True
@@ -111,7 +112,7 @@ class AutoBoolean:
         prefs = bpy.context.preferences.addons[base_package].preferences
 
         canvas = bpy.context.active_object
-        cutters = list_candidate_objects(context)
+        cutters = list_candidate_objects(self, context)
 
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
