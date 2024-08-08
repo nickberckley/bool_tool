@@ -59,8 +59,8 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
         other_canvases = list_canvases()
         for obj in other_canvases:
             if obj not in canvases:
-                if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
-                    cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+                if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers):
+                    cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 
         for cutter in cutters:
             cutter.hide_viewport = not cutter.hide_viewport
@@ -94,10 +94,10 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
         for canvas in canvases:
             # Remove Modifiers
-            for modifier in canvas.modifiers:
-                if modifier.type == 'BOOLEAN' and "boolean_" in modifier.name:
-                    if modifier.object in cutters:
-                        canvas.modifiers.remove(modifier)
+            for mod in canvas.modifiers:
+                if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
+                    if mod.object in cutters:
+                        canvas.modifiers.remove(mod)
 
             # remove_boolean_properties
             if canvas.booleans.canvas == True:
@@ -153,13 +153,14 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
         canvases = list_selected_canvases(context)
         cutters, __ = list_canvas_cutters(canvases)
-        slices = list_canvas_slices(canvases)
 
         # excude_canvases_with_shape_keys
-        for canvas in itertools.chain(canvases, slices):
+        for canvas in canvases:
             if canvas.data.shape_keys:
                 self.report({'ERROR'}, f"Modifiers can't be applied to {canvas.name} because it has shape keys")
                 canvases.remove(canvas)
+
+        slices = list_canvas_slices(canvases)
 
 
         for canvas in itertools.chain(canvases, slices):
@@ -175,13 +176,13 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
                     bpy.ops.object.modifier_apply(modifier=mod.name)
 
             elif prefs.apply_order == 'BOOLEANS':
-                for modifier in canvas.modifiers:
-                    if "boolean_" in modifier.name:
+                for mod in canvas.modifiers:
+                    if "boolean_" in mod.name:
                         try:
-                            bpy.ops.object.modifier_apply(modifier=modifier.name)
+                            bpy.ops.object.modifier_apply(modifier=mod.name)
                         except:
                             context.active_object.data = context.active_object.data.copy()
-                            bpy.ops.object.modifier_apply(modifier=modifier.name)
+                            bpy.ops.object.modifier_apply(modifier=mod.name)
 
             # remove_boolean_properties
             canvas.booleans.canvas = False

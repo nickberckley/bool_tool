@@ -92,11 +92,11 @@ def list_canvas_cutters(canvases):
     cutters = []
     modifiers = []
     for canvas in canvases:
-        for modifier in canvas.modifiers:
-            if modifier.type == 'BOOLEAN' and "boolean_" in modifier.name:
-                if modifier.object:
-                    cutters.append(modifier.object)
-                    modifiers.append(modifier)
+        for mod in canvas.modifiers:
+            if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
+                if mod.object:
+                    cutters.append(mod.object)
+                    modifiers.append(mod)
 
     return cutters, modifiers
 
@@ -119,8 +119,8 @@ def list_cutter_users(cutters):
     cutter_users = []
     canvases = list_canvases()
     for obj in canvases:
-        for modifier in obj.modifiers:
-            if modifier.type == 'BOOLEAN' and modifier.object in cutters:
+        for mod in obj.modifiers:
+            if mod.type == 'BOOLEAN' and mod.object in cutters:
                 cutter_users.append(obj)
 
     return cutter_users
@@ -134,10 +134,10 @@ def list_cutter_modifiers(canvases, cutters):
 
     modifiers = []
     for canvas in canvases:
-        for modifier in canvas.modifiers:
-            if modifier.type == 'BOOLEAN':
-                if modifier.object in cutters:
-                    modifiers.append(modifier)
+        for mod in canvas.modifiers:
+            if mod.type == 'BOOLEAN':
+                if mod.object in cutters:
+                    modifiers.append(mod)
 
     return modifiers
 
@@ -154,8 +154,8 @@ def list_unused_cutters(cutters, *canvases, do_leftovers=False):
 
     for obj in other_canvases:
         if obj not in canvases:
-            if any(modifier.object in cutters for modifier in obj.modifiers):
-                cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+            if any(mod.object in cutters for mod in obj.modifiers):
+                cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
                 if prefs.parent and do_leftovers:
                     # return_cutters_that_do_have_other_users_(so_that_parents_can_be_reassigned)
                     leftovers = [cutter for cutter in original_cutters if cutter not in cutters]

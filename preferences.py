@@ -9,13 +9,13 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
 
     show_in_sidebar: bpy.props.BoolProperty(
         name = "Show Addon Panel in Sidebar",
-        description = "Add add-on operators and properties to 3D viewport sidebar category\n"
+        description = "Add add-on operators and properties to 3D viewport sidebar category.\n"
                     "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel",
         default = True,
     )
     sidebar_category: bpy.props.StringProperty(
         name = "Category Name",
-        description = "Set sidebar category name. You can type in name of the existing category and panel will be added there, instead of creating new category.",
+        description = "Set sidebar category name. You can type in name of the existing category and panel will be added there, instead of creating new category",
         default = "Edit",
         update = update_sidebar_category,
     )
@@ -25,7 +25,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         description = "Which solver to use for automatic and brush booleans",
         items = [('FAST', "Fast", ""),
                  ('EXACT', "Exact", "")],
-        default = 'EXACT',
+        default = 'FAST',
     )
     wireframe: bpy.props.BoolProperty(
         name = "Display Cutters as Wireframe",
@@ -41,7 +41,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
 
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
-        description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas\n"
+        description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas.\n"
                        "NOTE: When using Carver tool on multiple objects cutters parent might be chosen seemingly randomly"),
         default = True,
     )
@@ -66,7 +66,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
         description = "Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
-                    "Where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this"
+                    "where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this"
     )
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
@@ -107,8 +107,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         # Experimentals
         layout.separator()
         col = layout.column(align=True)
-        col.prop(self, "versioning")
-        col.prop(self, "experimental")
+        col.prop(self, "versioning", text="⚠ Versioning")
+        col.prop(self, "experimental", text="⚠ Experimental")
 
 
 

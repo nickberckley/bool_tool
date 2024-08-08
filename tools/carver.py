@@ -166,8 +166,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     mode: bpy.props.EnumProperty(
         name = "Mode",
-        items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut"),
-                 ('MODIFIER', "Modifier", "Cuts are stored as boolean modifiers and cutters placed inside the collection")),
+        items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut", 'MOD_LINEART', 0),
+                 ('MODIFIER', "Modifier", "Cuts are stored as boolean modifiers and cutters placed inside the collection", 'MODIFIER_DATA', 1)),
         default = 'DESTRUCTIVE',
     )
     # orientation: bpy.props.EnumProperty(
@@ -178,8 +178,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     # )
     depth: bpy.props.EnumProperty(
         name = "Depth",
-        items = (('VIEW', "View", "Depth is automatically calculated from view orientation"),
-                 ('CURSOR', "Cursor", "Depth is automatically set at 3D cursor location")),
+        items = (('VIEW', "View", "Depth is automatically calculated from view orientation", 'VIEW_CAMERA_UNSELECTED', 0),
+                 ('CURSOR', "Cursor", "Depth is automatically set at 3D cursor location", 'PIVOT_CURSOR', 1)),
         default = 'VIEW',
     )
 
@@ -218,7 +218,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
     # CUTTER-properties
     hide: bpy.props.BoolProperty(
         name = "Hide Cutter",
-        description = ("Hide cutter objects in the viewport after they're created\n"
+        description = ("Hide cutter objects in the viewport after they're created.\n"
                        "NOTE: They are hidden in render regardless of this property"),
         default = True
     )
@@ -269,7 +269,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifier",
-        description = ("When enabled boolean modifier will be moved above every other modifier on the object (if there are any)\n"
+        description = ("When enabled boolean modifier will be moved above every other modifier on the object (if there are any).\n"
                        "Order of modifiers can drastically affect the result (especially in destructive mode)"),
         default = True,
     )
@@ -281,15 +281,13 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
 
     def __init__(self):
-        context = bpy.context
-
         self.mouse_path = [(0, 0), (0, 0)]
         self.view_vector = mathutils.Vector()
         self.verts = []
         self.cutter = None
         self.duplicates = []
 
-        args = (self, context)
+        args = (self, bpy.context)
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')
 
         # Modifier Keys

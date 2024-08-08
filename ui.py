@@ -51,7 +51,7 @@ def boolean_extras_menu(self, context):
     if context.active_object:
         # canvas_operators
         active_object = context.active_object
-        if active_object.booleans.canvas == True and any(modifier.name.startswith("boolean_") for modifier in active_object.modifiers):
+        if active_object.booleans.canvas == True and any(mod.name.startswith("boolean_") for mod in active_object.modifiers):
             col.separator()
             col.operator("object.boolean_toggle_all", text="Toggle All Cuters")
             col.operator("object.boolean_apply_all", text="Apply All Cutters")

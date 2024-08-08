@@ -63,11 +63,11 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                         canvas.hide_render = not canvas.hide_render
 
                 # Toggle Modifiers
-                for modifier in canvas.modifiers:
-                    if "boolean_" in modifier.name:
-                        if modifier.object in cutters:
-                            modifier.show_viewport = not modifier.show_viewport
-                            modifier.show_render = not modifier.show_render
+                for mod in canvas.modifiers:
+                    if "boolean_" in mod.name:
+                        if mod.object in cutters:
+                            mod.show_viewport = not mod.show_viewport
+                            mod.show_render = not mod.show_render
 
 
             if self.method == 'SPECIFIED':
@@ -84,8 +84,8 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                 other_canvases = list_canvases()
                 for obj in other_canvases:
                     if obj not in canvases:
-                        if any(modifier.object in cutters and modifier.show_viewport for modifier in obj.modifiers):
-                            cutters[:] = [cutter for cutter in cutters if cutter not in [modifier.object for modifier in obj.modifiers]]
+                        if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers):
+                            cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 
                 for cutter in cutters:
                     cutter.hide_viewport = not cutter.hide_viewport
@@ -134,10 +134,10 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
         if cutters:
             # Remove Modifiers
             for canvas in canvases:
-                for modifier in canvas.modifiers:
-                    if "boolean_" in modifier.name:
-                        if modifier.object in cutters:
-                            canvas.modifiers.remove(modifier)
+                for mod in canvas.modifiers:
+                    if "boolean_" in mod.name:
+                        if mod.object in cutters:
+                            canvas.modifiers.remove(mod)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([canvas])
@@ -225,7 +225,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             cutters = list_selected_cutters(context)
-            canvases = list_cutter_users(cutters, exclude_shape_keys=True)
+            canvases = list_cutter_users(cutters)
 
         # cancel_when_canvas_has_shape_keys
         for canvas in canvases:

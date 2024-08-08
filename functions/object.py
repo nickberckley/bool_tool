@@ -21,43 +21,40 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
         canvas.modifiers.move(index, 0)
 
     if apply:
-        if canvas.data.shape_keys:
-            self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
+        if bpy.context.object.mode != "OBJECT":
+            """Applying boolean modifier in mesh edit mode:"""
+            """1. Hiding other visible modifiers and creating new (temporary) mesh from evaluated object"""
+            """2. Transfering temporary mesh to `bmesh` to update active mesh in edit mode"""
+            """3. Removing boolean modifier and purging temporary mesh"""
+            """4. Restoring visibility of other modifiers from (1)"""
+
+            visible_modifiers = []
+            for mod in canvas.modifiers:
+                if mod == modifier:
+                    continue
+                if mod.show_viewport == True:
+                    visible_modifiers.append(mod)
+                    mod.show_viewport = False
+
+            evaluated_obj = canvas.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
+
+            bm = bmesh.from_edit_mesh(canvas.data)
+            bm.clear()
+            bm.from_mesh(temp_data)
+            bmesh.update_edit_mesh(canvas.data)
+            evaluated_obj.to_mesh_clear()
+
+            canvas.modifiers.remove(modifier)
+            bpy.data.meshes.remove(temp_data)
+
+            for mod in visible_modifiers:
+                mod.show_viewport = True
+
         else:
-            if bpy.context.object.mode != "OBJECT":
-                """Applying boolean modifier in mesh edit mode:"""
-                """1. Hiding other visible modifiers and creating new (temporary) mesh from evaluated object"""
-                """2. Transfering temporary mesh to `bmesh` to update active mesh in edit mode"""
-                """3. Removing boolean modifier and purging temporary mesh"""
-                """4. Restoring visibility of other modifiers from (1)"""
-
-                visible_modifiers = []
-                for mod in canvas.modifiers:
-                    if mod == modifier:
-                        continue
-                    if mod.show_viewport == True:
-                        visible_modifiers.append(mod)
-                        mod.show_viewport = False
-
-                evaluated_obj = canvas.evaluated_get(bpy.context.evaluated_depsgraph_get())
-                temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
-
-                bm = bmesh.from_edit_mesh(canvas.data)
-                bm.clear()
-                bm.from_mesh(temp_data)
-                bmesh.update_edit_mesh(canvas.data)
-                evaluated_obj.to_mesh_clear()
-
-                canvas.modifiers.remove(modifier)
-                bpy.data.meshes.remove(temp_data)
-
-                for mod in visible_modifiers:
-                    mod.show_viewport = True
-
-            else:
-                context_override = {'object': canvas, 'mode': "OBJECT"}
-                with bpy.context.temp_override(**context_override):
-                    bpy.ops.object.modifier_apply(modifier=modifier.name)
+            context_override = {'object': canvas, 'mode': "OBJECT"}
+            with bpy.context.temp_override(**context_override):
+                bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
 def set_cutter_properties(context, canvas, cutter, mode, hide=False):
@@ -163,7 +160,6 @@ def create_slice(context, canvas, slices, modifier=False):
     prefs = bpy.context.preferences.addons[base_package].preferences
 
     slice = canvas.copy()
-    context.collection.objects.link(slice)
     slice.data = canvas.data.copy()
     slice.name = slice.data.name = canvas.name + "_slice"
 
@@ -181,13 +177,8 @@ def create_slice(context, canvas, slices, modifier=False):
 
     # add_to_canvas_collections
     canvas_colls = canvas.users_collection
-    for collection in canvas_colls:
-        if collection != context.view_layer.active_layer_collection.collection:
-            collection.objects.link(slice)
-
-    for coll in slice.users_collection:
-        if coll not in canvas_colls:
-            coll.objects.unlink(slice)
+    for coll in canvas_colls:
+        coll.objects.link(slice)
 
     # remove_other_modifiers
     for mod in slice.modifiers:

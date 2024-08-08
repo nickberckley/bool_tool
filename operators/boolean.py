@@ -21,7 +21,7 @@ class BrushBoolean():
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
-        canvas = bpy.context.active_object
+        canvas = context.active_object
         cutters = list_candidate_objects(self, context, canvas=canvas, unique=True)
 
         for cutter in cutters:
@@ -110,7 +110,7 @@ class AutoBoolean:
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
-        canvas = bpy.context.active_object
+        canvas = context.active_object
         cutters = list_candidate_objects(self, context)
 
         # apply_modifiers
