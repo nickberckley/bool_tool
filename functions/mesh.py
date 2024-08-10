@@ -24,11 +24,12 @@ def create_cutter_shape(self, context):
 
     # Create Mesh & Object
     faces = {}
-    mesh = bpy.data.meshes.new('cutter_cube')
+    mesh = bpy.data.meshes.new(name='cutter')
     bm = bmesh.new()
     bm.from_mesh(mesh)
 
-    obj = bpy.data.objects.new('cutter_cube', mesh)
+    obj = bpy.data.objects.new('cutter', mesh)
+    obj.booleans.carver = True
     self.cutter = obj
     context.collection.objects.link(obj)
 

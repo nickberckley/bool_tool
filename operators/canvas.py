@@ -108,20 +108,23 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
         unused_cutters, leftovers = list_unused_cutters(cutters, canvases, slices, do_leftovers=True)
 
         for cutter in unused_cutters:
-            # restore_visibility
-            cutter.display_type = 'TEXTURED'
-            object_visibility_set(cutter, value=True)
-            cutter.hide_render = False
-            if cutter.booleans.cutter:
-                cutter.booleans.cutter = ""
+            if cutter.booleans.carver:
+                delete_cutter(cutter)
+            else:
+                # restore_visibility
+                cutter.display_type = 'TEXTURED'
+                object_visibility_set(cutter, value=True)
+                cutter.hide_render = False
+                if cutter.booleans.cutter:
+                    cutter.booleans.cutter = ""
 
-            # remove_parent_&_collection
-            if prefs.parent and cutter.parent in canvases:
-                change_parent(cutter, None)
+                # remove_parent_&_collection
+                if prefs.parent and cutter.parent in canvases:
+                    change_parent(cutter, None)
 
-            cutters_collection = bpy.data.collections.get("boolean_cutters")
-            if cutters_collection in cutter.users_collection:
-                bpy.data.collections.get("boolean_cutters").objects.unlink(cutter)
+                cutters_collection = bpy.data.collections.get("boolean_cutters")
+                if cutters_collection in cutter.users_collection:
+                    bpy.data.collections.get("boolean_cutters").objects.unlink(cutter)
 
         # purge_empty_collection
         delete_empty_collection()
