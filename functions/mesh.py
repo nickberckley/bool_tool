@@ -67,7 +67,10 @@ def extrude(self, mesh):
     ret = bmesh.ops.extrude_face_region(bm, geom=faces)
     verts_extruded = [v for v in ret['geom'] if isinstance(v, bmesh.types.BMVert)]
     for v in verts_extruded:
-        v.co += self.view_vector * box_bounding * 2
+        if self.depth == 'CURSOR':
+            v.co += self.view_vector * box_bounding
+        elif self.depth == 'VIEW':
+            v.co += self.view_vector * box_bounding * 2
 
     # correct_normals
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
