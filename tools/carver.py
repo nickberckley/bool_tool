@@ -41,8 +41,8 @@ class CarverToolshelf():
 
             layout.popover("TOPBAR_PT_carver_shape", text="Shape")
             layout.popover("TOPBAR_PT_carver_array", text="Array")
-            if active_tool == 'object.carve_box':
-                layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
+            # if active_tool == 'object.carve_box':
+            layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
     bl_label = "Carver Shape"
@@ -452,7 +452,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.rotate = True
             elif event.value == 'RELEASE':
                 context.window.cursor_set("MUTE")
-                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
                 self.rotate = False
 
 
@@ -465,7 +465,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.bevel = True
             elif event.value == 'RELEASE':
                 context.window.cursor_set("MUTE")
-                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
                 self.bevel = False
 
         if self.bevel:

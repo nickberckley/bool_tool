@@ -28,7 +28,7 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
     if type == 'SOLID':
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, 'TRI_FAN', {"pos": coords})
+        batch = batch_for_shader(shader, 'TRIS', {"pos": coords}, indices=indices)
 
     if type == 'OUTLINE':
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
@@ -48,30 +48,30 @@ def carver_overlay(self, context):
     secondary_color = (0.28, 0.04, 0.04, 1.0)
 
     if self.shape == 'CIRCLE':
-        coords, rows, columns = draw_circle(self, self.subdivision, 0)
+        coords, indices, rows, columns = draw_circle(self, self.subdivision, 0)
         # coords = coords[1:] # remove_extra_vertex
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
         if not self.rotate:
             bounds, __, __ = get_bounding_box_coords(self, coords)
             draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
 
 
     elif self.shape == 'BOX':
-        coords, rows, columns = draw_circle(self, 4, 45)
+        coords, indices, rows, columns = draw_circle(self, 4, 45)
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 0.4, 'SOLID', coords, size=2)
+        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
         if (self.rotate == False) and (self.bevel == False):
             bounds, __, __ = get_bounding_box_coords(self, coords)
             draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
 
 
     elif self.shape == 'POLYLINE':
-        coords, first_point, rows, columns = draw_polygon(self)
+        coords, indices, first_point, rows, columns = draw_polygon(self)
         self.verts = list(dict.fromkeys(self.mouse_path))
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
@@ -80,7 +80,7 @@ def carver_overlay(self, context):
         if len(self.mouse_path) > 2:
             # polygon_fill
             if self.closed:
-                draw_shader(color, 0.4, 'SOLID', coords, size=2)
+                draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
 
         if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
             # circle_around_first_point
@@ -95,10 +95,10 @@ def carver_overlay(self, context):
     array_shader = 'LINE_LOOP' if self.shape == 'POLYLINE' and self.closed == False else 'SOLID'
     if self.rows > 1:
         for i, duplicate in rows.items():
-            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2)
+            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
     if self.columns > 1:
         for i, duplicate in columns.items():
-            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2)
+            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
 
     gpu.state.blend_set('NONE')
 
@@ -106,23 +106,29 @@ def carver_overlay(self, context):
 def draw_polygon(self):
     """Returns polygonal 2d shape in which each cursor click is taken as a new vertice"""
 
+    indices = []
     coords = []
     for idx, vals in enumerate(self.mouse_path):
-        coords.append(mathutils.Vector([vals[0] + self.position_x, vals[1] + self.position_y, 0.0]))
+        vert = mathutils.Vector([vals[0], vals[1], 0.0])
+        vert += mathutils.Vector([self.position_x, self.position_y, 0.0])
+        coords.append(vert)
 
-    # Circle around First Point
+        i1 = idx + 1
+        i2 = idx + 2
+        indices.append((0, i1, i2))
+
+    # circle_around_first_point
     radius = self.distance_from_first
     segments = 4
 
-    # circle_around_first_point
-    vertices = [coords[0]]
+    click_point = [coords[0]]
     for i in range(segments + 1):
         angle = i * (2 * math.pi / segments)
         x = coords[0][0] + radius * math.cos(angle)
         y = coords[0][1] + radius * math.sin(angle)
         z = coords[0][2]
         vector = mathutils.Vector((x, y, z))
-        vertices.append(vector)
+        click_point.append(vector)
 
     # remove_duplicate_verts
     # NOTE: This is needed to remove extra vertices for duplicates which are not removed because `dict.fromkeys()`...
@@ -140,7 +146,7 @@ def draw_polygon(self):
         get_bounding_box_coords(self, array_coords)
         rows, columns = array(self, array_coords)
 
-    return coords, vertices, rows, columns
+    return coords, indices, click_point, rows, columns
 
 
 def draw_circle(self, subdivision, rotation):
@@ -167,6 +173,7 @@ def draw_circle(self, subdivision, rotation):
         return verts
 
     tris_verts = []
+    indices = []
     verts = create_2d_circle(self, 360 / int(subdivision), rotation)
 
     rotation_matrix = mathutils.Matrix.Rotation(self.rotation, 4, 'Z')
@@ -177,41 +184,29 @@ def draw_circle(self, subdivision, rotation):
     min_x = min(verts[0::3]) if self.mouse_path[1][0] > self.mouse_path[0][0] else -min(verts[0::3])
     min_y = min(verts[1::3]) if self.mouse_path[1][1] > self.mouse_path[0][1] else -min(verts[1::3])
 
-    # ORIGIN: from the Center
-    if self.origin == 'CENTER':
-        for idx in range((len(verts) // 3) - 1):
-            x = verts[idx * 3]
-            y = verts[idx * 3 + 1]
-            z = verts[idx * 3 + 2]
-            vert = mathutils.Vector((x, y, z))
-            vert = rotation_matrix @ vert
-            vert = fixed_point + vert
-            vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
+    for idx in range((len(verts) // 3) - 1):
+        x = verts[idx * 3]
+        y = verts[idx * 3 + 1]
+        z = verts[idx * 3 + 2]
+        vert = mathutils.Vector((x, y, z))
+        vert = rotation_matrix @ vert
+        vert = vert + fixed_point if self.origin == 'CENTER' else shape_center - vert
+        vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
+        tris_verts.append(vert)
 
-            tris_verts.append(vert)
-
-    # ORIGIN: from the Top Left Corner
-    elif self.origin == 'EDGE':
-        for idx in range((len(verts) // 3) - 1):
-            x = verts[idx * 3]
-            y = verts[idx * 3 + 1]
-            z = verts[idx * 3 + 2]
-            vert = mathutils.Vector((x, y, z))
-            vert = rotation_matrix @ vert
-            vert = shape_center - vert
-            vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
-
-            tris_verts.append(vert)
+        i1 = idx + 1
+        i2 = idx + 2 if idx + 2 <= 360 / int(subdivision) else 1
+        indices.append((0, i1, i2))
 
 
     # BEVEL
     if self.use_bevel and self.bevel_radius > 0.01:
-        tris_verts = bevel_verts(self, tris_verts, (self.bevel_radius * 50), self.bevel_segments)
+        tris_verts, indices = bevel_verts(self, tris_verts, (self.bevel_radius * 50), self.bevel_segments)
 
     # ARRAY
     rows, columns = array(self, tris_verts)
 
-    return tris_verts, rows, columns
+    return tris_verts, indices, rows, columns
 
 
 def mini_grid(self, context):
@@ -258,6 +253,7 @@ def mini_grid(self, context):
                         (mouse_coord[0] - snap_value, mouse_coord[1] - 25 - snap_value),
                         (mouse_coord[0] + 25 + snap_value, mouse_coord[1] - snap_value),
                         (mouse_coord[0] - 25 - snap_value, mouse_coord[1] - snap_value),]
+
         draw_shader((1.0, 1.0, 1.0), 0.66, 'LINES', grid_coords, size=1.5)
 
 
@@ -367,6 +363,7 @@ def bevel_verts(self, verts, radius, segments):
         return rounded_corners
 
     rounded_verts = []
+    indices = []
     num_verts = len(verts)
 
     for idx in range(num_verts):
@@ -380,4 +377,9 @@ def bevel_verts(self, verts, radius, segments):
         corner_points = get_rounded_corner(self, angular_point, p1, p2, radius, segments)
         rounded_verts.extend(corner_points)
 
-    return rounded_verts
+    for idx, vert in enumerate(rounded_verts):
+        i1 = idx + 1
+        i2 = idx + 2
+        indices.append((0, i1, i2))
+
+    return rounded_verts, indices
