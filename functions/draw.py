@@ -2,6 +2,7 @@ import bpy, gpu, mathutils, math
 from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
+magic_number = 1.41
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
@@ -48,13 +49,15 @@ def carver_overlay(self, context):
 
     if self.shape == 'CIRCLE':
         coords, rows, columns = draw_circle(self, self.subdivision, 0)
-        coords = coords[1:] # remove_extra_vertex
+        # coords = coords[1:] # remove_extra_vertex
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
         if not self.rotate:
-            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, coords), size=2)
+            bounds, __, __ = get_bounding_box_coords(self, coords)
+            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+
 
     elif self.shape == 'BOX':
         coords, rows, columns = draw_circle(self, 4, 45)
@@ -62,8 +65,10 @@ def carver_overlay(self, context):
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
         draw_shader(color, 0.4, 'SOLID', coords, size=2)
-        if not self.rotate:
-            draw_shader(color, 0.6, 'OUTLINE', get_bounding_box_coords(self, coords), size=2)
+        if (self.rotate == False) and (self.bevel == False):
+            bounds, __, __ = get_bounding_box_coords(self, coords)
+            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+
 
     elif self.shape == 'POLYLINE':
         coords, first_point, rows, columns = draw_polygon(self)
@@ -97,7 +102,7 @@ def carver_overlay(self, context):
 
 
 def draw_polygon(self):
-    """Returns polygonal 2d shape in which each cursor click is taken as new vertice"""
+    """Returns polygonal 2d shape in which each cursor click is taken as a new vertice"""
 
     coords = []
     for idx, vals in enumerate(self.mouse_path):
@@ -117,7 +122,7 @@ def draw_polygon(self):
         vector = mathutils.Vector((x, y, z))
         vertices.append(vector)
 
-    # ARRAY
+    # remove_duplicate_verts
     # NOTE: This is needed to remove extra vertices for duplicates which are not removed because `dict.fromkeys()`...
     # NOTE: can't be called on `coords` list, because it contains unfrozen Vectors.
     unique_verts = []
@@ -125,9 +130,13 @@ def draw_polygon(self):
         if vert not in unique_verts:
             unique_verts.append(vert)
 
-    array_coords = unique_verts if self.closed else unique_verts[:-1]
-    get_bounding_box_coords(self, array_coords)
-    rows, columns = array(self, array_coords)
+
+    # ARRAY
+    rows = columns = {}
+    if len(self.mouse_path) > 2:
+        array_coords = unique_verts if self.closed else unique_verts[:-1]
+        get_bounding_box_coords(self, array_coords)
+        rows, columns = array(self, array_coords)
 
     return coords, vertices, rows, columns
 
@@ -139,7 +148,7 @@ def draw_circle(self, subdivision, rotation):
     def create_2d_circle(self, step, rotation):
         """Create the vertices of a 2d circle at (0, 0)"""
 
-        modifier = 2 if self.shape == 'CIRCLE' else 1.41 # magic_number
+        modifier = 2 if self.shape == 'CIRCLE' else magic_number
         if self.origin == 'CENTER':
             modifier /= 2
 
@@ -191,6 +200,11 @@ def draw_circle(self, subdivision, rotation):
             vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
 
             tris_verts.append(vert)
+
+
+    # BEVEL
+    if self.use_bevel and self.bevel_radius > 0.01:
+        tris_verts = bevel_verts(self, tris_verts, (self.bevel_radius * 50), self.bevel_segments)
 
     # ARRAY
     rows, columns = array(self, tris_verts)
@@ -262,7 +276,10 @@ def get_bounding_box_coords(self, verts):
         mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
     ]
 
-    return bounding_box_coords
+    width = max_x - min_x
+    height = max_y - min_y
+
+    return bounding_box_coords, width, height
 
 
 def array(self, verts):
@@ -298,3 +315,67 @@ def array(self, verts):
                 columns[(i, row_idx)] = [vert.copy() + accumulated_offset for vert in row]
 
     return rows, columns
+
+
+def bevel_verts(self, verts, radius, segments):
+    """Takes in list of verts(Vectors) and bevels them, Returns a new list with new vertices"""
+
+    def get_rounded_corner(self, angular_point, p1, p2, radius, segments):
+        # calculate_vectors (NOTE: Why it only works when reversed like this is unknown to me)
+        vector1 = -(p1 - angular_point)
+        vector2 = -(p2 - angular_point)
+
+        # compute_lengths_of_vectors
+        length1 = vector1.length
+        length2 = vector2.length
+        if length1 == 0 or length2 == 0:
+            return [angular_point] * segments
+
+        vector1.normalize()
+        vector2.normalize()
+
+        # calculate_the_angle_between_the_vectors
+        dot_product = vector1.dot(vector2)
+        angle = math.acos(max(-1.0, min(1.0, dot_product)))
+
+        # clamp_radius_to_reduce_clipping
+        __, width, height = get_bounding_box_coords(self, verts)
+        max_radius_x = width / 2.5
+        max_radius_y = height / 2.5
+        max_radius = min(max_radius_x, max_radius_y)
+        clamped_radius = min(radius, max_radius)
+
+        if radius > clamped_radius:
+            radius = clamped_radius
+
+        arc_length = radius * angle
+        segment_length = arc_length / (segments - 1)
+        bisector = (vector1 + vector2).normalized()
+
+        # generate_points_along_the_arc
+        rounded_corners = []
+        for i in range(segments):
+            fraction = i / (segments - 1)
+            theta = angle * fraction
+            interpolated_vector = (vector1 * math.sin(theta) + vector2 * math.cos(theta)).normalized() * radius
+            point_on_arc = angular_point + interpolated_vector - bisector * (clamped_radius * magic_number)
+
+            rounded_corners.append(point_on_arc)
+
+        return rounded_corners
+
+    rounded_verts = []
+    num_verts = len(verts)
+
+    for idx in range(num_verts):
+        angular_point = verts[idx]
+        prev_idx = (idx - 1) % num_verts
+        next_idx = (idx + 1) % num_verts
+
+        p1 = verts[prev_idx]
+        p2 = verts[next_idx]
+
+        corner_points = get_rounded_corner(self, angular_point, p1, p2, radius, segments)
+        rounded_verts.extend(corner_points)
+
+    return rounded_verts

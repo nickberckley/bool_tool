@@ -38,12 +38,10 @@ class CarverToolshelf():
                 row = layout.row()
                 row.prop(props, "hide")
 
-            if active_tool != "object.carve_polyline":
-                layout.popover("TOPBAR_PT_carver_shape", text="Shape")
+            layout.popover("TOPBAR_PT_carver_shape", text="Shape")
             layout.popover("TOPBAR_PT_carver_array", text="Array")
-
-            if active_tool == "object.carve_polyline":
-                layout.prop(props, "closed")
+            if active_tool == 'object.carve_box':
+                layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
     bl_label = "Carver Shape"
@@ -60,11 +58,14 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         op = tool.operator_properties("object.carve")
 
-        if tool.idname == "object.carve_circle":
-            layout.prop(op, "subdivision", text="Vertices")
-        layout.prop(op, "rotation")
-        layout.prop(op, "aspect", expand=True)
-        layout.prop(op, "origin", expand=True)
+        if tool.idname == "object.carve_polyline":
+            layout.prop(op, "closed")
+        else:
+            if tool.idname == "object.carve_circle":
+                layout.prop(op, "subdivision", text="Vertices")
+            layout.prop(op, "rotation")
+            layout.prop(op, "aspect", expand=True)
+            layout.prop(op, "origin", expand=True)
 
 class TOPBAR_PT_carver_array(bpy.types.Panel):
     bl_label = "Carver Array"
@@ -89,6 +90,30 @@ class TOPBAR_PT_carver_array(bpy.types.Panel):
         layout.prop(op, "columns")
         layout.prop(op, "columns_direction", text="Direction", expand=True)
         layout.prop(op, "columns_gap", text="Gap")
+
+
+class TOPBAR_PT_carver_bevel(bpy.types.Panel):
+    bl_label = "Carver Bevel"
+    bl_idname = "TOPBAR_PT_carver_bevel"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+
+        mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
+        tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
+        op = tool.operator_properties("object.carve")
+
+        layout.prop(op, "use_bevel", text="Bevel")
+        col = layout.column(align=True)
+        col.prop(op, "bevel_segments", text="Segments")
+        col.prop(op, "bevel_radius", text="Radius")
+
+        if op.use_bevel == False:
+            col.enabled = False
 
 
 
@@ -167,7 +192,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     mode: bpy.props.EnumProperty(
         name = "Mode",
-        items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut", 'MOD_LINEART', 0),
+        items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut", 'MESH_DATA', 0),
                  ('MODIFIER', "Modifier", "Cuts are stored as boolean modifiers and cutters placed inside the collection", 'MODIFIER_DATA', 1)),
         default = 'DESTRUCTIVE',
     )
@@ -221,7 +246,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         name = "Hide Cutter",
         description = ("Hide cutter objects in the viewport after they're created.\n"
                        "NOTE: They are hidden in render regardless of this property"),
-        default = True
+        default = True,
     )
 
     # ARRAY-properties
@@ -238,8 +263,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     )
     rows_direction: bpy.props.EnumProperty(
         name = "Direction of Rows",
-        items = (('RIGHT', "Right", ""),
-                 ('LEFT', "Left", "")),
+        items = (('LEFT', "Left", ""),
+                 ('RIGHT', "Right", "")),
         default = 'RIGHT',
     )
 
@@ -259,6 +284,25 @@ class OBJECT_OT_carve(bpy.types.Operator):
         name = "Gap between Columns",
         min = 0, soft_max = 250,
         default = 50,
+    )
+
+    # BEVEL-properties
+    use_bevel: bpy.props.BoolProperty(
+        name = "Bevel Cutter",
+        description = "Bevel each side edge of the cutter",
+        default = False,
+    )
+    bevel_segments: bpy.props.IntProperty(
+        name = "Bevel Segments",
+        description = "Segments for curved edge",
+        min = 2, soft_max = 32,
+        default = 8,
+    )
+    bevel_radius: bpy.props.FloatProperty(
+        name = "Bevel Radius",
+        description = "Amout of the bevel (in screen-space units)",
+        min = 0.01, soft_max = 5,
+        default = 1,
     )
 
     # ADVANCED-properties
@@ -296,6 +340,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.move = False
         self.rotate = False
         self.gap = False
+        self.bevel = False
 
         # Cache
         self.initial_origin = self.origin
@@ -333,7 +378,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
         else:
             shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
         array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + array_text + snap_text)
+        bevel_text = ", [B]: Bevel" if self.shape == 'BOX' else ""
+        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + bevel_text + array_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -393,6 +439,25 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.rotate = False
 
 
+        # BEVEL
+        if event.type == 'B' and (self.shape == 'BOX'):
+            if event.value == 'PRESS':
+                self.use_bevel = True
+                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
+                context.window.cursor_set("NONE")
+                self.bevel = True
+            elif event.value == 'RELEASE':
+                context.window.cursor_set("MUTE")
+                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                self.bevel = False
+
+        if self.bevel:
+            if event.type == 'WHEELUPMOUSE':
+                self.bevel_segments += 1
+            elif event.type == 'WHEELDOWNMOUSE':
+                self.bevel_segments -= 1
+
+
         # ARRAY
         if event.type == 'LEFT_ARROW' and event.value == 'PRESS':
             self.rows -= 1
@@ -450,9 +515,10 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.mouse_path = self.mouse_path[:-2]
 
 
-        if event.type in {
-                'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE',
-                'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4', 'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9'}:
+        if event.type in {'MIDDLEMOUSE', 'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
+                          'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9'}:
+            return {'PASS_THROUGH'}
+        if self.bevel == False and event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
             return {'PASS_THROUGH'}
 
 
@@ -472,6 +538,9 @@ class OBJECT_OT_carve(bpy.types.Operator):
             elif self.gap:
                 self.rows_gap = event.mouse_region_x * 0.1
                 self.columns_gap = event.mouse_region_y * 0.1
+
+            elif self.bevel:
+                self.bevel_radius = event.mouse_region_x * 0.001
 
             else:
                 if len(self.mouse_path) > 0:
@@ -528,7 +597,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
                     self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                     if self.closed == False:
-                        # NOTE: Additional vert is needed for open loop because it doesn't use `LOOP_LINE` shader.
+                        # NOTE: Additional vert is needed for open loop.
                         self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
                 else:
                     # Confirm Cut (Polyline)
@@ -633,6 +702,7 @@ classes = [
     OBJECT_OT_carve,
     TOPBAR_PT_carver_shape,
     TOPBAR_PT_carver_array,
+    TOPBAR_PT_carver_bevel,
 ]
 
 main_tools = [
