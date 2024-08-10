@@ -81,6 +81,8 @@ def carver_overlay(self, context):
             # polygon_fill
             if self.closed:
                 draw_shader(color, 0.4, 'SOLID', coords, size=2)
+
+        if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
             # circle_around_first_point
             draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
 

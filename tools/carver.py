@@ -181,6 +181,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
     bl_label = "Carve"
     bl_description = "Boolean cut square shapes into mesh objects"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
+    bl_cursor_pending = 'PICK_AREA'
 
     # OPERATOR-properties
     shape: bpy.props.EnumProperty(
