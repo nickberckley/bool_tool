@@ -8,6 +8,7 @@ from ..functions.object import (
     add_boolean_modifier,
     set_cutter_properties,
     delete_cutter,
+    set_object_origin,
 )
 from ..functions.mesh import (
     create_cutter_shape,
@@ -645,6 +646,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
     def confirm(self, context):
         create_cutter_shape(self, context)
         extrude(self, self.cutter.data)
+        set_object_origin(self.cutter)
+
         self.Cut(context)
         self.cancel(context)
 

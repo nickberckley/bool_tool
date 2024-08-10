@@ -1,4 +1,4 @@
-import bpy, bmesh
+import bpy, bmesh, mathutils
 from .. import __package__ as base_package
 
 
@@ -189,3 +189,16 @@ def create_slice(context, canvas, slices, modifier=False):
     space_data = context.space_data
     if space_data.local_view:
         slice.local_view_set(space_data, True)
+
+
+def set_object_origin(obj, position=False):
+    """Sets object origin to given position by shifting vertices"""
+
+    # default_to_center_of_bounding_box_if_no_position_provided
+    if position == False:
+        position = 0.125 * sum((mathutils.Vector(b) for b in obj.bound_box), mathutils.Vector())
+
+    mat = mathutils.Matrix.Translation(position - obj.location)
+    obj.location = position
+    obj.data.transform(mat.inverted())
+    obj.data.update()
