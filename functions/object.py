@@ -125,7 +125,7 @@ def ensure_collection(context):
     if cutters_collection is None:
         cutters_collection = bpy.data.collections.new(collection_name)
         context.scene.collection.children.link(cutters_collection)
-        cutters_collection.hide_viewport = True
+        # cutters_collection.hide_viewport = True
         cutters_collection.hide_render = True
         cutters_collection.color_tag = 'COLOR_01'
         context.view_layer.layer_collection.children[collection_name].exclude = True

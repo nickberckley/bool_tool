@@ -7,6 +7,7 @@ from .ui import update_sidebar_category
 class BoolToolPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
+    # UI
     show_in_sidebar: bpy.props.BoolProperty(
         name = "Show Addon Panel in Sidebar",
         description = "Add add-on operators and properties to 3D viewport sidebar category.\n"
@@ -20,6 +21,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         update = update_sidebar_category,
     )
 
+    # Defaults
     solver: bpy.props.EnumProperty(
         name = "Boolean Solver",
         description = "Which solver to use for automatic and brush booleans",
@@ -39,6 +41,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = True,
     )
 
+    # Advanced
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
         description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas.\n"
@@ -63,6 +66,16 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = False,
     )
 
+    # Features
+    double_click: bpy.props.BoolProperty(
+        name = "Double-click Select",
+        description = ("Select boolean cutters by dbl-clicking on the boolean modifier.\n"
+                       "This feature works in entire modifier properties area, not just on boolean modifier header,\n"
+                       "therefore can result in lot of misclicks and unintended selections."),
+        default = False,
+    )
+
+    # Debug
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
         description = "Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
@@ -103,6 +116,11 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         col.prop(self, "parent")
         col.prop(self, "apply_order")
         col.prop(self, "pin")
+
+        # Features
+        layout.separator()
+        col = layout.column(align=True, heading="Features")
+        col.prop(self, "double_click")
 
         # Experimentals
         layout.separator()

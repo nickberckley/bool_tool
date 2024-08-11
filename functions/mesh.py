@@ -75,10 +75,6 @@ def extrude(self, mesh):
     # correct_normals
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
-    # select_everything
-    for f in bm.faces:
-        f.select = True
-
     bm.to_mesh(mesh)
     mesh.update()
     bm.free()
@@ -141,7 +137,6 @@ def shade_smooth_by_angle(obj, angle=30):
 
     # shade_smooth
     for f in bm.faces:
-        f.select = False
         f.smooth = True
 
     # select_sharp_edges
@@ -160,7 +155,4 @@ def shade_smooth_by_angle(obj, angle=30):
     for edge in mesh.edges:
         if edge.select:
             edge.use_edge_sharp = True
-    
-    for face in mesh.polygons:
-        face.select = True
     mesh.update()
