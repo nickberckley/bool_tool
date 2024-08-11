@@ -31,7 +31,8 @@ class CarverToolshelf():
 
         layout.prop(props, "mode", text="")
         layout.prop(props, "depth", text="")
-        layout.prop(props, "solver", expand=True)
+        row = layout.row()
+        row.prop(props, "solver", expand=True)
         layout.prop(props, "pin")
 
         if context.object:
@@ -41,8 +42,8 @@ class CarverToolshelf():
 
             layout.popover("TOPBAR_PT_carver_shape", text="Shape")
             layout.popover("TOPBAR_PT_carver_array", text="Array")
-            # if active_tool == 'object.carve_box':
-            layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
+            if active_tool == 'object.carve_box':
+                layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
     bl_label = "Carver Shape"
@@ -83,14 +84,18 @@ class TOPBAR_PT_carver_array(bpy.types.Panel):
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         op = tool.operator_properties("object.carve")
 
-        layout.prop(op, "rows")
-        layout.prop(op, "rows_direction", text="Direction", expand=True)
-        layout.prop(op, "rows_gap", text="Gap")
+        col = layout.column(align=True)
+        col.prop(op, "rows")
+        row = col.row(align=True)
+        row.prop(op, "rows_direction", text="Direction", expand=True)
+        col.prop(op, "rows_gap", text="Gap")
 
         layout.separator()
-        layout.prop(op, "columns")
-        layout.prop(op, "columns_direction", text="Direction", expand=True)
-        layout.prop(op, "columns_gap", text="Gap")
+        col = layout.column(align=True)
+        col.prop(op, "columns")
+        row = col.row(align=True)
+        row.prop(op, "columns_direction", text="Direction", expand=True)
+        col.prop(op, "columns_gap", text="Gap")
 
 
 class TOPBAR_PT_carver_bevel(bpy.types.Panel):
@@ -110,6 +115,8 @@ class TOPBAR_PT_carver_bevel(bpy.types.Panel):
 
         layout.prop(op, "use_bevel", text="Bevel")
         col = layout.column(align=True)
+        row = col.row(align=True)
+        # row.prop(op, "bevel_profile", text="Profile", expand=True)
         col.prop(op, "bevel_segments", text="Segments")
         col.prop(op, "bevel_radius", text="Radius")
 
@@ -308,6 +315,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
         name = "Bevel Cutter",
         description = "Bevel each side edge of the cutter",
         default = False,
+    )
+    bevel_profile: bpy.props.EnumProperty(
+        name = "Bevel Profile",
+        items = (('CONVEX', "Convex", "Outside bevel (rounded corners)"),
+                 ('CONCAVE', "Concave", "Inside bevel")),
+        default = 'CONVEX',
     )
     bevel_segments: bpy.props.IntProperty(
         name = "Bevel Segments",
@@ -532,7 +545,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.mouse_path = self.mouse_path[:-2]
 
 
-        if event.type in {'MIDDLEMOUSE', 'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
+        if event.type in {'MIDDLEMOUSE', 'N', 'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
                           'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9'}:
             return {'PASS_THROUGH'}
         if self.bevel == False and event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
@@ -557,17 +570,17 @@ class OBJECT_OT_carve(bpy.types.Operator):
                 self.columns_gap = event.mouse_region_y * 0.1
 
             elif self.bevel:
-                self.bevel_radius = event.mouse_region_x * 0.001
+                self.bevel_radius = event.mouse_region_x * 0.002
 
             else:
                 if len(self.mouse_path) > 0:
                     # ASPECT
                     if self.aspect == 'FIXED':
                         side = max(abs(event.mouse_region_x - self.mouse_path[0][0]),
-                                    abs(event.mouse_region_y - self.mouse_path[0][1]))
+                                   abs(event.mouse_region_y - self.mouse_path[0][1]))
                         self.mouse_path[len(self.mouse_path) - 1] = \
                                         (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                            self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
+                                         self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
 
                     elif self.aspect == 'FREE':
                         self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
@@ -579,7 +592,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     if self.shape == 'POLYLINE':
                         # get_distance_from_first_point
                         distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 + 
-                                                (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
+                                             (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
                         min_radius = 0
                         max_radius = 30
                         self.distance_from_first = max(max_radius - distance, min_radius)

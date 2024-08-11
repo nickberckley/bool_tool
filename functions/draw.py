@@ -114,7 +114,7 @@ def draw_polygon(self):
         coords.append(vert)
 
         i1 = idx + 1
-        i2 = idx + 2
+        i2 = idx + 2 if idx <= len(self.mouse_path) else 1
         indices.append((0, i1, i2))
 
     # circle_around_first_point
@@ -319,9 +319,22 @@ def bevel_verts(self, verts, radius, segments):
     """Takes in list of verts(Vectors) and bevels them, Returns a new list with new vertices"""
 
     def get_rounded_corner(self, angular_point, p1, p2, radius, segments):
+        # clamp_radius_to_reduce_clipping
+        __, width, height = get_bounding_box_coords(self, verts)
+        max_radius = min(width / 2.5, height / 2.5)
+        clamped_radius = min(radius, max_radius)
+
+        if radius > clamped_radius:
+            radius = clamped_radius
+
+
         # calculate_vectors (NOTE: Why it only works when reversed like this is unknown to me)
-        vector1 = -(p1 - angular_point)
-        vector2 = -(p2 - angular_point)
+        if self.bevel_profile == 'CONVEX':
+            vector1 = -(p1 - angular_point)
+            vector2 = -(p2 - angular_point)
+        elif self.bevel_profile == 'CONCAVE':
+            vector1 = p2 - angular_point
+            vector2 = p1 - angular_point
 
         # compute_lengths_of_vectors
         length1 = vector1.length
@@ -336,16 +349,6 @@ def bevel_verts(self, verts, radius, segments):
         dot_product = vector1.dot(vector2)
         angle = math.acos(max(-1.0, min(1.0, dot_product)))
 
-        # clamp_radius_to_reduce_clipping
-        __, width, height = get_bounding_box_coords(self, verts)
-        max_radius_x = width / 2.5
-        max_radius_y = height / 2.5
-        max_radius = min(max_radius_x, max_radius_y)
-        clamped_radius = min(radius, max_radius)
-
-        if radius > clamped_radius:
-            radius = clamped_radius
-
         arc_length = radius * angle
         segment_length = arc_length / (segments - 1)
         bisector = (vector1 + vector2).normalized()
@@ -356,8 +359,10 @@ def bevel_verts(self, verts, radius, segments):
             fraction = i / (segments - 1)
             theta = angle * fraction
             interpolated_vector = (vector1 * math.sin(theta) + vector2 * math.cos(theta)).normalized() * radius
-            point_on_arc = angular_point + interpolated_vector - bisector * (clamped_radius * magic_number)
-
+            if self.bevel_profile == 'CONVEX':
+                point_on_arc = angular_point + interpolated_vector - bisector * (clamped_radius * magic_number)
+            elif self.bevel_profile == 'CONCAVE':
+                point_on_arc = angular_point + interpolated_vector - bisector / (clamped_radius)
             rounded_corners.append(point_on_arc)
 
         return rounded_corners
@@ -377,9 +382,9 @@ def bevel_verts(self, verts, radius, segments):
         corner_points = get_rounded_corner(self, angular_point, p1, p2, radius, segments)
         rounded_verts.extend(corner_points)
 
-    for idx, vert in enumerate(rounded_verts):
+    for idx, vert in enumerate(reversed(rounded_verts)):
         i1 = idx + 1
-        i2 = idx + 2
+        i2 = idx + 2 if idx + 2 <= len(rounded_verts) else 1
         indices.append((0, i1, i2))
 
     return rounded_verts, indices
