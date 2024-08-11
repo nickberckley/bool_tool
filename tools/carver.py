@@ -634,6 +634,9 @@ class OBJECT_OT_carve(bpy.types.Operator):
                     if self.closed == False:
                         self.verts.pop() # dont_add_current_mouse_position_as_vert
 
+                    if self.distance_from_first > 15:
+                        self.verts[-1] = self.verts[0]
+
                     if len(self.verts) / 2 <= 1:
                         self.report({'INFO'}, "At least two points are required to make polygonal shape")
                         self.cancel(context)
