@@ -83,8 +83,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
-        description = "Enable experimental features.\n"
-                    "WARNING: Only do that if you're aware of what those features are. They can damage your scene",
+        description = "Enable experimental features",
         default = False,
     )
 

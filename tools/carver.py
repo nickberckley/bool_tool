@@ -51,6 +51,7 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         layout = self.layout
         layout.use_property_split = True
 
+        prefs = bpy.context.preferences.addons[base_package].preferences
         mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         op = tool.operator_properties("object.carve")
@@ -69,7 +70,8 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
             layout.prop(op, "use_bevel", text="Bevel")
             col = layout.column(align=True)
             row = col.row(align=True)
-            # row.prop(op, "bevel_profile", text="Profile", expand=True)
+            if prefs.experimental:
+                row.prop(op, "bevel_profile", text="Profile", expand=True)
             col.prop(op, "bevel_segments", text="Segments")
             col.prop(op, "bevel_radius", text="Radius")
 
