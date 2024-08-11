@@ -1,4 +1,4 @@
-import bpy, bmesh, mathutils
+import bpy, bmesh, mathutils, math
 from bpy_extras import view3d_utils
 
 
@@ -75,6 +75,10 @@ def extrude(self, mesh):
     # correct_normals
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
+    # select_everything
+    for f in bm.faces:
+        f.select = True
+
     bm.to_mesh(mesh)
     mesh.update()
     bm.free()
@@ -126,3 +130,37 @@ def create_face(context, direction, depth, bm, name, faces, verts, polyline=Fals
         face_verts.append(vertex)
 
     faces[name] = face_verts
+
+
+def shade_smooth_by_angle(obj, angle=30):
+    """Replication of "Auto Smooth" functionality: Marks faces as smooth, sharp edges (by angle) as sharp"""
+
+    mesh = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+
+    # shade_smooth
+    for f in bm.faces:
+        f.select = False
+        f.smooth = True
+
+    # select_sharp_edges
+    for edge in bm.edges:
+        if len(edge.link_faces) == 2:
+            face1, face2 = edge.link_faces
+            edge_angle = math.degrees(face1.normal.angle(face2.normal))
+            if edge_angle >= angle:
+                edge.select = True
+
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+
+    # mark_sharp_edges
+    for edge in mesh.edges:
+        if edge.select:
+            edge.use_edge_sharp = True
+    
+    for face in mesh.polygons:
+        face.select = True
+    mesh.update()

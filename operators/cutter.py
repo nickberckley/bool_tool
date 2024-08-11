@@ -235,6 +235,10 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
 
         if cutters:
+            for cutter in cutters:
+                for face in cutter.data.polygons:
+                    face.select = True
+
             # Apply Modifiers
             for canvas in canvases:
                 context.view_layer.objects.active = canvas

@@ -155,16 +155,18 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
         canvases = list_selected_canvases(context)
-        cutters, __ = list_canvas_cutters(canvases)
-
         # excude_canvases_with_shape_keys
         for canvas in canvases:
             if canvas.data.shape_keys:
                 self.report({'ERROR'}, f"Modifiers can't be applied to {canvas.name} because it has shape keys")
                 canvases.remove(canvas)
 
+        cutters, __ = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
+        for cutter in cutters:
+            for face in cutter.data.polygons:
+                face.select = True
 
         for canvas in itertools.chain(canvases, slices):
             context.view_layer.objects.active = canvas
@@ -180,12 +182,8 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
             elif prefs.apply_order == 'BOOLEANS':
                 for mod in canvas.modifiers:
-                    if "boolean_" in mod.name:
-                        try:
-                            bpy.ops.object.modifier_apply(modifier=mod.name)
-                        except:
-                            context.active_object.data = context.active_object.data.copy()
-                            bpy.ops.object.modifier_apply(modifier=mod.name)
+                    if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
+                        bpy.ops.object.modifier_apply(modifier=mod.name)
 
             # remove_boolean_properties
             canvas.booleans.canvas = False

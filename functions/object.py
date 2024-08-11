@@ -1,4 +1,4 @@
-import bpy, bmesh, mathutils, math
+import bpy, bmesh, mathutils
 from .. import __package__ as base_package
 
 
@@ -21,7 +21,10 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
         canvas.modifiers.move(index, 0)
 
     if apply:
-        if bpy.context.object.mode != "OBJECT":
+        for face in cutter.data.polygons:
+            face.select = True
+
+        if bpy.context.object.mode != 'OBJECT':
             """Applying boolean modifier in mesh edit mode:"""
             """1. Hiding other visible modifiers and creating new (temporary) mesh from evaluated object"""
             """2. Transfering temporary mesh to `bmesh` to update active mesh in edit mode"""
@@ -52,7 +55,7 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
                 mod.show_viewport = True
 
         else:
-            context_override = {'object': canvas, 'mode': "OBJECT"}
+            context_override = {'object': canvas, 'mode': 'OBJECT'}
             with bpy.context.temp_override(**context_override):
                 bpy.ops.object.modifier_apply(modifier=modifier.name)
 
@@ -202,33 +205,3 @@ def set_object_origin(obj, position=False):
     obj.location = position
     obj.data.transform(mat.inverted())
     obj.data.update()
-
-
-def shade_smooth_by_angle(obj, angle=30):
-    """Replication of "Auto Smooth" functionality: Marks faces as smooth, sharp edges (by angle) as sharp"""
-
-    mesh = obj.data
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-
-    # shade_smooth
-    for f in bm.faces:
-        f.smooth = True
-
-    # select_sharp_edges
-    for edge in bm.edges:
-        if len(edge.link_faces) == 2:
-            face1, face2 = edge.link_faces
-            edge_angle = math.degrees(face1.normal.angle(face2.normal))
-            if edge_angle >= angle:
-                edge.select = True
-
-    bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
-
-    # mark_sharp_edges
-    for edge in mesh.edges:
-        if edge.select:
-            edge.use_edge_sharp = True        
-    mesh.update()

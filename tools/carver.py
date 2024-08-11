@@ -9,11 +9,11 @@ from ..functions.object import (
     set_cutter_properties,
     delete_cutter,
     set_object_origin,
-    shade_smooth_by_angle,
 )
 from ..functions.mesh import (
     create_cutter_shape,
     extrude,
+    shade_smooth_by_angle,
 )
 from ..functions.select import (
     cursor_snap,
