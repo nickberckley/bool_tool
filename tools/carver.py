@@ -1,4 +1,4 @@
-import bpy, mathutils, math
+import bpy, mathutils, math, os
 from .. import __package__ as base_package
 
 from ..functions.draw import (
@@ -135,7 +135,7 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = "ops.sculpt.box_trim"
+    bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_box")
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'BOX')]}),
@@ -160,7 +160,7 @@ class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = "ops.sculpt.lasso_trim"
+    bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_circle")
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'CIRCLE')]}),
@@ -185,7 +185,7 @@ class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = "ops.sculpt.polyline_trim"
+    bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_polyline")
     # bl_widget = 'VIEW3D_GGT_placement'
     bl_keymap = (
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK'}, {"properties": [("shape", 'POLYLINE')]}),

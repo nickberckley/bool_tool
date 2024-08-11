@@ -77,10 +77,9 @@ def carver_overlay(self, context):
 
         draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
         draw_shader(color, 1.0, 'POINTS', coords, size=5)
-        if len(self.mouse_path) > 2:
+        if self.closed and len(self.mouse_path) > 2:
             # polygon_fill
-            if self.closed:
-                draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+            draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
 
         if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
             # circle_around_first_point
