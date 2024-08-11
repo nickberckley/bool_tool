@@ -140,12 +140,12 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_keymap = (
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'BOX')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "shift": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "alt": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'BOX')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True}, {"properties": [("shape", 'BOX')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "shift": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
     )
 
 class MESH_WT_carve_box(OBJECT_WT_carve_box):
@@ -165,12 +165,12 @@ class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_keymap = (
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS'}, {"properties": [("shape", 'CIRCLE')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True}, {"properties": [("shape", 'CIRCLE')]}),
         ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'PRESS', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
     )
 
 class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
