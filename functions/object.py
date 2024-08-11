@@ -1,4 +1,4 @@
-import bpy, bmesh, mathutils
+import bpy, bmesh, mathutils, math
 from .. import __package__ as base_package
 
 
@@ -202,3 +202,33 @@ def set_object_origin(obj, position=False):
     obj.location = position
     obj.data.transform(mat.inverted())
     obj.data.update()
+
+
+def shade_smooth_by_angle(obj, angle=30):
+    """Replication of "Auto Smooth" functionality: Marks faces as smooth, sharp edges (by angle) as sharp"""
+
+    mesh = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+
+    # shade_smooth
+    for f in bm.faces:
+        f.smooth = True
+
+    # select_sharp_edges
+    for edge in bm.edges:
+        if len(edge.link_faces) == 2:
+            face1, face2 = edge.link_faces
+            edge_angle = math.degrees(face1.normal.angle(face2.normal))
+            if edge_angle >= angle:
+                edge.select = True
+
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+
+    # mark_sharp_edges
+    for edge in mesh.edges:
+        if edge.select:
+            edge.use_edge_sharp = True        
+    mesh.update()

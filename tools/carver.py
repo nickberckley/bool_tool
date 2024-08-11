@@ -9,6 +9,7 @@ from ..functions.object import (
     set_cutter_properties,
     delete_cutter,
     set_object_origin,
+    shade_smooth_by_angle,
 )
 from ..functions.mesh import (
     create_cutter_shape,
@@ -33,17 +34,11 @@ class CarverToolshelf():
         layout.prop(props, "depth", text="")
         row = layout.row()
         row.prop(props, "solver", expand=True)
-        layout.prop(props, "pin")
 
         if context.object:
-            if props.mode == 'MODIFIER':
-                row = layout.row()
-                row.prop(props, "hide")
-
             layout.popover("TOPBAR_PT_carver_shape", text="Shape")
             layout.popover("TOPBAR_PT_carver_array", text="Array")
-            if active_tool == 'object.carve_box':
-                layout.popover("TOPBAR_PT_carver_bevel", text="Bevel")
+            layout.popover("TOPBAR_PT_carver_cutter", text="Cutter")
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
     bl_label = "Carver Shape"
@@ -68,6 +63,19 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
             layout.prop(op, "rotation")
             layout.prop(op, "aspect", expand=True)
             layout.prop(op, "origin", expand=True)
+
+        if tool.idname == 'object.carve_box':
+            layout.separator()
+            layout.prop(op, "use_bevel", text="Bevel")
+            col = layout.column(align=True)
+            row = col.row(align=True)
+            # row.prop(op, "bevel_profile", text="Profile", expand=True)
+            col.prop(op, "bevel_segments", text="Segments")
+            col.prop(op, "bevel_radius", text="Radius")
+
+            if op.use_bevel == False:
+                col.enabled = False
+
 
 class TOPBAR_PT_carver_array(bpy.types.Panel):
     bl_label = "Carver Array"
@@ -98,9 +106,9 @@ class TOPBAR_PT_carver_array(bpy.types.Panel):
         col.prop(op, "columns_gap", text="Gap")
 
 
-class TOPBAR_PT_carver_bevel(bpy.types.Panel):
-    bl_label = "Carver Bevel"
-    bl_idname = "TOPBAR_PT_carver_bevel"
+class TOPBAR_PT_carver_cutter(bpy.types.Panel):
+    bl_label = "Carver Cutter"
+    bl_idname = "TOPBAR_PT_carver_cutter"
     bl_region_type = 'HEADER'
     bl_space_type = 'TOPBAR'
     bl_category = 'Tool'
@@ -113,15 +121,16 @@ class TOPBAR_PT_carver_bevel(bpy.types.Panel):
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         op = tool.operator_properties("object.carve")
 
-        layout.prop(op, "use_bevel", text="Bevel")
-        col = layout.column(align=True)
-        row = col.row(align=True)
-        # row.prop(op, "bevel_profile", text="Profile", expand=True)
-        col.prop(op, "bevel_segments", text="Segments")
-        col.prop(op, "bevel_radius", text="Radius")
+        col = layout.column()
+        col.prop(op, "pin", text="Pin Modifier")
+        if op.mode == 'MODIFIER':
+            col.prop(op, "hide")
 
-        if op.use_bevel == False:
-            col.enabled = False
+        # auto_smooth
+        layout.separator()
+        col = layout.column(align=True)
+        col.prop(op, "auto_smooth", text="Auto Smooth")
+        col.prop(op, "sharp_angle")
 
 
 
@@ -272,6 +281,19 @@ class OBJECT_OT_carve(bpy.types.Operator):
                        "NOTE: They are hidden in render regardless of this property"),
         default = True,
     )
+    auto_smooth: bpy.props.BoolProperty(
+        name = "Shade Auto Smooth",
+        description = ("Cutter object will be shaded smooth with sharp edges (above 30 degrees) marked as sharp\n"
+                        "NOTE: This is one time operator. 'Smooth by Angle' modifier will not be added on object"),
+        default = True,
+    )
+    sharp_angle: bpy.props.FloatProperty(
+        name = "Angle",
+        description = "Maximum face angle for sharp edges",
+        subtype = "ANGLE",
+        min = 0, max = math.pi,
+        default = 0.523599,
+    )
 
     # ARRAY-properties
     rows: bpy.props.IntProperty(
@@ -335,7 +357,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
         default = 1,
     )
 
-    # ADVANCED-properties
+    # MODIFIER-properties
     solver: bpy.props.EnumProperty(
         name = "Solver",
         items = [('FAST', "Fast", ""),
@@ -678,6 +700,8 @@ class OBJECT_OT_carve(bpy.types.Operator):
         create_cutter_shape(self, context)
         extrude(self, self.cutter.data)
         set_object_origin(self.cutter)
+        if self.auto_smooth:
+            shade_smooth_by_angle(self.cutter, angle=math.degrees(self.sharp_angle))
 
         self.Cut(context)
         self.cancel(context)
@@ -737,7 +761,7 @@ classes = [
     OBJECT_OT_carve,
     TOPBAR_PT_carver_shape,
     TOPBAR_PT_carver_array,
-    TOPBAR_PT_carver_bevel,
+    TOPBAR_PT_carver_cutter,
 ]
 
 main_tools = [
