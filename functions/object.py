@@ -60,8 +60,8 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
                 bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
-def set_cutter_properties(context, canvas, cutter, mode, hide=False):
-    """Ensures cutter is properly set: has right properties, is hidden, in collection & parented"""
+def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False):
+    """Ensures cutter is properly set: has right properties, is hidden, in a collection & parented"""
 
     prefs = bpy.context.preferences.addons[base_package].preferences
 
@@ -73,7 +73,7 @@ def set_cutter_properties(context, canvas, cutter, mode, hide=False):
         cutter.hide_set(True)
 
     # parent_to_active_canvas
-    if prefs.parent and cutter.parent == None:
+    if parent and cutter.parent == None:
         cutter.parent = canvas
         cutter.matrix_parent_inverse = canvas.matrix_world.inverted()
 
@@ -81,6 +81,8 @@ def set_cutter_properties(context, canvas, cutter, mode, hide=False):
     cutters_collection = ensure_collection(context)
     if cutters_collection not in cutter.users_collection:
         cutters_collection.objects.link(cutter)
+    if cutter.booleans.carver and parent == False:
+        context.collection.objects.unlink(cutter)
 
     # add_boolean_property
     cutter.booleans.cutter = mode.capitalize()
@@ -128,7 +130,7 @@ def ensure_collection(context):
         # cutters_collection.hide_viewport = True
         cutters_collection.hide_render = True
         cutters_collection.color_tag = 'COLOR_01'
-        context.view_layer.layer_collection.children[collection_name].exclude = True
+        # context.view_layer.layer_collection.children[collection_name].exclude = True
 
     return cutters_collection
 

@@ -45,7 +45,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
         description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas.\n"
-                       "NOTE: When using Carver tool on multiple objects cutters parent might be chosen seemingly randomly"),
+                       "NOTE: This doesn't affect Carver tool, which has its own property for this"),
         default = True,
     )
     apply_order: bpy.props.EnumProperty(

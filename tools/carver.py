@@ -125,6 +125,7 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
 
         col = layout.column()
         col.prop(op, "pin", text="Pin Modifier")
+        col.prop(op, "parent")
         if op.mode == 'MODIFIER':
             col.prop(op, "hide")
 
@@ -281,6 +282,12 @@ class OBJECT_OT_carve(bpy.types.Operator):
         name = "Hide Cutter",
         description = ("Hide cutter objects in the viewport after they're created.\n"
                        "NOTE: They are hidden in render regardless of this property"),
+        default = True,
+    )
+    parent: bpy.props.BoolProperty(
+        name = "Parent to Canvas",
+        description = ("Cutters will be parented to active object being cut, even if cutting multiple objects.\n"
+                       "If there is no active object in selection cutters parent might be chosen seemingly randomly"),
         default = True,
     )
     auto_smooth: bpy.props.BoolProperty(
@@ -747,13 +754,13 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
         elif self.mode == 'MODIFIER':
             # Set Cutter Properties
-            parent = None
+            canvas = None
             if context.active_object and context.active_object in self.selected_objects:
-                parent = context.active_object    
+                canvas = context.active_object    
             else:
-                parent = self.selected_objects[0]
+                canvas = self.selected_objects[0]
 
-            set_cutter_properties(context, parent, self.cutter, "Difference", hide=self.hide)
+            set_cutter_properties(context, canvas, self.cutter, "Difference", parent=self.parent, hide=self.hide)
 
 
 
