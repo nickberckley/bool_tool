@@ -46,6 +46,10 @@ def create_cutter_shape(self, context):
     bm.verts.index_update()
     for i, face in faces.items():
         bm.faces.new(face)
+
+    # remove_doubles
+    bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.0001)
+
     bm.to_mesh(mesh)
 
 
