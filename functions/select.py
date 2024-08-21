@@ -1,5 +1,6 @@
 import bpy, mathutils
 from bpy_extras import view3d_utils
+from .draw import get_bounding_box_coords
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -81,11 +82,15 @@ def selection_fallback(self, context, objects, include_cutters=False):
             rect_max = mathutils.Vector((max(x_values), max(y_values)))
         else:
             rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                        min(self.mouse_path[0][1], self.mouse_path[1][1])))
+                                         min(self.mouse_path[0][1], self.mouse_path[1][1])))
             rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                        max(self.mouse_path[0][1], self.mouse_path[1][1])))
+                                         max(self.mouse_path[0][1], self.mouse_path[1][1])))
 
     elif self.origin == 'CENTER':
+        # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
+        if len(self.center_origin) == 0:
+            get_bounding_box_coords(self, self.verts)
+
         rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]),
                                      min(self.center_origin[0][1], self.center_origin[1][1])))
         rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]),
