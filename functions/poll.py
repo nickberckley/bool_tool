@@ -21,13 +21,19 @@ def is_canvas(obj):
         else:
             return False
 
-def modifier_poll(context, obj):
-    if len(obj.modifiers) == 0:
-        return False
 
-    modifier = context.object.modifiers.active
-    if modifier and modifier.type == "BOOLEAN":
-        if modifier.object == None:
+def active_modifier_poll(context):
+    """Checks whether the active modifier for active object is a boolean"""
+
+    if context.object:
+        if len(context.object.modifiers) == 0:
             return False
-        else:
-            return True
+
+        modifier = context.object.modifiers.active
+        if modifier and modifier.type == "BOOLEAN":
+            if modifier.object == None:
+                return False
+            else:
+                return True
+    else:
+        return False
