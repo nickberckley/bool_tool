@@ -15,6 +15,7 @@ from ..functions.object import (
 )
 from ..functions.list import (
     list_candidate_objects,
+    list_cutter_users,
     list_pre_boolean_modifiers,
 )
 
@@ -32,6 +33,12 @@ class BrushBoolean():
         if is_linked(context, canvas):
             self.report({'ERROR'}, "Booleans can not be performed on linked objects")
             return {'CANCELLED'}
+
+        # abort_when_creating_cutter/canvas_loop
+        canvas_canvases = list_cutter_users([canvas])
+        if any(cutter in canvas_canvases for cutter in cutters):
+            self.report({'ERROR'}, "Object can not cut its own cutter")
+            cutters = [c for c in cutters if c not in canvas_canvases]
 
 
         for cutter in cutters:
