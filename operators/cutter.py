@@ -43,7 +43,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context)
+        return basic_poll(context, check_linked=True)
 
     def execute(self, context):
         if self.method == 'SPECIFIED':
@@ -117,7 +117,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context)
+        return basic_poll(context, check_linked=True)
 
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
@@ -216,7 +216,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context)
+        return basic_poll(context, check_linked=True)
 
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences

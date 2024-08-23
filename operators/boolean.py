@@ -1,7 +1,10 @@
 import bpy
 from .. import __package__ as base_package
 
-from ..functions.poll import basic_poll
+from ..functions.poll import (
+    basic_poll,
+    is_linked,
+)
 from ..functions.object import (
     convert_to_mesh,
     add_boolean_modifier,
@@ -23,7 +26,13 @@ class BrushBoolean():
         prefs = bpy.context.preferences.addons[base_package].preferences
 
         canvas = context.active_object
-        cutters = list_candidate_objects(self, context, canvas=canvas, unique=True)
+        cutters = list_candidate_objects(self, context, canvas)
+
+        # abort_when_linked
+        if is_linked(context, canvas):
+            self.report({'ERROR'}, "Booleans can not be performed on linked objects")
+            return {'CANCELLED'}
+
 
         for cutter in cutters:
             set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent)
@@ -112,7 +121,12 @@ class AutoBoolean:
         prefs = bpy.context.preferences.addons[base_package].preferences
 
         canvas = context.active_object
-        cutters = list_candidate_objects(self, context)
+        cutters = list_candidate_objects(self, context, canvas)
+
+        # abort_when_linked
+        if is_linked(context, canvas):
+            self.report({'ERROR'}, "Booleans can not be performed on linked objects")
+            return {'CANCELLED'}
 
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
