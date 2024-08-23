@@ -272,8 +272,13 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                 cutters, leftovers = list_unused_cutters(cutters, canvases, do_leftovers=True)
 
 
-            # Purge Orphaned Cutters
             for cutter in cutters:
+                # Transfer Children
+                children = [obj for obj in cutter.children]
+                for child in children:
+                    change_parent(child, cutter.parent)
+
+                # Purge Orphaned Cutters
                 delete_cutter(cutter)
 
             # purge_empty_collection

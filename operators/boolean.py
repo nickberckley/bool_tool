@@ -6,6 +6,7 @@ from ..functions.object import (
     convert_to_mesh,
     add_boolean_modifier,
     set_cutter_properties,
+    change_parent,
     create_slice,
     delete_cutter,
 )
@@ -132,10 +133,16 @@ class AutoBoolean:
                 # add_modifiers_to_slices
                 add_boolean_modifier(self, slice, cutter, "INTERSECT", prefs.solver, apply=True)
 
+
         for cutter in cutters:
             # Add Modifier
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             add_boolean_modifier(self, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin)
+
+            # Transfer Children
+            children = [obj for obj in cutter.children]
+            for child in children:
+                change_parent(child, canvas)
 
             # Delete Cutter
             delete_cutter(cutter)
