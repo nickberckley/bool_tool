@@ -84,7 +84,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                 other_canvases = list_canvases()
                 for obj in other_canvases:
                     if obj not in canvases:
-                        if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers):
+                        if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers if mod.type == 'BOOLEAN'):
                             cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 
                 for cutter in cutters:

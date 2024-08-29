@@ -34,7 +34,7 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context, check_linke=True) and is_canvas(context.active_object)
+        return basic_poll(context, check_linked=True) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvases = list_selected_canvases(context)
@@ -59,7 +59,7 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
         other_canvases = list_canvases()
         for obj in other_canvases:
             if obj not in canvases:
-                if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers):
+                if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers if mod.type == 'BOOLEAN'):
                     cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 
         for cutter in cutters:
