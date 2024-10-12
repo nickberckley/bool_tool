@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 id = "bool_tool"
 name = "Bool Tool"
-version = "1.1.1"
+version = "1.1.2"
 tagline = "Quick boolean operations and tools for mesh modeling"
 type = "add-on"
 
