@@ -44,6 +44,7 @@ class ModifierProperties():
         name = "Overlap Threshold",
         description = "Threshold for checking overlapping geometry",
         subtype = 'DISTANCE',
+        min = 0, max = 1, precision = 12, step = 0.0001,
         default = 0.000001,
     )
 
@@ -70,6 +71,10 @@ class BrushBoolean(ModifierProperties):
 
         canvas = context.active_object
         cutters = list_candidate_objects(self, context, canvas)
+
+        # abort_when_no_candidate_objects
+        if len(cutters) == 0:
+            return {'CANCELLED'}
 
         # abort_when_linked
         if is_linked(context, canvas):
@@ -172,10 +177,15 @@ class AutoBoolean(ModifierProperties):
         canvas = context.active_object
         cutters = list_candidate_objects(self, context, canvas)
 
+        # abort_when_no_candidate_objects
+        if len(cutters) == 0:
+            return {'CANCELLED'}
+
         # abort_when_linked
         if is_linked(context, canvas):
             self.report({'ERROR'}, "Booleans can not be performed on linked objects")
             return {'CANCELLED'}
+
 
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):

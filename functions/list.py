@@ -36,8 +36,6 @@ def list_candidate_objects(self, context, canvas):
                 else:
                     if (obj.booleans.cutter == "") or (canvas not in list_cutter_users([obj])):
                         cutters.append(obj)
-                    else:
-                        self.report({'ERROR'}, f"{obj.name} is already a cutter for {canvas.name}")
 
     return cutters
 
