@@ -723,7 +723,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
     def cancel(self, context):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
         context.area.header_text_set(None)
-        context.window.cursor_set("DEFAULT")
+        context.window.cursor_set('DEFAULT' if context.object.mode == 'OBJECT' else 'CROSSHAIR')
 
 
     def selection_fallback(self, context):
