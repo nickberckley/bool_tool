@@ -122,12 +122,14 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
                 if prefs.parent and cutter.parent in canvases:
                     change_parent(cutter, None)
 
-                cutters_collection = bpy.data.collections.get("boolean_cutters")
-                if cutters_collection in cutter.users_collection:
-                    bpy.data.collections.get("boolean_cutters").objects.unlink(cutter)
+                if prefs.use_collection:
+                    cutters_collection = bpy.data.collections.get(prefs.collection_name)
+                    if cutters_collection in cutter.users_collection:
+                        bpy.data.collections.get(prefs.collection_name).objects.unlink(cutter)
 
         # purge_empty_collection
-        delete_empty_collection()
+        if prefs.use_collection:
+            delete_empty_collection()
 
 
         # Change Leftover Cutter Parent
@@ -206,7 +208,8 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
                 purged_cutters.append(cutter)
 
         # purge_empty_collection
-        delete_empty_collection()
+        if prefs.use_collection:
+            delete_empty_collection()
 
 
         # Change Leftover Cutter Parent

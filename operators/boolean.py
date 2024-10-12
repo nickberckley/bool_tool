@@ -42,7 +42,7 @@ class BrushBoolean():
 
 
         for cutter in cutters:
-            set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent)
+            set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent, collection=prefs.use_collection)
             add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
         if self.mode == "SLICE":

@@ -60,7 +60,7 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
                 bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
-def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False):
+def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False, collection=True):
     """Ensures cutter is properly set: has right properties, is hidden, in a collection & parented"""
 
     prefs = bpy.context.preferences.addons[base_package].preferences
@@ -78,11 +78,12 @@ def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False
         cutter.matrix_parent_inverse = canvas.matrix_world.inverted()
 
     # Cutters Collection
-    cutters_collection = ensure_collection(context)
-    if cutters_collection not in cutter.users_collection:
-        cutters_collection.objects.link(cutter)
-    if cutter.booleans.carver and parent == False:
-        context.collection.objects.unlink(cutter)
+    if collection:
+        cutters_collection = ensure_collection(context)
+        if cutters_collection not in cutter.users_collection:
+            cutters_collection.objects.link(cutter)
+        if cutter.booleans.carver and parent == False:
+            context.collection.objects.unlink(cutter)
 
     # add_boolean_property
     cutter.booleans.cutter = mode.capitalize()
@@ -118,28 +119,31 @@ def convert_to_mesh(context, obj):
 
 
 def ensure_collection(context):
-    """Checks the existance of "boolean_cutters" collection and creates it if it doesn't exist"""
-    """Returns "boolean_cutters" collection"""
+    """Checks the existance of boolean cutters collection and creates it if it doesn't exist"""
 
-    collection_name = "boolean_cutters"
+    prefs = bpy.context.preferences.addons[base_package].preferences
+
+    collection_name = prefs.collection_name
     cutters_collection = bpy.data.collections.get(collection_name)
 
     if cutters_collection is None:
         cutters_collection = bpy.data.collections.new(collection_name)
         context.scene.collection.children.link(cutters_collection)
-        # cutters_collection.hide_viewport = True
         cutters_collection.hide_render = True
         cutters_collection.color_tag = 'COLOR_01'
+        # cutters_collection.hide_viewport = True
         # context.view_layer.layer_collection.children[collection_name].exclude = True
 
     return cutters_collection
 
 
 def delete_empty_collection():
-    """Removes "boolean_cutters" collection if it has no more objects in it"""
+    """Removes boolean cutters collection if it has no more objects in it"""
 
-    collection = bpy.data.collections.get("boolean_cutters")
-    if not collection.objects:
+    prefs = bpy.context.preferences.addons[base_package].preferences
+
+    collection = bpy.data.collections.get(prefs.collection_name)
+    if collection and not collection.objects:
         bpy.data.collections.remove(collection)
 
 
