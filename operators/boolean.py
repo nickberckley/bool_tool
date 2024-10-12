@@ -20,9 +20,51 @@ from ..functions.list import (
 )
 
 
+class ModifierProperties():
+    material_mode: bpy.props.EnumProperty(
+        name = "Materials",
+        description = "Method for setting materials on the new faces",
+        items = (('INDEX', "Index Based", "Set the material on new faces based on the order of the material slot lists. If a material doesn’t exist on the\n"
+                  "modifier object, the face will use the same material slot or the first if the object doesn’t have enough slots."),
+                 ('TRANSFER', "Transfer", "Transfer materials from non-empty slots to the result mesh, adding new materials as necessary.\n"
+                  "For empty slots, fall back to using the same material index as the operand mesh.")),
+        default = 'INDEX',
+    )
+    use_self: bpy.props.BoolProperty(
+        name = "Self Intersection",
+        description = "Allow self-intersection in operands",
+        default = False,
+    )
+    use_hole_tolerant: bpy.props.BoolProperty(
+        name = "Hole Tolerant",
+        description = "Better results when there are holes (slower)",
+        default = False,
+    )
+    double_threshold: bpy.props.FloatProperty(
+        name = "Overlap Threshold",
+        description = "Threshold for checking overlapping geometry",
+        subtype = 'DISTANCE',
+        default = 0.000001,
+    )
+
+    def draw(self, context):
+        prefs = bpy.context.preferences.addons[base_package].preferences
+
+        layout = self.layout
+        layout.use_property_split = True
+
+        if prefs.solver == 'EXACT':
+            layout.prop(self, "material_mode")
+            layout.prop(self, "use_self")
+            layout.prop(self, "use_hole_tolerant")
+        elif prefs.solver == 'FAST':
+            layout.prop(self, "double_threshold")
+
+
+
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
 
-class BrushBoolean():
+class BrushBoolean(ModifierProperties):
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
@@ -70,7 +112,7 @@ class BrushBoolean():
 
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_union"
-    bl_label = "Boolean Cutter Union"
+    bl_label = "Boolean Union (Brush)"
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -83,7 +125,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_intersect"
-    bl_label = "Boolean Cutter Intersection"
+    bl_label = "Boolean Intersection (Brush)"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -96,7 +138,7 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_difference"
-    bl_label = "Boolean Cutter Difference"
+    bl_label = "Boolean Difference (Brush)"
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -109,7 +151,7 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
 
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_slice"
-    bl_label = "Boolean Cutter Slice"
+    bl_label = "Boolean Slice (Brush)"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -123,7 +165,7 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 
 #### ------------------------------ /auto_boolean/ ------------------------------ ####
 
-class AutoBoolean:
+class AutoBoolean(ModifierProperties):
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
@@ -191,7 +233,7 @@ class AutoBoolean:
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_union"
-    bl_label = "Boolean Union"
+    bl_label = "Boolean Union (Auto)"
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -204,7 +246,7 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_difference"
-    bl_label = "Boolean Difference"
+    bl_label = "Boolean Difference (Auto)"
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -217,7 +259,7 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_intersect"
-    bl_label = "Boolean Intersect"
+    bl_label = "Boolean Intersect (Auto)"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -230,7 +272,7 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
 
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_slice"
-    bl_label = "Boolean Slice"
+    bl_label = "Boolean Slice (Auto)"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
 

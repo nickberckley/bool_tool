@@ -4,7 +4,7 @@ from .. import __package__ as base_package
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=False):
+def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=False, redo=True):
     "Adds boolean modifier with specified cutter and properties to a single object"
 
     prefs = bpy.context.preferences.addons[base_package].preferences
@@ -13,6 +13,13 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
+
+    if redo:
+        modifier.material_mode = self.material_mode
+        modifier.use_self = self.use_self
+        modifier.use_hole_tolerant = self.use_hole_tolerant
+        modifier.double_threshold = self.double_threshold
+
     if prefs.show_in_editmode:
         modifier.show_in_editmode = True
 
