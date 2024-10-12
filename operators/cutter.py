@@ -56,7 +56,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
 
         if cutters:
             for canvas in canvases:
-                # toggle_slices_visibility (for_all_method)
+                # toggle_slices_visibility (for_all_canvases)
                 if canvas.booleans.slice == True:
                     if any(modifier.object in cutters for modifier in canvas.modifiers):
                         canvas.hide_viewport = not canvas.hide_viewport
@@ -64,14 +64,13 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
 
                 # Toggle Modifiers
                 for mod in canvas.modifiers:
-                    if "boolean_" in mod.name:
-                        if mod.object in cutters:
-                            mod.show_viewport = not mod.show_viewport
-                            mod.show_render = not mod.show_render
+                    if mod.type == 'BOOLEAN' and mod.object in cutters:
+                        mod.show_viewport = not mod.show_viewport
+                        mod.show_render = not mod.show_render
 
 
             if self.method == 'SPECIFIED':
-                # toggle_slices_visibility (for_specified_method)
+                # toggle_slices_visibility (for_specified_canvas)
                 for slice in slices:
                     for mod in slice.modifiers:
                         if mod.type == 'BOOLEAN' and mod.object in cutters:
@@ -83,7 +82,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
                 # hide_cutter_if_not_used_by_any_visible_modifiers
                 other_canvases = list_canvases()
                 for obj in other_canvases:
-                    if obj not in canvases:
+                    if obj not in canvases + slices:
                         if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers if mod.type == 'BOOLEAN'):
                             cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 

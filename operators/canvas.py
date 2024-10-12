@@ -49,16 +49,16 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
         # Hide Slices
         for slice in slices:
             slice.hide_viewport = not slice.hide_viewport
+            slice.hide_render = not slice.hide_render
             for mod in slice.modifiers:
                 if mod.type == 'BOOLEAN' and mod.object in cutters:
                     mod.show_viewport = not mod.show_viewport
                     mod.show_render = not mod.show_render
 
-
         # Hide Unused Cutters
         other_canvases = list_canvases()
         for obj in other_canvases:
-            if obj not in canvases:
+            if obj not in canvases + slices:
                 if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers if mod.type == 'BOOLEAN'):
                     cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
 
