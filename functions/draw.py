@@ -2,6 +2,9 @@ import bpy, gpu, mathutils, math
 from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
+
+primary_color = (0.48, 0.04, 0.04, 1.0)
+secondary_color = (0.28, 0.04, 0.04, 1.0)
 magic_number = 1.41
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -44,19 +47,16 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
 def carver_overlay(self, context):
     """Shape (rectangle, circle) overlay for carver tool"""
 
-    color = (0.48, 0.04, 0.04, 1.0)
-    secondary_color = (0.28, 0.04, 0.04, 1.0)
-
     if self.shape == 'CIRCLE':
         coords, indices, rows, columns = draw_circle(self, self.subdivision, 0)
         # coords = coords[1:] # remove_extra_vertex
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+        draw_shader(primary_color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
         if not self.rotate:
             bounds, __, __ = get_bounding_box_coords(self, coords)
-            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+            draw_shader(primary_color, 0.6, 'OUTLINE', bounds, size=2)
 
 
     elif self.shape == 'BOX':
@@ -64,10 +64,10 @@ def carver_overlay(self, context):
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+        draw_shader(primary_color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
         if (self.rotate == False) and (self.bevel == False):
             bounds, __, __ = get_bounding_box_coords(self, coords)
-            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+            draw_shader(primary_color, 0.6, 'OUTLINE', bounds, size=2)
 
 
     elif self.shape == 'POLYLINE':
@@ -75,15 +75,15 @@ def carver_overlay(self, context):
         self.verts = list(dict.fromkeys(self.mouse_path))
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
-        draw_shader(color, 1.0, 'POINTS', coords, size=5)
+        draw_shader(primary_color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
+        draw_shader(primary_color, 1.0, 'POINTS', coords, size=5)
         if self.closed and len(self.mouse_path) > 2:
             # polygon_fill
-            draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+            draw_shader(primary_color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
 
         if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
             # circle_around_first_point
-            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
+            draw_shader(primary_color, 0.8, 'OUTLINE', first_point, size=3)
 
 
     # Snapping Grid
@@ -100,6 +100,84 @@ def carver_overlay(self, context):
             draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
 
     gpu.state.blend_set('NONE')
+
+
+def carver_brush(mode, context, obj_matrix=None, location=None, normal=None, xy=None, radius=None):
+    """Draws brush circle around the cursor, 2D (view-aligned) or 3D (normal-aligned) based on raycast result"""
+    # This is a (modified) code from '3D Hair Brush' by VFX Grace (GPL license)
+
+    def draw_circle_2d(x, y, segments):
+        """Draws circle around the cursor"""
+
+        mul = (1.0 / (segments - 1)) * (math.pi * 2)
+        points_2d = [(math.sin(i * mul) + x, math.cos(i * mul) + y) for i in range(segments)]
+        points_3d = [(v[0], v[1], 0) for v in points_2d]
+
+        indices = []
+        for idx in range(len(points_3d)):
+            i1 = idx + 1
+            i2 = idx + 2 if idx + 2 <= ((360 / int(segments)) * (idx + 1)) else 1
+            indices.append((0, i1, i2))
+
+        return points_2d, points_3d, indices
+
+
+    with gpu.matrix.push_pop():
+        if mode == '3D':
+            window = context.window
+            region = context.region
+            rv3d = context.region_data
+
+            # rotation_matrix
+            obj_matrix = obj_matrix @ mathutils.Matrix.Translation(location)
+            z_axis = mathutils.Vector((0, 0, 1))
+            if abs(normal.dot(z_axis)) < 0.999:
+                perp_vector = normal.cross(z_axis).normalized()
+            else:
+                perp_vector = mathutils.Vector((1, 0, 0))
+
+            aligned_y_axis = perp_vector.cross(normal).normalized()
+            rotation_matrix = mathutils.Matrix((perp_vector, aligned_y_axis, normal)).transposed().to_4x4()
+
+
+            # Prepare Matrix
+            gpu.state.viewport_set(region.x, region.y, region.width, region.height) # constraint_gpu_viewport_to_active_3d_viewport_(editor)_bounds
+            gpu.matrix.load_identity() # load_"clean/neutral"_matrix_(no_transformations_applied_yet)
+            gpu.matrix.push_projection() # store_original_projection
+            gpu.matrix.load_projection_matrix(rv3d.window_matrix)
+            gpu.matrix.load_matrix(rv3d.view_matrix)
+
+            gpu.matrix.push()
+            gpu.matrix.multiply_matrix(obj_matrix)
+            gpu.matrix.multiply_matrix(rotation_matrix)
+            gpu.matrix.scale_uniform(radius) # scales to screen-size, disabling it makes it act like Scene-unit scale, but needs way to change radius in other way
+
+
+            # calculate_shapes_and_draw_shaders
+            __, circle_3d, __ = draw_circle_2d(0, 0, 48)
+            __, rectangle, indices = draw_circle_2d(0, 0, 5)
+
+            draw_shader(primary_color, 0.8, 'OUTLINE', circle_3d, size=3)
+            draw_shader(primary_color, 0.4, 'SOLID', rectangle, size=2, indices=indices)
+            # draw_shader(secondary_color, 0.8, 'LINES', [(0, 0, 0), (0, 0, -2)], size=2)
+
+
+            # Reset Matrix
+            gpu.matrix.pop()
+            gpu.matrix.pop_projection()
+            gpu.state.viewport_set(0, 0, window.width, window.height)
+
+
+        elif mode == '2D':
+            gpu.matrix.translate(xy)
+            gpu.matrix.scale_uniform(radius)
+
+            # calculate_shapes_and_draw_shaders
+            circle_2d, __, __ = draw_circle_2d(0, 0, 48)
+            __, rectangle, indices = draw_circle_2d(0, 0, 5)
+
+            draw_shader(primary_color, 1.0, 'OUTLINE', circle_2d, size=2)
+            draw_shader(primary_color, 0.4, 'SOLID', rectangle, size=2, indices=indices)
 
 
 def draw_polygon(self):

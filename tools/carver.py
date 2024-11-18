@@ -142,7 +142,7 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
 class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool, CarverToolshelf):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
-    bl_description = ("Boolean cut rectangular shapes into mesh objects")
+    bl_description = ("Boolean cut primitive shapes into mesh objects by drawing rectangles with cursor")
 
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
@@ -164,29 +164,29 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
     bl_context_mode = 'EDIT_MESH'
 
 
-class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
-    bl_idname = "object.carve_circle"
-    bl_label = "Circle Carve"
-    bl_description = ("Boolean cut circlular shapes into mesh objects")
+# class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverToolshelf):
+#     bl_idname = "object.carve_circle"
+#     bl_label = "Circle Carve"
+#     bl_description = ("Boolean cut circlular shapes into mesh objects")
 
-    bl_space_type = 'VIEW_3D'
-    bl_context_mode = 'OBJECT'
+#     bl_space_type = 'VIEW_3D'
+#     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_circle")
-    # bl_widget = 'VIEW3D_GGT_placement'
-    bl_keymap = (
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-        ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-    )
+#     bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_circle")
+#     # bl_widget = 'VIEW3D_GGT_placement'
+#     bl_keymap = (
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+#         ("object.carve", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
+#     )
 
-class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
-    bl_context_mode = 'EDIT_MESH'
+# class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
+#     bl_context_mode = 'EDIT_MESH'
 
 
 class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool, CarverToolshelf):
@@ -777,32 +777,10 @@ classes = [
     TOPBAR_PT_carver_cutter,
 ]
 
-main_tools = [
-    OBJECT_WT_carve_box,
-    MESH_WT_carve_box,
-]
-secondary_tools = [
-    OBJECT_WT_carve_circle,
-    OBJECT_WT_carve_polyline,
-    MESH_WT_carve_circle,
-    MESH_WT_carve_polyline,
-]
-
-
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    for tool in main_tools:
-        bpy.utils.register_tool(tool, separator=False, after="builtin.primitive_cube_add", group=True)
-    for tool in secondary_tools:
-        bpy.utils.register_tool(tool, separator=False, after="object.carve_box", group=False)
-
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
-
-    for tool in main_tools:
-        bpy.utils.unregister_tool(tool)
-    for tool in secondary_tools:
-        bpy.utils.unregister_tool(tool)
