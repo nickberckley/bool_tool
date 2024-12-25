@@ -1,26 +1,30 @@
 import bpy
 from . import (
-    carver,
-    circle,
+    carver_box,
+    carver_circle,
+    carver_polyline,
+    common,
 )
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 modules = [
-    carver,
-    # circle,
+    carver_box,
+    carver_circle,
+    carver_polyline,
+    common,
 ]
 
 main_tools = [
-    carver.OBJECT_WT_carve_box,
-    carver.MESH_WT_carve_box,
+    carver_box.OBJECT_WT_carve_box,
+    carver_box.MESH_WT_carve_box,
 ]
 secondary_tools = [
-    circle.OBJECT_WT_carve_circle,
-    circle.MESH_WT_carve_circle,
-    carver.OBJECT_WT_carve_polyline,
-    carver.MESH_WT_carve_polyline,
+    carver_circle.OBJECT_WT_carve_circle,
+    carver_circle.MESH_WT_carve_circle,
+    carver_polyline.OBJECT_WT_carve_polyline,
+    carver_polyline.MESH_WT_carve_polyline,
 ]
 
 

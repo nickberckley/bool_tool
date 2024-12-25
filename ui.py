@@ -28,9 +28,9 @@ def update_sidebar_category(self, context):
 
 def carve_menu(self, context):
     layout = self.layout
-    layout.operator("object.carve", text="Box Carve").shape='BOX'
-    layout.operator("object.carve", text="Circle Carve").shape='CIRCLE'
-    layout.operator("object.carve", text="Polyline Carve").shape='POLYLINE'
+    layout.operator("object.carve_box", text="Box Carve").shape='BOX'
+    layout.operator("object.carve_box", text="Circle Carve").shape='CIRCLE'
+    layout.operator("object.carve_polyline", text="Polyline Carve").shape='POLYLINE'
 
 
 def boolean_operators_menu(self, context):

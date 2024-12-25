@@ -44,10 +44,10 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
     gpu.state.blend_set('NONE')
 
 
-def carver_overlay(self, context):
+def carver_overlay(self, context, shape):
     """Shape (rectangle, circle) overlay for carver tool"""
 
-    if self.shape == 'CIRCLE':
+    if shape == 'CIRCLE':
         coords, indices, rows, columns = draw_circle(self, self.subdivision, 0)
         # coords = coords[1:] # remove_extra_vertex
         self.verts = coords
@@ -59,7 +59,7 @@ def carver_overlay(self, context):
             draw_shader(primary_color, 0.6, 'OUTLINE', bounds, size=2)
 
 
-    elif self.shape == 'BOX':
+    elif shape == 'BOX':
         coords, indices, rows, columns = draw_circle(self, 4, 45)
         self.verts = coords
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
@@ -70,7 +70,7 @@ def carver_overlay(self, context):
             draw_shader(primary_color, 0.6, 'OUTLINE', bounds, size=2)
 
 
-    elif self.shape == 'POLYLINE':
+    elif shape == 'POLYLINE':
         coords, indices, first_point, rows, columns = draw_polygon(self)
         self.verts = list(dict.fromkeys(self.mouse_path))
         self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
@@ -91,7 +91,7 @@ def carver_overlay(self, context):
         mini_grid(self, context)
 
     # ARRAY
-    array_shader = 'LINE_LOOP' if self.shape == 'POLYLINE' and self.closed == False else 'SOLID'
+    array_shader = 'LINE_LOOP' if shape == 'POLYLINE' and self.closed == False else 'SOLID'
     if self.rows > 1:
         for i, duplicate in rows.items():
             draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
