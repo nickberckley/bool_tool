@@ -320,18 +320,38 @@ def register():
     km = addon.keymaps.new(name="Object Mode")
 
     # brush_operators
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_union.bl_idname, 'NUMPAD_PLUS', 'PRESS', ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_difference.bl_idname, 'NUMPAD_MINUS', 'PRESS', ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_intersect.bl_idname, 'NUMPAD_ASTERIX', 'PRESS', ctrl=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_brush_slice.bl_idname, 'NUMPAD_SLASH', 'PRESS', ctrl=True)
+    kmi = km.keymap_items.new("object.boolean_brush_union", 'NUMPAD_PLUS', 'PRESS', ctrl=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_brush_difference", 'NUMPAD_MINUS', 'PRESS', ctrl=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_brush_intersect", 'NUMPAD_ASTERIX', 'PRESS', ctrl=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_brush_slice", 'NUMPAD_SLASH', 'PRESS', ctrl=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
 
     # auto_operators
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_union.bl_idname, 'NUMPAD_PLUS', 'PRESS', ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_difference.bl_idname, 'NUMPAD_MINUS', 'PRESS', ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_intersect.bl_idname, 'NUMPAD_ASTERIX', 'PRESS', ctrl=True, shift=True)
-    kmi = km.keymap_items.new(OBJECT_OT_boolean_auto_slice.bl_idname, 'NUMPAD_SLASH', 'PRESS', ctrl=True, shift=True)
+    kmi = km.keymap_items.new("object.boolean_auto_union", 'NUMPAD_PLUS', 'PRESS', ctrl=True, shift=True)
     kmi.active = True
-    addon_keymaps.append(km)
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_auto_difference", 'NUMPAD_MINUS', 'PRESS', ctrl=True, shift=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_auto_intersect", 'NUMPAD_ASTERIX', 'PRESS', ctrl=True, shift=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
+
+    kmi = km.keymap_items.new("object.boolean_auto_slice", 'NUMPAD_SLASH', 'PRESS', ctrl=True, shift=True)
+    kmi.active = True
+    addon_keymaps.append((km, kmi))
 
 
 def unregister():
@@ -339,7 +359,6 @@ def unregister():
         bpy.utils.unregister_class(cls)
 
     # KEYMAP
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()
