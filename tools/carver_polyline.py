@@ -14,7 +14,7 @@ from ..functions.select import (
 )
 
 
-### ------------------------------ TOOLS ------------------------------ ####
+#### ------------------------------ TOOLS ------------------------------ ####
 
 class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool):
     bl_idname = "object.carve_polyline"
@@ -45,12 +45,12 @@ class MESH_WT_carve_polyline(OBJECT_WT_carve_polyline):
 
 
 
-### ------------------------------ OPERATORS ------------------------------ ####
+#### ------------------------------ OPERATORS ------------------------------ ####
 
 class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operator):
     bl_idname = "object.carve_polyline"
     bl_label = "Polyline Carve"
-    bl_description = "Boolean cut custom polygonal shapes into mesh objects"
+    bl_description = "Cut custom polygonal shapes into mesh objects"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
     bl_cursor_pending = 'PICK_AREA'
 
@@ -107,12 +107,6 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
         self.modifier_snap(context, event)
         self.modifier_array(context, event)
         self.modifier_move(context, event)
-
-        # remove_last_point
-        if event.type == 'BACK_SPACE' and event.value == 'PRESS':
-            if len(self.mouse_path) > 2:
-                context.window.cursor_warp(self.mouse_path[-2][0], self.mouse_path[-2][1])
-                self.mouse_path = self.mouse_path[:-2]
 
         if event.type in {'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
                           'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9',
@@ -193,6 +187,13 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
                 return {'FINISHED'}
 
 
+        # Remove Last Point
+        if event.type == 'BACK_SPACE' and event.value == 'PRESS':
+            if len(self.mouse_path) > 2:
+                context.window.cursor_warp(int(self.mouse_path[-2][0]), int(self.mouse_path[-2][1]))
+                self.mouse_path = self.mouse_path[:-1]
+
+
         # Cancel
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.cancel(context)
@@ -202,7 +203,7 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
 
 
 
-### ------------------------------ REGISTRATION ------------------------------ ####
+#### ------------------------------ REGISTRATION ------------------------------ ####
 
 classes = [
     OBJECT_OT_carve_polyline,
@@ -213,5 +214,5 @@ def register():
         bpy.utils.register_class(cls)
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

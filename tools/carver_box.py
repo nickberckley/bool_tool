@@ -1,4 +1,4 @@
-import bpy, mathutils, math, os
+import bpy, mathutils, os
 
 from .common import (
     CarverModifierKeys,
@@ -46,38 +46,13 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
     bl_context_mode = 'EDIT_MESH'
 
 
-# class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool, CarverUserInterface):
-#     bl_idname = "object.carve_circle"
-#     bl_label = "Circle Carve"
-#     bl_description = ("Boolean cut circlular shapes into mesh objects")
-
-#     bl_space_type = 'VIEW_3D'
-#     bl_context_mode = 'OBJECT'
-
-#     bl_icon = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), "icons") , "ops.object.carver_circle")
-#     # bl_widget = 'VIEW3D_GGT_placement'
-#     bl_keymap = (
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-#         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'CIRCLE')]}),
-#     )
-
-# class MESH_WT_carve_circle(OBJECT_WT_carve_circle):
-#     bl_context_mode = 'EDIT_MESH'
-
-
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
 class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
-    bl_description = "Boolean cut square shapes into mesh objects"
+    bl_description = "Cut shapes into mesh objects with box drawing"
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
     bl_cursor_pending = 'PICK_AREA'
 
@@ -295,5 +270,5 @@ def register():
         bpy.utils.register_class(cls)
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

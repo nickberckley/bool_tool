@@ -19,12 +19,11 @@ from ..functions.select import (
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
-
 class CarverModifierKeys():
     # Snap
     def modifier_snap(self, context, event):
         self.snap = context.scene.tool_settings.use_snap
-        if (hasattr(self, "move") and self.move == False) and (hasattr(self, "rotate") and self.rotate == False):
+        if (self.move == False) and (not hasattr(self, "rotate") or (hasattr(self, "rotate") and not self.rotate)):
             # change_the_snap_increment_value_using_the_wheel_mouse
             for i, a in enumerate(context.screen.areas):
                 if a.type == 'VIEW_3D':
@@ -139,13 +138,6 @@ class CarverModifierKeys():
 
             self.position_x = self.position_y = 0
             self.initial_position = False
-
-
-        # Remove Point (Polyline)
-        if event.type == 'BACK_SPACE' and event.value == 'PRESS':
-            if len(self.mouse_path) > 2:
-                context.window.cursor_warp(self.mouse_path[-2][0], self.mouse_path[-2][1])
-                self.mouse_path = self.mouse_path[:-2]
 
 
 class CarverBase():
@@ -475,5 +467,5 @@ def register():
         bpy.utils.register_class(cls)
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
