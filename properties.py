@@ -8,27 +8,33 @@ class OBJECT_PG_booleans(bpy.types.PropertyGroup):
 
     canvas: bpy.props.BoolProperty(
         name = "Boolean Canvas",
+        options = set(),
         default = False,
     )
     cutter: bpy.props.StringProperty(
         name = "Boolean Cutter",
+        options = set(),
     )
     slice: bpy.props.BoolProperty(
         name = "Boolean Slice",
+        options = set(),
         default = False,
     )
 
     slice_of: bpy.props.PointerProperty(
         name = "Slice of...",
         type = bpy.types.Object,
+        options = set(),
     )
     carver: bpy.props.BoolProperty(
         name = "Is Carver Cutter",
+        options = set(),
         default = False,
     )
 
     cutters_active_index: bpy.props.IntProperty(
         name = "Active Cutter Index",
+        options = set(),
         default = -1,
     )
 
