@@ -435,7 +435,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
             shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
         array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
         bevel_text = ", [B]: Bevel" if self.shape == 'BOX' else ""
-        context.area.header_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + bevel_text + array_text + snap_text)
+        context.workspace.status_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + bevel_text + array_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         region_types = {'WINDOW', 'UI'}
@@ -713,7 +713,7 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     def cancel(self, context):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, 'WINDOW')
-        context.area.header_text_set(None)
+        context.workspace.status_text_set(None)
         context.window.cursor_set('DEFAULT' if context.object.mode == 'OBJECT' else 'CROSSHAIR')
 
 
