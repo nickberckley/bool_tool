@@ -387,30 +387,30 @@ class OBJECT_OT_carve(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.mode in ('OBJECT', 'EDIT_MESH')
+        return context.mode in ('OBJECT', 'EDIT_MESH') and context.area.type == 'VIEW_3D'
 
 
-    def __init__(self):
-        self.mouse_path = [(0, 0), (0, 0)]
-        self.view_vector = mathutils.Vector()
+    def invoke(self, context, event):
+        self.selected_objects = context.selected_objects
+        self.initial_selection = context.selected_objects
+        self.mouse_path = [(event.mouse_region_x, event.mouse_region_y),
+                           (event.mouse_region_x, event.mouse_region_y)]
+
+        # initialize_empty_values
         self.verts = []
         self.cutter = None
         self.duplicates = []
+        self.view_depth = mathutils.Vector()
+        self.cached_mouse_position = ()
 
-        args = (self, bpy.context)
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, args, 'WINDOW', 'POST_PIXEL')
-
-        # Modifier Keys
+        # modifier_keys
+        self.initial_origin = self.origin
+        self.initial_aspect = self.aspect
         self.snap = False
         self.move = False
         self.rotate = False
         self.gap = False
         self.bevel = False
-
-        # Cache
-        self.initial_origin = self.origin
-        self.initial_aspect = self.aspect
-        self.cached_mouse_position = ()
 
         # overlay_position
         self.position_x = 0
@@ -419,20 +419,11 @@ class OBJECT_OT_carve(bpy.types.Operator):
         self.center_origin = []
         self.distance_from_first = 0
 
-
-    def invoke(self, context, event):
-        if context.area.type != 'VIEW_3D':
-            self.report({'WARNING'}, "Carver tool can only be called from 3D viewport")
-            self.cancel(context)
-            return {'CANCELLED'}
-
-        self.selected_objects = context.selected_objects
-        self.initial_selection = context.selected_objects
-        self.mouse_path[0] = (event.mouse_region_x, event.mouse_region_y)
-        self.mouse_path[1] = (event.mouse_region_x, event.mouse_region_y)
-
+        # Add Draw Handler
+        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_overlay, (self, bpy.context), 'WINDOW', 'POST_PIXEL')
         context.window.cursor_set("MUTE")
         context.window_manager.modal_handler_add(self)
+
         return {'RUNNING_MODAL'}
 
 
