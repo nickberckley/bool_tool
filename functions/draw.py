@@ -162,10 +162,23 @@ def carver_brush(mode, context, obj_matrix=None, location=None, normal=None, xy=
             # draw_shader(secondary_color, 0.8, 'LINES', [(0, 0, 0), (0, 0, -2)], size=2)
 
 
+            # convert_vertices_to_world_space_(to_be_used_for_mesh_creation)
+            world_vertices = []
+            for vertex in rectangle:
+                screen_pos = mathutils.Vector((vertex[0] * region.width, vertex[1] * region.height))
+                world_pos = view3d_utils.region_2d_to_location_3d(region, rv3d, screen_pos, aligned_y_axis)
+                world_pos = obj_matrix @ world_pos
+                world_pos = rotation_matrix @ world_pos
+                world_pos = world_pos * radius
+                world_vertices.append(world_pos)
+
+
             # Reset Matrix
             gpu.matrix.pop()
             gpu.matrix.pop_projection()
             gpu.state.viewport_set(0, 0, window.width, window.height)
+
+            return world_vertices, indices
 
 
         elif mode == '2D':
@@ -178,6 +191,8 @@ def carver_brush(mode, context, obj_matrix=None, location=None, normal=None, xy=
 
             draw_shader(primary_color, 1.0, 'OUTLINE', circle_2d, size=2)
             draw_shader(primary_color, 0.4, 'SOLID', rectangle, size=2, indices=indices)
+
+            return
 
 
 def draw_polygon(self):

@@ -7,8 +7,8 @@ from .functions.select import(
 
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
-class ToolRuntimeData:
-    """Runtime Data for Circle Carve Tool"""
+class CarverRuntimeData:
+    """Runtime Data for Circle Carve tool"""
 
     def __init__(self):
         self.raycast = False
@@ -18,7 +18,8 @@ class ToolRuntimeData:
         self.rad_3d = 0.0
         self.brush_size = 0.0
 
-        # self.pack_source_circle = False
+        self.verts = []
+        self.indices = []
 
     def update_raycast_status(self, raycast, obj_matrix, location, normal):
         self.raycast = raycast
@@ -37,6 +38,11 @@ class ToolRuntimeData:
                 self.brush_size = brush.size
         else:
             brush.size = self.brush_size = calc_projected_radius(obj_matrix, self.loc_world, region, rv3d, wm.unprojected_radius)
+
+    def update_verts(self, wm, verts, indices):
+        self.verts = verts
+        self.indices = indices
+
 
 
 class OBJECT_PG_booleans(bpy.types.PropertyGroup):
