@@ -66,6 +66,14 @@ class ModifierProperties():
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
 
 class BrushBoolean(ModifierProperties):
+
+    def invoke(self, context, event):
+        if len(context.selected_objects) < 2:
+            self.report({'WARNING'}, "Boolean operator needs at least two objects selected")
+            return {'CANCELLED'}
+
+        return self.execute(context)
+
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
@@ -78,13 +86,13 @@ class BrushBoolean(ModifierProperties):
 
         # abort_when_linked
         if is_linked(context, canvas):
-            self.report({'ERROR'}, "Booleans can not be performed on linked objects")
+            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
             return {'CANCELLED'}
 
         # abort_when_creating_cutter/canvas_loop
         canvas_canvases = list_cutter_users([canvas])
         if any(cutter in canvas_canvases for cutter in cutters):
-            self.report({'ERROR'}, "Object can not cut its own cutter")
+            self.report({'WARNING'}, "Object can not cut its own cutter")
             cutters = [c for c in cutters if c not in canvas_canvases]
 
 
@@ -106,13 +114,6 @@ class BrushBoolean(ModifierProperties):
         canvas.booleans.canvas = True
 
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        if len(context.selected_objects) < 2:
-            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
-            return {'CANCELLED'}
-
-        return self.execute(context)
 
 
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
@@ -171,6 +172,14 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 #### ------------------------------ /auto_boolean/ ------------------------------ ####
 
 class AutoBoolean(ModifierProperties):
+
+    def invoke(self, context, event):
+        if len(context.selected_objects) < 2:
+            self.report({'WARNING'}, "Boolean operator needs at least two objects selected")
+            return {'CANCELLED'}
+
+        return self.execute(context)
+
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
 
@@ -183,7 +192,7 @@ class AutoBoolean(ModifierProperties):
 
         # abort_when_linked
         if is_linked(context, canvas):
-            self.report({'ERROR'}, "Booleans can not be performed on linked objects")
+            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
             return {'CANCELLED'}
 
 
@@ -192,7 +201,7 @@ class AutoBoolean(ModifierProperties):
             convert_to_mesh(context, canvas)
         else:
             if canvas.data.shape_keys:
-                self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
+                self.report({'WARNING'}, "Modifiers can't be applied to object with shape keys")
                 return {'CANCELLED'}
 
 
@@ -232,13 +241,6 @@ class AutoBoolean(ModifierProperties):
                 bpy.ops.object.modifier_apply(modifier=mod.name)
 
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        if len(context.selected_objects) < 2:
-            self.report({'ERROR'}, "Boolean operator needs at least two objects selected")
-            return {'CANCELLED'}
-
-        return self.execute(context)
 
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):

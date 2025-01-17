@@ -25,7 +25,7 @@ def list_candidate_objects(self, context, canvas):
     for obj in context.selected_objects:
         if obj != context.active_object and obj.type in ('MESH', 'CURVE', 'FONT'):
             if obj.library or obj.override_library:
-                self.report({'ERROR'}, f"{obj.name} is linked and can not be used as a cutter")
+                self.report({'WARNING'}, f"{obj.name} is linked and can not be used as a cutter")
 
             else:
                 if obj.type in ('CURVE', 'FONT'):
