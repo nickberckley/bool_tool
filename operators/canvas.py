@@ -82,7 +82,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
         return basic_poll(context, check_linked=True) and is_canvas(context.active_object)
 
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
 
         canvases = list_selected_canvases(context)
         cutters, __ = list_canvas_cutters(canvases)
@@ -170,7 +170,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
         if any(obj for obj in self.canvases if is_instanced_data(obj)):
             return context.window_manager.invoke_confirm(self, event,
-                                                        title="Apply Boolean Cutter", confirm_text="Yes", icon='WARNING',
+                                                        title="Apply Boolean Cutters", confirm_text="Yes", icon='WARNING',
                                                         message=("Canvas object(s) have instanced object data.\n"
                                                                  "In order to apply modifiers, they need to be made single-user.\n"
                                                                  "Do you proceed?"))
@@ -179,7 +179,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
 
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
 
         cutters, __ = list_canvas_cutters(self.canvases)
         slices = list_canvas_slices(self.canvases)
@@ -266,7 +266,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP

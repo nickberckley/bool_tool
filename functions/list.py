@@ -1,5 +1,4 @@
 import bpy
-from .. import __package__ as base_package
 from .object import convert_to_mesh
 
 
@@ -7,6 +6,7 @@ from .object import convert_to_mesh
 
 def list_canvases():
     """List all canvases in the scene"""
+
     canvas = []
     for obj in bpy.context.scene.objects:
         if obj.booleans.canvas:
@@ -25,7 +25,7 @@ def list_candidate_objects(self, context, canvas):
     for obj in context.selected_objects:
         if obj != context.active_object and obj.type in ('MESH', 'CURVE', 'FONT'):
             if obj.library or obj.override_library:
-                self.report({'WARNING'}, f"{obj.name} is linked and can not be used as a cutter")
+                self.report({'ERROR'}, f"{obj.name} is linked and can not be used as a cutter")
 
             else:
                 if obj.type in ('CURVE', 'FONT'):
@@ -34,8 +34,15 @@ def list_candidate_objects(self, context, canvas):
                         cutters.append(obj)
 
                 else:
-                    if (obj.booleans.cutter == "") or (canvas not in list_cutter_users([obj])):
-                        cutters.append(obj)
+                    # exclude_if_object_is_already_a_cutter_for_canvas
+                    if canvas in list_cutter_users([obj]):
+                        continue
+                    # exclude_if_canvas_is_cutting_the_object_(avoid_dependancy_loop)
+                    if obj in list_cutter_users([canvas]):
+                        self.report({'WARNING'}, f"{obj.name} can not cut its own cutter (dependancy loop)")
+                        continue
+
+                    cutters.append(obj)
 
     return cutters
 
@@ -114,11 +121,18 @@ def list_cutter_users(cutters):
     """List canvases that use specified cutters"""
 
     cutter_users = []
-    canvases = list_canvases()
-    for obj in canvases:
-        for mod in obj.modifiers:
-            if mod.type == 'BOOLEAN' and mod.object in cutters:
-                cutter_users.append(obj)
+
+    for cutter in cutters:
+        object = bpy.data.objects.get(cutter.name)
+
+        for key, values in bpy.data.user_map(subset=[object]).items():
+            for value in values:
+                # filter_only_object_type_users
+                if value.id_type == 'OBJECT':
+                    for mod in value.modifiers:
+                        if mod.type == 'BOOLEAN':
+                            if mod.object and mod.object == cutter:
+                                cutter_users.append(value)
 
     return cutter_users
 

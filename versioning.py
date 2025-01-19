@@ -1,6 +1,8 @@
 import bpy
 
 
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
 @bpy.app.handlers.persistent
 def populate_boolean_properties(scene):
     prefs = bpy.context.preferences.addons[__package__].preferences
@@ -9,7 +11,7 @@ def populate_boolean_properties(scene):
             if not obj.get("BoolToolRoot"):
                 continue
 
-            # convert_canvas
+            # Convert Canvas
             if obj.get("BoolToolRoot"):
                 obj.booleans.canvas = True
                 del obj["BoolToolRoot"]
@@ -21,6 +23,7 @@ def populate_boolean_properties(scene):
                         mod.name = "boolean_" + mod.object.name
                         cutter = mod.object
 
+                        # Convert Canvases
                         if cutter.get("BoolToolBrush"):
                             cutter.booleans.cutter = cutter.get("BoolToolBrush")
                             del cutter["BoolToolBrush"]

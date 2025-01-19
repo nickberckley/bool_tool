@@ -51,7 +51,7 @@ class ModifierProperties():
     )
 
     def draw(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
 
         layout = self.layout
         layout.use_property_split = True
@@ -70,47 +70,38 @@ class ModifierProperties():
 class BrushBoolean(ModifierProperties):
 
     def invoke(self, context, event):
+        # abort_when_no_selected_objects
         if len(context.selected_objects) < 2:
-            self.report({'WARNING'}, "Boolean operator needs at least two objects selected")
+            self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
+            return {'CANCELLED'}
+
+        # abort_when_linked
+        if is_linked(context, context.active_object):
+            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
+            return {'CANCELLED'}
+
+        self.cutters = list_candidate_objects(self, context, context.active_object)
+        if len(self.cutters) == 0:
             return {'CANCELLED'}
 
         return self.execute(context)
 
+
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
-
+        prefs = context.preferences.addons[base_package].preferences
         canvas = context.active_object
-        cutters = list_candidate_objects(self, context, canvas)
 
-        # abort_when_no_candidate_objects
-        if len(cutters) == 0:
-            return {'CANCELLED'}
+        # Create Slices
+        if self.mode == "SLICE":
+            for cutter in self.cutters:
+                """NOTE: Slices need to be created in separate loop to avoid inheriting boolean modifiers that operator adds"""
+                slice = create_slice(context, canvas, modifier=True)
+                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver)
 
-        # abort_when_linked
-        if is_linked(context, canvas):
-            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
-            return {'CANCELLED'}
-
-        # abort_when_creating_cutter/canvas_loop
-        canvas_canvases = list_cutter_users([canvas])
-        if any(cutter in canvas_canvases for cutter in cutters):
-            self.report({'WARNING'}, "Object can not cut its own cutter")
-            cutters = [c for c in cutters if c not in canvas_canvases]
-
-
-        for cutter in cutters:
+        for cutter in self.cutters:
             set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent, collection=prefs.use_collection)
             add_boolean_modifier(self, context, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
-        if self.mode == "SLICE":
-            # Create Slices
-            slices = []
-            for i in range(len(cutters)):
-                create_slice(context, canvas, slices, modifier=True)
-
-            # add_modifiers_on_slices
-            for cutter, slice in zip(cutters, slices):
-                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver)
 
         context.view_layer.objects.active = canvas
         canvas.booleans.canvas = True
@@ -176,13 +167,24 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 class AutoBoolean(ModifierProperties):
 
     def invoke(self, context, event):
+        # abort_when_no_selected_objects
         if len(context.selected_objects) < 2:
-            self.report({'WARNING'}, "Boolean operator needs at least two objects selected")
+            self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
+            return {'CANCELLED'}
+
+        # abort_when_linked
+        if is_linked(context, context.active_object):
+            self.report({'ERROR'}, "Modifiers can't be applied to linked object")
             return {'CANCELLED'}
         
+        self.cutters = list_candidate_objects(self, context, context.active_object)
+        if len(self.cutters) == 0:
+            return {'CANCELLED'}
+
+
         if is_instanced_data(context.active_object):
             return context.window_manager.invoke_confirm(self, event,
-                                                        title="Apply Boolean Cutter", confirm_text="Yes", icon='WARNING',
+                                                        title="Auto Boolean", confirm_text="Yes", icon='WARNING',
                                                         message=("Canvas object has instanced object data.\n"
                                                                  "In order to apply modifiers, it needs to be made single-user.\n"
                                                                  "Do you proceed?"))
@@ -191,49 +193,33 @@ class AutoBoolean(ModifierProperties):
 
 
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
-
+        prefs = context.preferences.addons[base_package].preferences
         canvas = context.active_object
-        cutters = list_candidate_objects(self, context, canvas)
-
-        # abort_when_no_candidate_objects
-        if len(cutters) == 0:
-            return {'CANCELLED'}
-
-        # abort_when_linked
-        if is_linked(context, canvas):
-            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
-            return {'CANCELLED'}
-
 
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
             convert_to_mesh(context, canvas)
         else:
             if canvas.data.shape_keys:
-                self.report({'WARNING'}, "Modifiers can't be applied to object with shape keys")
+                self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
                 return {'CANCELLED'}
 
 
+        # Create Slices
         if self.mode == "SLICE":
-            # Create Slices
-            slices = []
-            for i in range(len(cutters)):
-                create_slice(context, canvas, slices)
-
-            for cutter, slice in zip(cutters, slices):
-                # add_modifiers_to_slices
+            for cutter in self.cutters:
+                """NOTE: Slices need to be created in separate loop to avoid inheriting boolean modifiers that operator adds"""
+                slice = create_slice(context, canvas)
                 add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, apply=True, single_user=True)
 
 
-        for cutter in cutters:
-            # Add Modifier
+        for cutter in self.cutters:
+            # Add Modifier (& Apply)
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin, single_user=True)
 
             # Transfer Children
-            children = [obj for obj in cutter.children]
-            for child in children:
+            for child in cutter.children:
                 change_parent(child, canvas)
 
             # Delete Cutter
@@ -244,7 +230,7 @@ class AutoBoolean(ModifierProperties):
                 context.view_layer.objects.active = slice
 
 
-        # remove_modifiers_before_final_boolean
+        # apply_modifiers_before_final_boolean
         if prefs.apply_order == 'BEFORE' and prefs.pin:
             modifiers = list_pre_boolean_modifiers(canvas)
             for mod in modifiers:
@@ -367,7 +353,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP

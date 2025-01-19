@@ -121,7 +121,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
         return basic_poll(context, check_linked=True)
 
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
         leftovers = []
 
         if self.method == 'SPECIFIED':
@@ -342,7 +342,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP

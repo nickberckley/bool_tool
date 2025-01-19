@@ -3,27 +3,6 @@ from .functions.poll import is_canvas
 from .functions.list import list_canvas_cutters
 
 
-#### ------------------------------ FUNCTIONS ------------------------------ ####
-
-def update_sidebar_category(self, context):
-    try:
-        bpy.utils.unregister_class(VIEW3D_PT_boolean)
-        bpy.utils.unregister_class(VIEW3D_PT_boolean_properties)
-        bpy.utils.unregister_class(VIEW3D_PT_boolean_cutters)
-    except:
-        pass
-
-    VIEW3D_PT_boolean.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean)
-
-    VIEW3D_PT_boolean_properties.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean_properties)
-
-    VIEW3D_PT_boolean_cutters.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean_cutters)
-
-
-
 #### ------------------------------ /ui/ ------------------------------ ####
 
 def carve_menu(self, context):
@@ -75,7 +54,7 @@ def boolean_extras_menu(self, context):
 
 
 
-#### ------------------------------ /panels/ ------------------------------ ####
+#### ------------------------------ PANELS ------------------------------ ####
 
 # Boolean Operators Panel
 class VIEW3D_PT_boolean(bpy.types.Panel):
@@ -88,7 +67,7 @@ class VIEW3D_PT_boolean(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
+        prefs = context.preferences.addons[__package__].preferences
         return prefs.show_in_sidebar
 
     def draw(self, context):
@@ -106,9 +85,17 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
-        return (prefs.show_in_sidebar and context.active_object
-                    and (is_canvas(context.active_object) or context.active_object.booleans.cutter))
+        prefs = context.preferences.addons[__package__].preferences
+        if prefs.show_in_sidebar:
+            if context.active_object:
+                if is_canvas(context.active_object) or context.active_object.booleans.cutter:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
     def draw(self, context):
         boolean_extras_menu(self, context)
@@ -125,8 +112,17 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
-        return prefs.show_in_sidebar and context.active_object and is_canvas(context.active_object)
+        prefs = context.preferences.addons[__package__].preferences
+        if prefs.show_in_sidebar:
+            if context.active_object:
+                if is_canvas(context.active_object):
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
     def draw(self, context):
         layout = self.layout
@@ -167,7 +163,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
 
 
-#### ------------------------------ /menus/ ------------------------------ ####
+#### ------------------------------ MENUS ------------------------------ ####
 
 # Carve Menu
 class VIEW3D_MT_carve(bpy.types.Menu):
@@ -244,9 +240,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    prefs = bpy.context.preferences.addons[__package__].preferences
-    update_sidebar_category(prefs, bpy.context)
-
     # MENU
     bpy.types.VIEW3D_MT_object.append(object_mode_menu)
     bpy.types.VIEW3D_MT_select_object.append(boolean_select_menu)
@@ -263,7 +256,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # MENU

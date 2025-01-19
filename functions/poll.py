@@ -19,10 +19,15 @@ def is_linked(context, obj=None):
         obj = context.active_object
 
     if obj not in context.editable_objects:
-        return True
-    else:
-        if obj.library or obj.override_library:
+        if obj.library:
             return True
+        else:
+            return False
+    else:
+        if obj.override_library:
+            return True
+        else:
+            return False
 
 
 def is_canvas(obj):

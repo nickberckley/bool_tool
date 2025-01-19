@@ -71,7 +71,7 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
         return (basic_poll(context) and active_modifier_poll(context) and
                 context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER' and
                 prefs.double_click)
@@ -114,7 +114,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP

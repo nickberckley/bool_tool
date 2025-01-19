@@ -32,12 +32,6 @@ class OBJECT_PG_booleans(bpy.types.PropertyGroup):
         default = False,
     )
 
-    cutters_active_index: bpy.props.IntProperty(
-        name = "Active Cutter Index",
-        options = set(),
-        default = -1,
-    )
-
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
@@ -55,7 +49,7 @@ def register():
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # PROPERTY

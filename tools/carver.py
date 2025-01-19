@@ -51,7 +51,7 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         layout = self.layout
         layout.use_property_split = True
 
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
         mode = "OBJECT" if context.object.mode == 'OBJECT' else "EDIT_MESH"
         tool = context.workspace.tools.from_space_view3d_mode(mode, create=False)
         op = tool.operator_properties("object.carve")

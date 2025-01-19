@@ -23,9 +23,11 @@ modules = [
 def register():
     for module in modules:
         module.register()
-    
+
     operators_register()
     tools_register()
+
+    preferences.update_sidebar_category(bpy.context.preferences.addons[__package__].preferences, bpy.context)
 
 
 def unregister():
