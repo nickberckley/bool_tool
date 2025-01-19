@@ -634,7 +634,6 @@ class OBJECT_OT_carve(bpy.types.Operator):
                         obj.select_set(True)
 
                     if len(self.selected_objects) == 0:
-                        self.report({'INFO'}, "Only selected objects can be carved")
                         self.cancel(context)
                         return {'FINISHED'}
                 else:
