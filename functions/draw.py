@@ -16,14 +16,21 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         gpu.state.point_size_set(size)
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
+        batch = batch_for_shader(shader, 'POINTS', {"pos": coords}, indices=indices)
 
-    elif type in ('LINES', 'LINE_LOOP'):
+    elif type in 'LINES':
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
         shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
         shader.uniform_float("lineWidth", size)
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
+        batch = batch_for_shader(shader, 'LINES', {"pos": coords}, indices=indices)
+
+    elif type in 'LINE_LOOP':
+        shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
+        shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
+        shader.uniform_float("lineWidth", size)
+        shader.uniform_float("color", (color[0], color[1], color[2], alpha))
+        batch = batch_for_shader(shader, 'LINE_LOOP', {"pos": coords})
 
     if type == 'SOLID':
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
