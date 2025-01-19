@@ -35,6 +35,7 @@ def carve_menu(self, context):
 
 def boolean_operators_menu(self, context):
     layout = self.layout
+    layout.operator_context = 'INVOKE_DEFAULT'
     col = layout.column(align=True)
 
     col.label(text="Auto Boolean")
@@ -53,6 +54,7 @@ def boolean_operators_menu(self, context):
 
 def boolean_extras_menu(self, context):
     layout = self.layout
+    layout.operator_context = 'INVOKE_DEFAULT'
     col = layout.column(align=True)
 
     if context.active_object:
