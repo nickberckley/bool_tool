@@ -109,6 +109,8 @@ def selection_fallback(self, context, objects, include_cutters=False):
             continue
         if obj == self.cutter:
             continue
+        if tuple(round(v, 4) for v in obj.dimensions) == (0.0, 0.0, 0.0):
+            continue
         if (include_cutters == False) and obj.booleans.cutter != "":
             continue
         if is_linked(context, obj):
