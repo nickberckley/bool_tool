@@ -737,9 +737,9 @@ class OBJECT_OT_carve(bpy.types.Operator):
         # Add Modifier
         for obj in self.selected_objects:
             if self.mode == 'DESTRUCTIVE':
-                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", self.solver, apply=True, pin=self.pin, redo=False)
+                add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, apply=True, pin=self.pin, redo=False)
             elif self.mode == 'MODIFIER':
-                add_boolean_modifier(self, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
+                add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
                 obj.booleans.canvas = True
 
         if self.mode == 'DESTRUCTIVE':

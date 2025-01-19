@@ -36,6 +36,24 @@ def is_canvas(obj):
             return False
 
 
+def is_instanced_data(obj):
+    """Checks if obj.data has more than one users, i.e. is instanced"""
+    """Function only considers object types as users, and excludes pointers"""
+
+    data = bpy.data.meshes.get(obj.data.name)
+    users = 0
+
+    for key, values in bpy.data.user_map(subset=[data]).items():
+        for value in values:
+            if value.id_type == 'OBJECT':
+                users += 1
+
+    if users > 1:
+        return True
+    else:
+        return False
+
+
 def active_modifier_poll(context):
     """Checks whether the active modifier for active object is a boolean"""
 

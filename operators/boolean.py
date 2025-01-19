@@ -4,8 +4,10 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
     is_linked,
+    is_instanced_data,
 )
 from ..functions.object import (
+    apply_modifier,
     convert_to_mesh,
     add_boolean_modifier,
     set_cutter_properties,
@@ -98,7 +100,7 @@ class BrushBoolean(ModifierProperties):
 
         for cutter in cutters:
             set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent, collection=prefs.use_collection)
-            add_boolean_modifier(self, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
+            add_boolean_modifier(self, context, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
 
         if self.mode == "SLICE":
             # Create Slices
@@ -108,7 +110,7 @@ class BrushBoolean(ModifierProperties):
 
             # add_modifiers_on_slices
             for cutter, slice in zip(cutters, slices):
-                add_boolean_modifier(self, slice, cutter, "INTERSECT", prefs.solver)
+                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver)
 
         context.view_layer.objects.active = canvas
         canvas.booleans.canvas = True
@@ -177,8 +179,16 @@ class AutoBoolean(ModifierProperties):
         if len(context.selected_objects) < 2:
             self.report({'WARNING'}, "Boolean operator needs at least two objects selected")
             return {'CANCELLED'}
+        
+        if is_instanced_data(context.active_object):
+            return context.window_manager.invoke_confirm(self, event,
+                                                        title="Apply Boolean Cutter", confirm_text="Yes", icon='WARNING',
+                                                        message=("Canvas object has instanced object data.\n"
+                                                                 "In order to apply modifiers, it needs to be made single-user.\n"
+                                                                 "Do you proceed?"))
+        else:
+            return self.execute(context)
 
-        return self.execute(context)
 
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
@@ -213,13 +223,13 @@ class AutoBoolean(ModifierProperties):
 
             for cutter, slice in zip(cutters, slices):
                 # add_modifiers_to_slices
-                add_boolean_modifier(self, slice, cutter, "INTERSECT", prefs.solver, apply=True)
+                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, apply=True, single_user=True)
 
 
         for cutter in cutters:
             # Add Modifier
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            add_boolean_modifier(self, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin)
+            add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin, single_user=True)
 
             # Transfer Children
             children = [obj for obj in cutter.children]
@@ -238,7 +248,7 @@ class AutoBoolean(ModifierProperties):
         if prefs.apply_order == 'BEFORE' and prefs.pin:
             modifiers = list_pre_boolean_modifiers(canvas)
             for mod in modifiers:
-                bpy.ops.object.modifier_apply(modifier=mod.name)
+                apply_modifier(context, canvas, mod, single_user=True)
 
         return {'FINISHED'}
 

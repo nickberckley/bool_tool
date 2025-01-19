@@ -4,7 +4,7 @@ from .. import __package__ as base_package
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=False, redo=True):
+def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=False, pin=False, redo=True, single_user=False):
     "Adds boolean modifier with specified cutter and properties to a single object"
 
     prefs = bpy.context.preferences.addons[base_package].preferences
@@ -64,7 +64,21 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
         else:
             context_override = {'object': canvas, 'mode': 'OBJECT'}
             with bpy.context.temp_override(**context_override):
-                bpy.ops.object.modifier_apply(modifier=modifier.name)
+                apply_modifier(context, canvas, modifier, single_user=single_user)
+
+
+def apply_modifier(context, obj, modifier, single_user=False):
+    """Applies given modifier to object."""
+
+    context.view_layer.objects.active = obj
+
+    try:
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+    except:
+        if single_user:
+            # Make Single User
+            context.active_object.data = context.active_object.data.copy()
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
 def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False, collection=True):
