@@ -291,8 +291,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
             for cutter in unused_cutters:
                 # Transfer Children
-                children = [obj for obj in cutter.children]
-                for child in children:
+                for child in cutter.children:
                     change_parent(child, cutter.parent)
 
                 # Purge Orphaned Cutters

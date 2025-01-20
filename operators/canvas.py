@@ -215,13 +215,12 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
         purged_cutters = []
         for cutter in unused_cutters:
-            # Transfer Children
-            children = [obj for obj in cutter.children]
-            for child in children:
-                change_parent(child, cutter.parent)
-
-            # purge
             if cutter not in purged_cutters:
+                # Transfer Children
+                for child in cutter.children:
+                    change_parent(child, cutter.parent)
+
+                # Purge
                 delete_cutter(cutter)
                 purged_cutters.append(cutter)
 
