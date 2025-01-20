@@ -4,6 +4,7 @@ import bpy
 from .operators import register as operators_register, unregister as operators_unregister
 from .tools import register as tools_register, unregister as tools_unregister
 from . import (
+    manual,
     preferences,
     properties,
     ui,
@@ -14,6 +15,7 @@ from . import (
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 modules = [
+    manual,
     preferences,
     properties,
     ui,
