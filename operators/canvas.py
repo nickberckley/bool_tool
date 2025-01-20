@@ -114,11 +114,11 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
                 delete_cutter(cutter)
             else:
                 # restore_visibility
-                cutter.display_type = 'TEXTURED'
-                object_visibility_set(cutter, value=True)
                 cutter.hide_render = False
-                if cutter.booleans.cutter:
-                    cutter.booleans.cutter = ""
+                cutter.display_type = 'TEXTURED'
+                cutter.lineart.usage = 'INHERIT'
+                object_visibility_set(cutter, value=True)
+                cutter.booleans.cutter = ""
 
                 # remove_parent_&_collection
                 if prefs.parent and cutter.parent in canvases:

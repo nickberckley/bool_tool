@@ -89,6 +89,7 @@ def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False
     # Hide Cutters
     cutter.hide_render = True
     cutter.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
+    cutter.lineart.usage = 'EXCLUDE'
     object_visibility_set(cutter, value=False)
     if hide:
         cutter.hide_set(True)

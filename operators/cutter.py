@@ -166,9 +166,10 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                     delete_cutter(cutter)
                 else:
                     # restore_visibility
-                    cutter.display_type = 'TEXTURED'
-                    object_visibility_set(cutter, value=True)
                     cutter.hide_render = False
+                    cutter.display_type = 'TEXTURED'
+                    cutter.lineart.usage = 'INHERIT'
+                    object_visibility_set(cutter, value=True)
                     cutter.booleans.cutter = ""
 
                     # remove_parent_&_collection
