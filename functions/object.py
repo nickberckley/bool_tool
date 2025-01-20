@@ -175,7 +175,8 @@ def delete_cutter(cutter):
 
     orphaned_mesh = cutter.data
     bpy.data.objects.remove(cutter)
-    bpy.data.meshes.remove(orphaned_mesh)
+    if orphaned_mesh.users == 0:
+        bpy.data.meshes.remove(orphaned_mesh)
 
 
 def change_parent(object, parent):
