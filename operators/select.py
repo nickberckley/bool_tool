@@ -71,7 +71,7 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
         return (basic_poll(context) and active_modifier_poll(context) and
                 context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER' and
                 prefs.double_click)
@@ -99,6 +99,7 @@ classes = [
     OBJECT_OT_boolean_select_cutter,
 ]
 
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -106,16 +107,17 @@ def register():
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Property Editor", space_type='PROPERTIES')
+
     kmi = km.keymap_items.new("object.boolean_select_cutter", type='LEFTMOUSE', value='DOUBLE_CLICK')
     kmi.active = True
-    addon_keymaps.append(km)
+    addon_keymaps.append((km, kmi))
+
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()

@@ -19,14 +19,21 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         gpu.state.point_size_set(size)
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
+        batch = batch_for_shader(shader, 'POINTS', {"pos": coords}, indices=indices)
 
-    elif type in ('LINES', 'LINE_LOOP'):
+    elif type in 'LINES':
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
         shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
         shader.uniform_float("lineWidth", size)
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, type, {"pos": coords}, indices=indices)
+        batch = batch_for_shader(shader, 'LINES', {"pos": coords}, indices=indices)
+
+    elif type in 'LINE_LOOP':
+        shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
+        shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
+        shader.uniform_float("lineWidth", size)
+        shader.uniform_float("color", (color[0], color[1], color[2], alpha))
+        batch = batch_for_shader(shader, 'LINE_LOOP', {"pos": coords})
 
     if type == 'SOLID':
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
@@ -353,24 +360,27 @@ def mini_grid(self, context):
 def get_bounding_box_coords(self, verts):
     """Calculates the bounding box coordinates from a list of vertices in a counter-clockwise order"""
 
-    min_x = min(v[0] for v in verts)
-    max_x = max(v[0] for v in verts)
-    min_y = min(v[1] for v in verts)
-    max_y = max(v[1] for v in verts)
-    self.center_origin = [(min_x, min_y), (max_x, max_y)]
+    if verts:
+        min_x = min(v[0] for v in verts)
+        max_x = max(v[0] for v in verts)
+        min_y = min(v[1] for v in verts)
+        max_y = max(v[1] for v in verts)
+        self.center_origin = [(min_x, min_y), (max_x, max_y)]
 
-    bounding_box_coords = [
-        mathutils.Vector((min_x, min_y, 0)),  # bottom-left
-        mathutils.Vector((max_x, min_y, 0)),  # bottom-right
-        mathutils.Vector((max_x, max_y, 0)),  # top-right
-        mathutils.Vector((min_x, max_y, 0)),  # top-left
-        mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
-    ]
+        bounding_box_coords = [
+            mathutils.Vector((min_x, min_y, 0)),  # bottom-left
+            mathutils.Vector((max_x, min_y, 0)),  # bottom-right
+            mathutils.Vector((max_x, max_y, 0)),  # top-right
+            mathutils.Vector((min_x, max_y, 0)),  # top-left
+            mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
+        ]
 
-    width = max_x - min_x
-    height = max_y - min_y
+        width = max_x - min_x
+        height = max_y - min_y
 
-    return bounding_box_coords, width, height
+        return bounding_box_coords, width, height
+    else:
+        return None, None, None
 
 
 def array(self, verts):

@@ -3,27 +3,6 @@ from .functions.poll import is_canvas
 from .functions.list import list_canvas_cutters
 
 
-#### ------------------------------ FUNCTIONS ------------------------------ ####
-
-def update_sidebar_category(self, context):
-    try:
-        bpy.utils.unregister_class(VIEW3D_PT_boolean)
-        bpy.utils.unregister_class(VIEW3D_PT_boolean_properties)
-        bpy.utils.unregister_class(VIEW3D_PT_boolean_cutters)
-    except:
-        pass
-
-    VIEW3D_PT_boolean.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean)
-
-    VIEW3D_PT_boolean_properties.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean_properties)
-
-    VIEW3D_PT_boolean_cutters.bl_category = self.sidebar_category
-    bpy.utils.register_class(VIEW3D_PT_boolean_cutters)
-
-
-
 #### ------------------------------ /ui/ ------------------------------ ####
 
 def carve_menu(self, context):
@@ -35,6 +14,7 @@ def carve_menu(self, context):
 
 def boolean_operators_menu(self, context):
     layout = self.layout
+    layout.operator_context = 'INVOKE_DEFAULT'
     col = layout.column(align=True)
 
     col.label(text="Auto Boolean")
@@ -53,6 +33,7 @@ def boolean_operators_menu(self, context):
 
 def boolean_extras_menu(self, context):
     layout = self.layout
+    layout.operator_context = 'INVOKE_DEFAULT'
     col = layout.column(align=True)
 
     if context.active_object:
@@ -73,7 +54,7 @@ def boolean_extras_menu(self, context):
 
 
 
-#### ------------------------------ /panels/ ------------------------------ ####
+#### ------------------------------ PANELS ------------------------------ ####
 
 # Boolean Operators Panel
 class VIEW3D_PT_boolean(bpy.types.Panel):
@@ -86,7 +67,7 @@ class VIEW3D_PT_boolean(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
+        prefs = context.preferences.addons[__package__].preferences
         return prefs.show_in_sidebar
 
     def draw(self, context):
@@ -104,9 +85,17 @@ class VIEW3D_PT_boolean_properties(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
-        return (prefs.show_in_sidebar and context.active_object
-                    and (is_canvas(context.active_object) or context.active_object.booleans.cutter))
+        prefs = context.preferences.addons[__package__].preferences
+        if prefs.show_in_sidebar:
+            if context.active_object:
+                if is_canvas(context.active_object) or context.active_object.booleans.cutter:
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
     def draw(self, context):
         boolean_extras_menu(self, context)
@@ -123,8 +112,17 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        prefs = bpy.context.preferences.addons[__package__].preferences
-        return prefs.show_in_sidebar and context.active_object and is_canvas(context.active_object)
+        prefs = context.preferences.addons[__package__].preferences
+        if prefs.show_in_sidebar:
+            if context.active_object:
+                if is_canvas(context.active_object):
+                    return True
+                else:
+                    return False
+            else:
+                return False
+        else:
+            return False
 
     def draw(self, context):
         layout = self.layout
@@ -165,7 +163,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
 
 
 
-#### ------------------------------ /menus/ ------------------------------ ####
+#### ------------------------------ MENUS ------------------------------ ####
 
 # Carve Menu
 class VIEW3D_MT_carve(bpy.types.Menu):
@@ -242,9 +240,6 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    prefs = bpy.context.preferences.addons[__package__].preferences
-    update_sidebar_category(prefs, bpy.context)
-
     # MENU
     bpy.types.VIEW3D_MT_object.append(object_mode_menu)
     bpy.types.VIEW3D_MT_select_object.append(boolean_select_menu)
@@ -253,14 +248,15 @@ def register():
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
+
     kmi = km.keymap_items.new("wm.call_menu", 'B', 'PRESS', ctrl=True, shift=True)
     kmi.properties.name = "VIEW3D_MT_boolean_popup"
     kmi.active = True
-    addon_keymaps.append(km)
+    addon_keymaps.append((km, kmi))
 
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # MENU
@@ -269,7 +265,6 @@ def unregister():
     bpy.types.VIEW3D_MT_edit_mesh.remove(edit_mode_menu)
 
     # KEYMAP
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()

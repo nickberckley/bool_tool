@@ -3,8 +3,10 @@ from .. import __package__ as base_package
 
 from ..functions.poll import (
     basic_poll,
+    is_instanced_data,
 )
 from ..functions.object import (
+    apply_modifier,
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
@@ -119,7 +121,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
         return basic_poll(context, check_linked=True)
 
     def execute(self, context):
-        prefs = bpy.context.preferences.addons[base_package].preferences
+        prefs = context.preferences.addons[base_package].preferences
         leftovers = []
 
         if self.method == 'SPECIFIED':
@@ -164,9 +166,10 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                     delete_cutter(cutter)
                 else:
                     # restore_visibility
-                    cutter.display_type = 'TEXTURED'
-                    object_visibility_set(cutter, value=True)
                     cutter.hide_render = False
+                    cutter.display_type = 'TEXTURED'
+                    cutter.lineart.usage = 'INHERIT'
+                    object_visibility_set(cutter, value=True)
                     cutter.booleans.cutter = ""
 
                     # remove_parent_&_collection
@@ -219,41 +222,54 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
     def poll(cls, context):
         return basic_poll(context, check_linked=True)
 
+
+    def invoke(self, context, event):
+        # Filter Objects
+        if self.method == 'SPECIFIED':
+            self.cutters = [context.scene.objects[self.specified_cutter]]
+            self.canvases = [context.scene.objects[self.specified_canvas]]
+            self.slices = list_canvas_slices(self.canvases)
+
+        elif self.method == 'ALL':
+            self.cutters = list_selected_cutters(context)
+            self.canvases = []
+
+            for obj in list_cutter_users(self.cutters):
+                # excude_canvases_with_shape_keys
+                if obj.data.shape_keys:
+                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
+                    continue
+
+                self.canvases.append(obj)
+
+
+        if any(obj for obj in self.canvases if is_instanced_data(obj)):
+            return context.window_manager.invoke_confirm(self, event,
+                                                        title="Apply Boolean Cutter", confirm_text="Yes", icon='WARNING',
+                                                        message=("Canvas object(s) have instanced object data.\n"
+                                                                 "In order to apply modifiers, they need to be made single-user.\n"
+                                                                 "Do you proceed?"))
+        else:
+            return self.execute(context)
+
+
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
         leftovers = []
 
-        if self.method == 'SPECIFIED':
-            canvases = [context.scene.objects[self.specified_canvas]]
-            cutters = [context.scene.objects[self.specified_cutter]]
-            slices = list_canvas_slices(canvases)
-        elif self.method == 'ALL':
-            cutters = list_selected_cutters(context)
-            canvases = list_cutter_users(cutters)
-
-        # cancel_when_canvas_has_shape_keys
-        for canvas in canvases:
-            if canvas.data.shape_keys:
-                self.report({'ERROR'}, f"Modifiers can't be applied to {canvas.name} because it has shape keys")
-                return {'CANCELLED'}
-
-
-        if cutters:
-            for cutter in cutters:
+        if self.cutters:
+            for cutter in self.cutters:
                 for face in cutter.data.polygons:
                     face.select = True
 
             # Apply Modifiers
-            for canvas in canvases:
+            for canvas in self.canvases:
                 context.view_layer.objects.active = canvas
+
                 for mod in canvas.modifiers:
                     if "boolean_" in mod.name:
-                        if mod.object in cutters:
-                            try:
-                                bpy.ops.object.modifier_apply(modifier=mod.name)
-                            except:
-                                context.active_object.data = context.active_object.data.copy()
-                                bpy.ops.object.modifier_apply(modifier=mod.name)
+                        if mod.object in self.cutters:
+                            apply_modifier(context, canvas, mod, single_user=True)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([canvas])
@@ -264,19 +280,18 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
             if self.method == 'SPECIFIED':
                 # Apply Modifier for Slices (for_specified_method)
-                for slice in slices:
+                for slice in self.slices:
                     for mod in slice.modifiers:
-                        if mod.type == 'BOOLEAN' and mod.object in cutters:
-                            context.view_layer.objects.active = slice
-                            bpy.ops.object.modifier_apply(modifier=mod.name)
-
-                cutters, leftovers = list_unused_cutters(cutters, canvases, do_leftovers=True)
+                        if mod.type == 'BOOLEAN' and mod.object in self.cutters:
+                            apply_modifier(context, slice, mod, single_user=True)
 
 
-            for cutter in cutters:
+            unused_cutters, leftovers = list_unused_cutters(self.cutters, self.canvases, do_leftovers=True)
+
+
+            for cutter in unused_cutters:
                 # Transfer Children
-                children = [obj for obj in cutter.children]
-                for child in children:
+                for child in cutter.children:
                     change_parent(child, cutter.parent)
 
                 # Purge Orphaned Cutters
@@ -290,7 +305,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             # Change Leftover Cutter Parent
             if prefs.parent and leftovers != None:
                 for cutter in leftovers:
-                    if cutter.parent in canvases:
+                    if cutter.parent in self.canvases:
                         other_canvases = list_cutter_users([cutter])
                         change_parent(cutter, other_canvases[0])
 
@@ -311,6 +326,7 @@ classes = [
     OBJECT_OT_boolean_apply_cutter,
 ]
 
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -318,17 +334,18 @@ def register():
     # KEYMAP
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
+
     kmi = km.keymap_items.new("object.boolean_apply_cutter", 'NUMPAD_ENTER', 'PRESS', ctrl=True)
     kmi.properties.method = 'ALL'
     kmi.active = True
-    addon_keymaps.append(km)
+    addon_keymaps.append((km, kmi))
+
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
     # KEYMAP
-    for km in addon_keymaps:
-        for kmi in km.keymap_items:
-            km.keymap_items.remove(kmi)
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
     addon_keymaps.clear()

@@ -1,5 +1,26 @@
 import bpy
-from .ui import update_sidebar_category
+from . import ui
+
+
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def update_sidebar_category(self, context):
+    """Change sidebar category of add-ons panels"""
+
+    panel_classes = [
+        ui.VIEW3D_PT_boolean,
+        ui.VIEW3D_PT_boolean_properties,
+        ui.VIEW3D_PT_boolean_cutters,
+    ]
+
+    for cls in panel_classes:
+        try:
+            bpy.utils.unregister_class(cls)
+        except:
+            pass
+        cls.bl_category = self.sidebar_category
+        bpy.utils.register_class(cls)
+
 
 
 #### ------------------------------ PREFERENCES ------------------------------ ####
@@ -10,8 +31,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # UI
     show_in_sidebar: bpy.props.BoolProperty(
         name = "Show Addon Panel in Sidebar",
-        description = "Add add-on operators and properties to 3D viewport sidebar category.\n"
-                    "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel",
+        description = ("Add add-on operators and properties to 3D viewport sidebar category.\n"
+                       "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel"),
         default = True,
     )
     sidebar_category: bpy.props.StringProperty(
@@ -31,8 +52,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     wireframe: bpy.props.BoolProperty(
         name = "Display Cutters as Wireframe",
-        description = "When enabled cutters will be displayed as wireframes, instead of bounding boxes.\n"
-                    "It's better for visualizating the shape, but might be harder to see and have performance cost",
+        description = ("When enabled cutters will be displayed as wireframes, instead of bounding boxes.\n"
+                       "It's better for visualizating the shape, but might be harder to see and have performance cost"),
         default = False,
     )
     show_in_editmode: bpy.props.BoolProperty(
@@ -88,8 +109,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # Debug
     versioning: bpy.props.BoolProperty(
         name = "Versioning",
-        description = "Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
-                    "where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this"
+        description = ("Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
+                       "where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this")
     )
     experimental: bpy.props.BoolProperty(
         name = "Experimental",
@@ -129,7 +150,6 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         sub.active = self.show_in_sidebar
         sub.prop(self, "collection_name", text="")
 
-        # col = layout.column(align=True, heading="Advanced")
         col.prop(self, "parent")
         col.prop(self, "apply_order")
         col.prop(self, "pin")
@@ -158,5 +178,5 @@ def register():
         bpy.utils.register_class(cls)
 
 def unregister():
-    for cls in classes:
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

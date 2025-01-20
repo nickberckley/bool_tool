@@ -12,7 +12,7 @@ def create_cutter_shape(self, context):
     region = context.region
     rv3d = context.region_data
     depth_location = view3d_utils.region_2d_to_vector_3d(region, rv3d, coords)
-    self.view_vector = depth_location
+    self.view_depth = depth_location
     plane_direction = depth_location.normalized()
 
     # depth
@@ -64,17 +64,16 @@ def extrude(self, mesh):
     box_bounding = combined_bounding_box(self.selected_objects)
     for face in faces:
         for vert in face.verts:
-            # vert.co += -self.view_vector * box_bounding
-            vert.co += -self.view_vector * box_bounding
+            vert.co += -self.view_depth * box_bounding
 
     # extrude_the_face
     ret = bmesh.ops.extrude_face_region(bm, geom=faces)
     verts_extruded = [v for v in ret['geom'] if isinstance(v, bmesh.types.BMVert)]
     for v in verts_extruded:
         if self.depth == 'CURSOR':
-            v.co += self.view_vector * box_bounding
+            v.co += self.view_depth * box_bounding
         elif self.depth == 'VIEW':
-            v.co += self.view_vector * box_bounding * 2
+            v.co += self.view_depth * box_bounding * 2
 
     # correct_normals
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)

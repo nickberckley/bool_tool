@@ -4,10 +4,10 @@ from .. import __package__ as base_package
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=False, redo=True):
+def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=False, pin=False, redo=True, single_user=False):
     "Adds boolean modifier with specified cutter and properties to a single object"
 
-    prefs = bpy.context.preferences.addons[base_package].preferences
+    prefs = context.preferences.addons[base_package].preferences
 
     modifier = canvas.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
     modifier.operation = mode
@@ -31,7 +31,7 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
         for face in cutter.data.polygons:
             face.select = True
 
-        if bpy.context.object.mode != 'OBJECT':
+        if context.mode == 'EDIT_MESH':
             """Applying boolean modifier in mesh edit mode:"""
             """1. Hiding other visible modifiers and creating new (temporary) mesh from evaluated object"""
             """2. Transfering temporary mesh to `bmesh` to update active mesh in edit mode"""
@@ -46,7 +46,7 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
                     visible_modifiers.append(mod)
                     mod.show_viewport = False
 
-            evaluated_obj = canvas.evaluated_get(bpy.context.evaluated_depsgraph_get())
+            evaluated_obj = canvas.evaluated_get(context.evaluated_depsgraph_get())
             temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
 
             bm = bmesh.from_edit_mesh(canvas.data)
@@ -63,18 +63,33 @@ def add_boolean_modifier(self, canvas, cutter, mode, solver, apply=False, pin=Fa
 
         else:
             context_override = {'object': canvas, 'mode': 'OBJECT'}
-            with bpy.context.temp_override(**context_override):
-                bpy.ops.object.modifier_apply(modifier=modifier.name)
+            with context.temp_override(**context_override):
+                apply_modifier(context, canvas, modifier, single_user=single_user)
+
+
+def apply_modifier(context, obj, modifier, single_user=False):
+    """Applies given modifier to object."""
+
+    context.view_layer.objects.active = obj
+
+    try:
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+    except:
+        if single_user:
+            # Make Single User
+            context.active_object.data = context.active_object.data.copy()
+            bpy.ops.object.modifier_apply(modifier=modifier.name)
 
 
 def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False, collection=True):
     """Ensures cutter is properly set: has right properties, is hidden, in a collection & parented"""
 
-    prefs = bpy.context.preferences.addons[base_package].preferences
+    prefs = context.preferences.addons[base_package].preferences
 
     # Hide Cutters
     cutter.hide_render = True
     cutter.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
+    cutter.lineart.usage = 'EXCLUDE'
     object_visibility_set(cutter, value=False)
     if hide:
         cutter.hide_set(True)
@@ -112,15 +127,16 @@ def convert_to_mesh(context, obj):
 
     # store_selection
     stored_active = context.active_object
+    stored_selection = context.selected_objects
     bpy.ops.object.select_all(action='DESELECT')
-    obj.select_set(True)
-    context.view_layer.objects.active = obj
 
     # Convert
+    obj.select_set(True)
+    context.view_layer.objects.active = obj
     bpy.ops.object.convert(target='MESH')
 
     # restore_selection
-    for obj in context.selected_objects:
+    for obj in stored_selection:
         obj.select_set(True)
     context.view_layer.objects.active = stored_active
 
@@ -128,7 +144,7 @@ def convert_to_mesh(context, obj):
 def ensure_collection(context):
     """Checks the existance of boolean cutters collection and creates it if it doesn't exist"""
 
-    prefs = bpy.context.preferences.addons[base_package].preferences
+    prefs = context.preferences.addons[base_package].preferences
 
     collection_name = prefs.collection_name
     cutters_collection = bpy.data.collections.get(collection_name)
@@ -159,7 +175,8 @@ def delete_cutter(cutter):
 
     orphaned_mesh = cutter.data
     bpy.data.objects.remove(cutter)
-    bpy.data.meshes.remove(orphaned_mesh)
+    if orphaned_mesh.users == 0:
+        bpy.data.meshes.remove(orphaned_mesh)
 
 
 def change_parent(object, parent):
@@ -170,41 +187,29 @@ def change_parent(object, parent):
     object.matrix_world = matrix_copy
 
 
-def create_slice(context, canvas, slices, modifier=False):
+def create_slice(context, canvas, modifier=False):
     """Creates copy of canvas to be used as slice"""
-
-    prefs = bpy.context.preferences.addons[base_package].preferences
 
     slice = canvas.copy()
     slice.data = canvas.data.copy()
     slice.name = slice.data.name = canvas.name + "_slice"
+    change_parent(slice, canvas)
 
-    # parent_to_canvas
-    if prefs.parent:
-        slice.parent = canvas
-        slice.matrix_parent_inverse = canvas.matrix_world.inverted()
-
-    # set_boolean_properties
+    # Set Boolean Properties
     if modifier == True:
         slice.booleans.canvas = True
         slice.booleans.slice = True
         slice.booleans.slice_of = canvas
-    slices.append(slice)
 
-    # add_to_canvas_collections
-    canvas_colls = canvas.users_collection
-    for coll in canvas_colls:
+    # Add to Canvas Collections
+    for coll in canvas.users_collection:
         coll.objects.link(slice)
 
-    # remove_other_modifiers
-    for mod in slice.modifiers:
-        if "boolean_" in mod.name:
-            slice.modifiers.remove(mod)
-
     # add_slices_to_local_view
-    space_data = context.space_data
-    if space_data.local_view:
-        slice.local_view_set(space_data, True)
+    if context.space_data.local_view:
+        slice.local_view_set(context.space_data, True)
+
+    return slice
 
 
 def set_object_origin(obj, position=False):

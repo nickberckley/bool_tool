@@ -1,7 +1,7 @@
 import bpy, mathutils, math
 from bpy_extras import view3d_utils
 from .draw import get_bounding_box_coords
-from .poll import is_linked
+from .poll import is_linked, is_instanced_data
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -109,16 +109,24 @@ def selection_fallback(self, context, objects, polyline=False, include_cutters=F
             continue
         if obj == self.cutter:
             continue
-        if (include_cutters == False) and obj.booleans.cutter != "":
+        if tuple(round(v, 4) for v in obj.dimensions) == (0.0, 0.0, 0.0):
             continue
-        if (self.mode == 'DESTRUCTIVE') and obj.data.shape_keys:
-            self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
-            continue
-        if is_linked(context, obj):
-            self.report({'ERROR'}, f"{obj.name} is linked and can not be carved")
+        if include_cutters == False and obj.booleans.cutter != "":
             continue
 
         if is_inside_selection(context, obj, rect_min, rect_max):
+            if is_linked(context, obj):
+                self.report({'ERROR'}, f"{obj.name} is linked and can not be carved")
+                continue
+
+            if self.mode == 'DESTRUCTIVE':
+                if obj.data.shape_keys:
+                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
+                    continue
+                if is_instanced_data(obj):
+                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has instanced object data")
+                    continue
+
             intersecting_objects.append(obj)
 
     return intersecting_objects
