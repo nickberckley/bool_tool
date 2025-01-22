@@ -123,9 +123,12 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
         self.view_depth = mathutils.Vector()
         self.cached_mouse_position = () # needed_for_custom_modifier_keys
 
-        # modifier_keys
+         # cached_variables
+        """Important for storing context as it was when operator was invoked (untouched by the modal)"""
         self.initial_origin = self.origin
         self.initial_aspect = self.aspect
+
+        # modifier_keys
         self.snap = False
         self.move = False
         self.rotate = False
@@ -177,16 +180,16 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
 
         # Mouse Move
         if event.type == 'MOUSEMOVE':
-            # rotate
-            if self.rotate:
-                self.rotation = event.mouse_region_x * 0.01
-
             # move
-            elif self.move:
+            if self.move:
                 self.position_offset_x += (event.mouse_region_x - self.last_mouse_region_x)
                 self.position_offset_y += (event.mouse_region_y - self.last_mouse_region_y)
                 self.last_mouse_region_x = event.mouse_region_x
                 self.last_mouse_region_y = event.mouse_region_y
+
+            # rotate
+            elif self.rotate:
+                self.rotation = event.mouse_region_x * 0.01
 
             # array
             elif self.gap:

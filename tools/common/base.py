@@ -16,18 +16,40 @@ from ...functions.select import (
 )
 
 
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def custom_modifier_event(self, context, event, key, modifier):
+    """Creates custom modifier event when key is held and hides cursor until it's released"""
+
+    if event.value == 'PRESS':
+        if not self.move:
+            self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
+            context.window.cursor_set("NONE")
+            setattr(self, modifier, True)
+
+    elif event.value == 'RELEASE':
+        if not self.move:
+            context.window.cursor_set("MUTE")
+            context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
+            setattr(self, modifier, False)
+
+
+
 #### ------------------------------ /base/ ------------------------------ ####
 
 class CarverModifierKeys():
+    """NOTE: Order of the modifier key events is important, because key value might change after function checks for it"""
+    """Functions that check last are most important because they can overwrite all modifier states"""
 
     def modifier_snap(self, context, event):
         """Modifier keys for snapping"""
 
         self.snap = context.scene.tool_settings.use_snap
         if (self.move == False) and (not hasattr(self, "rotate") or (hasattr(self, "rotate") and not self.rotate)):
+    
             # change_the_snap_increment_value_using_the_wheel_mouse
-            for i, a in enumerate(context.screen.areas):
-                if a.type == 'VIEW_3D':
+            for i, area in enumerate(context.screen.areas):
+                if area.type == 'VIEW_3D':
                     space = context.screen.areas[i].spaces.active
 
             if event.type == 'WHEELUPMOUSE':
@@ -68,14 +90,7 @@ class CarverModifierKeys():
         """Modifier keys for rotating the shape"""
 
         if event.type == 'R':
-            if event.value == 'PRESS':
-                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
-                context.window.cursor_set("NONE")
-                self.rotate = True
-            elif event.value == 'RELEASE':
-                context.window.cursor_set("MUTE")
-                context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
-                self.rotate = False
+            custom_modifier_event(self, context, event, "rotate")
 
 
     def modifier_bevel(self, context, event):
@@ -83,17 +98,11 @@ class CarverModifierKeys():
 
         if self.shape == 'BOX':
             if event.type == 'B':
-                if event.value == 'PRESS':
-                    self.use_bevel = True
-                    self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
-                    context.window.cursor_set("NONE")
-                    self.bevel = True
-                elif event.value == 'RELEASE':
-                    context.window.cursor_set("MUTE")
-                    context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
-                    self.bevel = False
+                custom_modifier_event(self, context, event, "bevel")
 
             if self.bevel:
+                self.use_bevel = True
+
                 if event.type == 'WHEELUPMOUSE':
                     self.bevel_segments += 1
                 elif event.type == 'WHEELDOWNMOUSE':
@@ -113,14 +122,7 @@ class CarverModifierKeys():
             self.columns += 1
 
         if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
-            if event.value == 'PRESS':
-                self.cached_mouse_position = (self.mouse_path[1][0], self.mouse_path[1][1])
-                context.window.cursor_set("NONE")
-                self.gap = True
-            elif event.value == 'RELEASE':
-                context.window.cursor_set("MUTE")
-                context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
-                self.gap = False
+            custom_modifier_event(self, context, event, event.type, "gap")
 
 
     def modifier_move(self, context, event):
@@ -133,25 +135,24 @@ class CarverModifierKeys():
                 self.move = False
 
         if self.move:
-            # initial_position_variable_before_moving_the_brush
+            # reset_initial_position_before_moving_the_shape
             if self.initial_position is False:
                 self.position_offset_x = 0
                 self.position_offset_y = 0
                 self.last_mouse_region_x = event.mouse_region_x
                 self.last_mouse_region_y = event.mouse_region_y
                 self.initial_position = True
-            self.move = True
+        else:
+            # update_the_shape_coordinates
+            if self.initial_position:
+                for i in range(0, len(self.mouse_path)):
+                    l = list(self.mouse_path[i])
+                    l[0] += self.position_offset_x
+                    l[1] += self.position_offset_y
+                    self.mouse_path[i] = tuple(l)
 
-        # update_the_coordinates
-        if self.initial_position and self.move is False:
-            for i in range(0, len(self.mouse_path)):
-                l = list(self.mouse_path[i])
-                l[0] += self.position_offset_x
-                l[1] += self.position_offset_y
-                self.mouse_path[i] = tuple(l)
-
-            self.position_offset_x = self.position_offset_y = 0
-            self.initial_position = False
+                self.position_offset_x = self.position_offset_y = 0
+                self.initial_position = False
 
 
 class CarverBase():
