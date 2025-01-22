@@ -2,7 +2,10 @@ import bpy, gpu, mathutils, math
 from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 
+
 magic_number = 1.41
+color = (0.48, 0.04, 0.04, 1.0)
+secondary_color = (0.28, 0.04, 0.04, 1.0)
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
@@ -48,65 +51,68 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
     gpu.state.blend_set('NONE')
 
 
-def carver_overlay(self, context):
-    """Shape (rectangle, circle) overlay for carver tool"""
+def carver_shape_box(self, context, shape):
+    """Shape overlay for box carver tool"""
 
-    color = (0.48, 0.04, 0.04, 1.0)
-    secondary_color = (0.28, 0.04, 0.04, 1.0)
+    subdivision = self.subdivision if shape == 'CIRCLE' else 4
+    rotation = 0 if shape == 'CIRCLE' else 45
 
-    if self.shape == 'CIRCLE':
-        coords, indices, rows, columns = draw_circle(self, self.subdivision, 0)
-        # coords = coords[1:] # remove_extra_vertex
-        self.verts = coords
-        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
+    # Calculate Vertices & Store
+    coords, indices, rows, columns = draw_circle(self, subdivision, rotation)
+    self.verts = coords
+    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
-        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
-        if not self.rotate:
-            bounds, __, __ = get_bounding_box_coords(self, coords)
-            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
-
-
-    elif self.shape == 'BOX':
-        coords, indices, rows, columns = draw_circle(self, 4, 45)
-        self.verts = coords
-        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
-
-        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
-        if (self.rotate == False) and (self.bevel == False):
-            bounds, __, __ = get_bounding_box_coords(self, coords)
-            draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+    # Draw Shaders
+    draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+    if not self.rotate and not self.bevel:
+        bounds, __, __ = get_bounding_box_coords(self, coords)
+        draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
 
 
-    elif self.shape == 'POLYLINE':
-        coords, indices, first_point, rows, columns = draw_polygon(self)
-        self.verts = list(dict.fromkeys(self.mouse_path))
-        self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
-
-        draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
-        draw_shader(color, 1.0, 'POINTS', coords, size=5)
-        if self.closed and len(self.mouse_path) > 2:
-            # polygon_fill
-            draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
-
-        if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
-            # circle_around_first_point
-            draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
-
-
-    # Snapping Grid
-    if self.snap and self.move == False:
+    if self.snap:
         mini_grid(self, context)
+    if self.rows > 1 or self.columns > 1:
+        carver_shape_array(self, rows, columns, indices, 'SOLID')
 
-    # ARRAY
-    array_shader = 'LINE_LOOP' if self.shape == 'POLYLINE' and self.closed == False else 'SOLID'
-    if self.rows > 1:
-        for i, duplicate in rows.items():
-            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
-    if self.columns > 1:
-        for i, duplicate in columns.items():
-            draw_shader(secondary_color, 0.4, array_shader, duplicate, size=2, indices=indices[:-2])
+
+def carver_shape_polyline(self, context):
+    """Shape overlay for polyline carver tool"""
+
+    # Calculate Vertices & Store
+    coords, indices, first_point, rows, columns = draw_polygon(self)
+    self.verts = list(dict.fromkeys(self.mouse_path))
+    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
+
+    # Draw Shaders
+    draw_shader(color, 1.0, 'POINTS', coords, size=5)
+    draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
+
+    # polygon_fill
+    if self.closed and len(self.mouse_path) > 2:
+        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
+
+    # circle_around_first_point
+    if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
+        draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
+
+
+    if self.snap:
+        mini_grid(self, context)
+    if self.rows > 1 or self.columns > 1:
+        carver_shape_array(self, rows, columns, indices, 'LINE_LOOP' if self.closed == False else 'SOLID')
 
     gpu.state.blend_set('NONE')
+
+
+def carver_shape_array(self, rows, columns, indices, shader):
+    """Draws given shape for each row and column of the array"""
+
+    if self.rows > 1:
+        for i, duplicate in rows.items():
+            draw_shader(secondary_color, 0.4, shader, duplicate, size=2, indices=indices[:-2])
+    if self.columns > 1:
+        for i, duplicate in columns.items():
+            draw_shader(secondary_color, 0.4, shader, duplicate, size=2, indices=indices[:-2])
 
 
 def draw_polygon(self):

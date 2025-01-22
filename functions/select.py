@@ -69,33 +69,34 @@ def is_inside_selection(context, obj, rect_min, rect_max):
     return not (max_x < rect_min.x or min_x > rect_max.x or max_y < rect_min.y or min_y > rect_max.y)
 
 
-def selection_fallback(self, context, objects, include_cutters=False):
+def selection_fallback(self, context, objects, shape='BOX', include_cutters=False):
     """Selects mesh objects that fall inside given 2d rectangle coordinates"""
     """Used to get exactly which objects should be cut and avoid adding and applying unnecessary modifiers"""
     """NOTE: bounding box isn't always returning correct results for objects, but full surface check would be too expensive"""
 
-    # convert_2d_rectangle_coordinates_to_world_coordinates
-    if self.origin == 'EDGE':
-        if self.shape == 'POLYLINE':
-            x_values = [point[0] for point in self.mouse_path]
-            y_values = [point[1] for point in self.mouse_path]
-            rect_min = mathutils.Vector((min(x_values), min(y_values)))
-            rect_max = mathutils.Vector((max(x_values), max(y_values)))
-        else:
-            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                         min(self.mouse_path[0][1], self.mouse_path[1][1])))
-            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                         max(self.mouse_path[0][1], self.mouse_path[1][1])))
+    # convert_2d_shape_coordinates_to_world_coordinates
+    if shape == 'POLYLINE':
+        x_values = [point[0] for point in self.mouse_path]
+        y_values = [point[1] for point in self.mouse_path]
+        rect_min = mathutils.Vector((min(x_values), min(y_values)))
+        rect_max = mathutils.Vector((max(x_values), max(y_values)))
 
-    elif self.origin == 'CENTER':
-        # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
-        if len(self.center_origin) == 0:
-            get_bounding_box_coords(self, self.verts)
+    elif shape == 'BOX':
+        if self.origin == 'EDGE':
+                rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                             min(self.mouse_path[0][1], self.mouse_path[1][1])))
+                rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                             max(self.mouse_path[0][1], self.mouse_path[1][1])))
 
-        rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]),
-                                     min(self.center_origin[0][1], self.center_origin[1][1])))
-        rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]),
-                                     max(self.center_origin[0][1], self.center_origin[1][1])))
+        elif self.origin == 'CENTER':
+            # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
+            if len(self.center_origin) == 0:
+                get_bounding_box_coords(self, self.verts)
+
+            rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]),
+                                         min(self.center_origin[0][1], self.center_origin[1][1])))
+            rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]),
+                                         max(self.center_origin[0][1], self.center_origin[1][1])))
 
     # ARRAY
     if self.rows > 1:
