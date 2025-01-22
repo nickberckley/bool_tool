@@ -119,7 +119,7 @@ class CarverModifierKeys():
                 self.gap = True
             elif event.value == 'RELEASE':
                 context.window.cursor_set("MUTE")
-                context.window.cursor_warp(self.cached_mouse_position[0], self.cached_mouse_position[1])
+                context.window.cursor_warp(int(self.cached_mouse_position[0]), int(self.cached_mouse_position[1]))
                 self.gap = False
 
 
@@ -135,8 +135,8 @@ class CarverModifierKeys():
         if self.move:
             # initial_position_variable_before_moving_the_brush
             if self.initial_position is False:
-                self.position_x = 0
-                self.position_y = 0
+                self.position_offset_x = 0
+                self.position_offset_y = 0
                 self.last_mouse_region_x = event.mouse_region_x
                 self.last_mouse_region_y = event.mouse_region_y
                 self.initial_position = True
@@ -146,11 +146,11 @@ class CarverModifierKeys():
         if self.initial_position and self.move is False:
             for i in range(0, len(self.mouse_path)):
                 l = list(self.mouse_path[i])
-                l[0] += self.position_x
-                l[1] += self.position_y
+                l[0] += self.position_offset_x
+                l[1] += self.position_offset_y
                 self.mouse_path[i] = tuple(l)
 
-            self.position_x = self.position_y = 0
+            self.position_offset_x = self.position_offset_y = 0
             self.initial_position = False
 
 

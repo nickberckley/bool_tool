@@ -80,27 +80,30 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
 
     def invoke(self, context, event):
         self.selected_objects = context.selected_objects
-        self.initial_selection = context.selected_objects
         self.mouse_path = [(event.mouse_region_x, event.mouse_region_y),
                            (event.mouse_region_x, event.mouse_region_y)]
 
         # initialize_empty_values
         self.verts = []
-        self.cutter = None
         self.duplicates = []
+        self.cutter = None
         self.view_depth = mathutils.Vector()
-        self.cached_mouse_position = ()
+        self.cached_mouse_position = () # needed_for_custom_modifier_keys
+        self.distance_from_first = 0
+
+        # cached_variables
+        """Important for storing context as it was when operator was invoked (untouched by the modal)"""
+        self.initial_selection = context.selected_objects
 
         # modifier_keys
         self.snap = False
         self.move = False
         self.gap = False
 
-        # overlay_position
-        self.position_x = 0
-        self.position_y = 0
+        # overlay_position (needed_for_moving_the_shape)
+        self.position_offset_x = 0
+        self.position_offset_y = 0
         self.initial_position = False
-        self.distance_from_first = 0
 
         # Add Draw Handler
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_shape_polyline, (self, context), 'WINDOW', 'POST_PIXEL')
@@ -136,8 +139,8 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
         if event.type == 'MOUSEMOVE':
             # move
             if self.move:
-                self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
-                self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+                self.position_offset_x += (event.mouse_region_x - self.last_mouse_region_x)
+                self.position_offset_y += (event.mouse_region_y - self.last_mouse_region_y)
                 self.last_mouse_region_x = event.mouse_region_x
                 self.last_mouse_region_y = event.mouse_region_y
 

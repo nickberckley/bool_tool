@@ -44,7 +44,7 @@ def draw_circle(self, subdivision, rotation):
         vert = mathutils.Vector((x, y, z))
         vert = rotation_matrix @ vert
         vert = vert + fixed_point if self.origin == 'CENTER' else shape_center - vert
-        vert += mathutils.Vector((self.position_x, self.position_y, 0.0))
+        vert += mathutils.Vector((self.position_offset_x, self.position_offset_y, 0.0))
         tris_verts.append(vert)
 
         i1 = idx + 1
@@ -76,7 +76,7 @@ def draw_polygon(self):
     coords = []
     for idx, vals in enumerate(self.mouse_path):
         vert = mathutils.Vector([vals[0], vals[1], 0.0])
-        vert += mathutils.Vector([self.position_x, self.position_y, 0.0])
+        vert += mathutils.Vector([self.position_offset_x, self.position_offset_y, 0.0])
         coords.append(vert)
 
         i1 = idx + 1

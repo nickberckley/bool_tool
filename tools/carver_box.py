@@ -113,16 +113,15 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
 
     def invoke(self, context, event):
         self.selected_objects = context.selected_objects
-        self.initial_selection = context.selected_objects
         self.mouse_path = [(event.mouse_region_x, event.mouse_region_y),
                            (event.mouse_region_x, event.mouse_region_y)]
 
         # initialize_empty_values
         self.verts = []
-        self.cutter = None
         self.duplicates = []
+        self.cutter = None
         self.view_depth = mathutils.Vector()
-        self.cached_mouse_position = ()
+        self.cached_mouse_position = () # needed_for_custom_modifier_keys
 
         # modifier_keys
         self.initial_origin = self.origin
@@ -133,9 +132,9 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
         self.gap = False
         self.bevel = False
 
-        # overlay_position
-        self.position_x = 0
-        self.position_y = 0
+        # overlay_position (needed_for_moving_the_shape)
+        self.position_offset_x = 0
+        self.position_offset_y = 0
         self.initial_position = False
 
         # Add Draw Handler
@@ -184,8 +183,8 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
 
             # move
             elif self.move:
-                self.position_x += (event.mouse_region_x - self.last_mouse_region_x)
-                self.position_y += (event.mouse_region_y - self.last_mouse_region_y)
+                self.position_offset_x += (event.mouse_region_x - self.last_mouse_region_x)
+                self.position_offset_y += (event.mouse_region_y - self.last_mouse_region_y)
                 self.last_mouse_region_x = event.mouse_region_x
                 self.last_mouse_region_y = event.mouse_region_y
 
