@@ -1,6 +1,6 @@
 import bpy, mathutils
 from bpy_extras import view3d_utils
-from .math import get_bounding_box_coords
+from .math import get_bounding_box
 from .poll import is_linked, is_instanced_data
 
 
@@ -70,11 +70,10 @@ def is_inside_selection(context, obj, rect_min, rect_max):
 
 
 def selection_fallback(self, context, objects, shape='BOX', include_cutters=False):
-    """Selects mesh objects that fall inside given 2d rectangle coordinates"""
-    """Used to get exactly which objects should be cut and avoid adding and applying unnecessary modifiers"""
-    """NOTE: bounding box isn't always returning correct results for objects, but full surface check would be too expensive"""
+    """Returns mesh objects that fall inside given 2d rectangle (bounding box of the shape) coordinates"""
+    """Needed to know exactly which objects should be carved, to avoid adding and applying unnecessary modifiers"""
+    """NOTE: bounding box isn't always returning correct results, but checking full shape would be too expensive"""
 
-    # convert_2d_shape_coordinates_to_world_coordinates
     if shape == 'POLYLINE':
         x_values = [point[0] for point in self.mouse_path]
         y_values = [point[1] for point in self.mouse_path]
@@ -83,26 +82,24 @@ def selection_fallback(self, context, objects, shape='BOX', include_cutters=Fals
 
     elif shape == 'BOX':
         if self.origin == 'EDGE':
-                rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                             min(self.mouse_path[0][1], self.mouse_path[1][1])))
-                rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                             max(self.mouse_path[0][1], self.mouse_path[1][1])))
+            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                         min(self.mouse_path[0][1], self.mouse_path[1][1])))
+            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
+                                         max(self.mouse_path[0][1], self.mouse_path[1][1])))
 
         elif self.origin == 'CENTER':
-            # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
-            if len(self.center_origin) == 0:
-                get_bounding_box_coords(self, self.verts)
+            # get_bounding_box_of_the_shape
+            min_x, min_y, max_x, max_y = get_bounding_box(self.verts)
 
-            rect_min = mathutils.Vector((min(self.center_origin[0][0], self.center_origin[1][0]),
-                                         min(self.center_origin[0][1], self.center_origin[1][1])))
-            rect_max = mathutils.Vector((max(self.center_origin[0][0], self.center_origin[1][0]),
-                                         max(self.center_origin[0][1], self.center_origin[1][1])))
+            rect_min = mathutils.Vector((min(min_x, max_x), min(min_y, max_y)))
+            rect_max = mathutils.Vector((max(min_x, max_x), max(min_y, max_y)))
 
     # ARRAY
     if self.rows > 1:
         rect_max.x = rect_min.x + (rect_max.x - rect_min.x) * self.rows + (self.rows_gap * (self.rows - 1))
     if self.columns > 1:
         rect_min.y = rect_max.y - (rect_max.y - rect_min.y) * self.columns - (self.columns_gap * (self.columns - 1))
+
 
     intersecting_objects = []
     for obj in objects:

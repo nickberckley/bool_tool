@@ -137,7 +137,6 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
         self.position_x = 0
         self.position_y = 0
         self.initial_position = False
-        self.center_origin = []
 
         # Add Draw Handler
         self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_shape_box, (self, context, self.shape), 'WINDOW', 'POST_PIXEL')

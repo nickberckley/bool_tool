@@ -100,7 +100,6 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
         self.position_x = 0
         self.position_y = 0
         self.initial_position = False
-        self.center_origin = []
         self.distance_from_first = 0
 
         # Add Draw Handler

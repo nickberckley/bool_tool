@@ -5,6 +5,7 @@ from bpy_extras import view3d_utils
 from .math import (
     draw_circle,
     draw_polygon,
+    array,
 )
 
 
@@ -62,54 +63,61 @@ def carver_shape_box(self, context, shape):
     subdivision = self.subdivision if shape == 'CIRCLE' else 4
     rotation = 0 if shape == 'CIRCLE' else 45
 
-    # Calculate Vertices & Store
-    coords, indices, bounds, rows, columns = draw_circle(self, subdivision, rotation)
+    # Create Shape
+    coords, indices, bounds = draw_circle(self, subdivision, rotation)
     self.verts = coords
-    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
     # Draw Shaders
     draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
     if not self.rotate and not self.bevel:
         draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
 
+    # Array
+    if self.rows > 1 or self.columns > 1:
+        carver_shape_array(self, coords, indices, 'SOLID')
+
 
     if self.snap:
         mini_grid(self, context)
-    if self.rows > 1 or self.columns > 1:
-        carver_shape_array(self, rows, columns, indices, 'SOLID')
+
+    gpu.state.blend_set('NONE')
 
 
 def carver_shape_polyline(self, context):
     """Shape overlay for polyline carver tool"""
 
-    # Calculate Vertices & Store
-    coords, indices, first_point, rows, columns = draw_polygon(self)
+    # Create Shape
+    coords, indices, first_point, array_coords = draw_polygon(self)
     self.verts = list(dict.fromkeys(self.mouse_path))
-    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
     # Draw Shaders
     draw_shader(color, 1.0, 'POINTS', coords, size=5)
     draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
 
-    # polygon_fill
     if self.closed and len(self.mouse_path) > 2:
+        # polygon_fill
         draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
 
-    # circle_around_first_point
     if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
+        # circle_around_first_point
         draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
+
+    # Array
+    if len(self.mouse_path) > 2 and (self.rows > 1 or self.columns > 1):
+        carver_shape_array(self, array_coords, indices, 'LINE_LOOP' if self.closed == False else 'SOLID')
 
 
     if self.snap:
         mini_grid(self, context)
-    if self.rows > 1 or self.columns > 1:
-        carver_shape_array(self, rows, columns, indices, 'LINE_LOOP' if self.closed == False else 'SOLID')
 
     gpu.state.blend_set('NONE')
 
 
-def carver_shape_array(self, rows, columns, indices, shader):
+def carver_shape_array(self, verts, indices, shader):
     """Draws given shape for each row and column of the array"""
+
+    rows, columns = array(self, verts)
+    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
     if self.rows > 1:
         for i, duplicate in rows.items():

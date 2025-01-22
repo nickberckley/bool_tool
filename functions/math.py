@@ -51,17 +51,22 @@ def draw_circle(self, subdivision, rotation):
         i2 = idx + 2 if idx + 2 <= ((360 / int(subdivision)) * (idx + 1) + rotation) else 1
         indices.append((0, i1, i2))
 
-    # BOUNDING_BOX
-    bounds, __, __ = get_bounding_box_coords(self, tris_verts)
-
     # BEVEL
     if self.use_bevel and self.bevel_radius > 0.01:
         tris_verts, indices = bevel_verts(self, tris_verts, (self.bevel_radius * 50), self.bevel_segments)
 
-    # ARRAY
-    rows, columns = array(self, tris_verts)
 
-    return tris_verts, indices, bounds, rows, columns
+    # BOUNDING_BOX
+    min_x, min_y, max_x, max_y = get_bounding_box(tris_verts)
+    bounds = [
+        mathutils.Vector((min_x, min_y, 0)),  # bottom-left
+        mathutils.Vector((max_x, min_y, 0)),  # bottom-right
+        mathutils.Vector((max_x, max_y, 0)),  # top-right
+        mathutils.Vector((min_x, max_y, 0)),  # top-left
+        mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
+    ]
+
+    return tris_verts, indices, bounds
 
 
 def draw_polygon(self):
@@ -91,37 +96,32 @@ def draw_polygon(self):
         vector = mathutils.Vector((x, y, z))
         click_point.append(vector)
 
-    # remove_duplicate_verts
-    # NOTE: This is needed to remove extra vertices for duplicates which are not removed because `dict.fromkeys()`...
-    # NOTE: can't be called on `coords` list, because it contains unfrozen Vectors.
+
+    # ARRAY (remove_duplicate_verts)
+    """NOTE: This is needed to remove extra vertices for duplicates which are not removed because `dict.fromkeys()`..."""
+    """NOTE: can't be called on `coords` list, because it contains unfrozen Vectors."""
     unique_verts = []
     for vert in coords:
         if vert not in unique_verts:
             unique_verts.append(vert)
 
+    array_coords = unique_verts if self.closed else unique_verts[:-1]
 
-    # ARRAY
-    rows = columns = {}
-    if len(self.mouse_path) > 2:
-        array_coords = unique_verts if self.closed else unique_verts[:-1]
-        get_bounding_box_coords(self, array_coords)
-        rows, columns = array(self, array_coords)
-
-    return coords, indices, click_point, rows, columns
+    return coords, indices, click_point, array_coords
 
 
 def array(self, verts):
     """Duplicates given list of vertices in rows and columns (on x and y axis)"""
     """Returns two dicts of lists of vertices for rows and columns separately"""
 
-    # ensure_bounding_box_(needed_when_array_is_set_before_original_is_drawn)
-    if len(self.center_origin) == 0:
-        get_bounding_box_coords(self, verts)
+    # get_bounding_box_of_the_shape
+    """NOTE: Calculated separately because verts needed for array differs from verts needed for shape for polyline"""
+    min_x, min_y, max_x, max_y = get_bounding_box(verts)
 
     rows = {}
     if self.rows > 1:
         # Offset
-        offset = mathutils.Vector((((self.center_origin[1][0] - self.center_origin[0][0]) + (self.rows_gap)), 0.0, 0.0))
+        offset = mathutils.Vector((((max_x - min_x) + (self.rows_gap)), 0.0, 0.0))
         if self.rows_direction == 'LEFT':
             offset.x = -offset.x
 
@@ -132,7 +132,7 @@ def array(self, verts):
     columns = {}
     if self.columns > 1:
         # Offset
-        offset = mathutils.Vector((0.0, -((self.center_origin[1][1] - self.center_origin[0][1]) + (self.columns_gap)), 0.0))
+        offset = mathutils.Vector((0.0, -((max_y - min_y) + (self.columns_gap)), 0.0))
         if self.columns_direction == 'UP':
             offset.y = -offset.y
 
@@ -149,8 +149,12 @@ def bevel_verts(self, verts, radius, segments):
     """Takes in list of verts(Vectors) and bevels them, Returns a new list with new vertices"""
 
     def get_rounded_corner(self, angular_point, p1, p2, radius, segments):
+        # get_bounding_box_of_the_shape
+        min_x, min_y, max_x, max_y = get_bounding_box(verts)
+        width = max_x - min_x
+        height = max_y - min_y
+
         # clamp_radius_to_reduce_clipping
-        __, width, height = get_bounding_box_coords(self, verts)
         max_radius = min(width / 2.5, height / 2.5)
         clamped_radius = min(radius, max_radius)
 
@@ -220,27 +224,12 @@ def bevel_verts(self, verts, radius, segments):
     return rounded_verts, indices
 
 
-def get_bounding_box_coords(self, verts):
-    """Calculates the bounding box coordinates from a list of vertices in a counter-clockwise order"""
+def get_bounding_box(verts):
+    """Calculates the bounding box coordinates from a list of vertices"""
 
-    if verts:
-        min_x = min(v[0] for v in verts)
-        max_x = max(v[0] for v in verts)
-        min_y = min(v[1] for v in verts)
-        max_y = max(v[1] for v in verts)
-        self.center_origin = [(min_x, min_y), (max_x, max_y)]
+    min_x = min(v[0] for v in verts)
+    max_x = max(v[0] for v in verts)
+    min_y = min(v[1] for v in verts)
+    max_y = max(v[1] for v in verts)
 
-        bounding_box_coords = [
-            mathutils.Vector((min_x, min_y, 0)),  # bottom-left
-            mathutils.Vector((max_x, min_y, 0)),  # bottom-right
-            mathutils.Vector((max_x, max_y, 0)),  # top-right
-            mathutils.Vector((min_x, max_y, 0)),  # top-left
-            mathutils.Vector((min_x, min_y, 0))   # closing_the_loop_manually
-        ]
-
-        width = max_x - min_x
-        height = max_y - min_y
-
-        return bounding_box_coords, width, height
-    else:
-        return None, None, None
+    return min_x, min_y, max_x, max_y
