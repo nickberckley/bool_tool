@@ -1,6 +1,6 @@
 import bpy, mathutils
 from bpy_extras import view3d_utils
-from .draw import get_bounding_box_coords
+from .math import get_bounding_box_coords
 from .poll import is_linked, is_instanced_data
 
 
