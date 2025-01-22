@@ -110,8 +110,8 @@ def draw_polygon(self):
     return coords, indices, click_point, array_coords
 
 
-def array(self, verts):
-    """Duplicates given list of vertices in rows and columns (on x and y axis)"""
+def draw_array(self, verts):
+    """Duplicates given list of vertices in rows and columns (on screen-space x and y axis)"""
     """Returns two dicts of lists of vertices for rows and columns separately"""
 
     # get_bounding_box_of_the_shape

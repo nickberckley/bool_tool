@@ -195,10 +195,9 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
                 if self.closed and self.mouse_path[-1] == self.mouse_path[-2]:
                     context.window.cursor_warp(event.mouse_region_x - 1, event.mouse_region_y)
 
-                """NOTE: Polyline needs separate selection fallback, because it needs to calculate selection bounding box..."""
-                """NOTE: after all points are already drawn, i.e. before execution."""
-                empty = self.selection_fallback(context, shape='POLYLINE')
-                if empty:
+                selection = self.validate_selection(context, shape='POLYLINE')
+                if not selection:
+                    self.cancel(context)
                     return {'FINISHED'}
 
                 self.confirm(context)

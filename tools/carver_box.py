@@ -226,12 +226,12 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
                     obj.select_set(True)
 
                 if len(self.selected_objects) == 0:
-                    self.report({'INFO'}, "Only selected objects can be carved")
                     self.cancel(context)
                     return {'FINISHED'}
             else:
-                empty = self.selection_fallback(context, shape='BOX')
-                if empty:
+                selection = self.validate_selection(context, shape='BOX')
+                if not selection:
+                    self.cancel(context)
                     return {'FINISHED'}
 
             # protection_against_returning_no_rectangle_by_clicking

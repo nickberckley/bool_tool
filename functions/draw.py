@@ -5,7 +5,7 @@ from bpy_extras import view3d_utils
 from .math import (
     draw_circle,
     draw_polygon,
-    array,
+    draw_array,
 )
 
 
@@ -116,7 +116,7 @@ def carver_shape_polyline(self, context):
 def carver_shape_array(self, verts, indices, shader):
     """Draws given shape for each row and column of the array"""
 
-    rows, columns = array(self, verts)
+    rows, columns = draw_array(self, verts)
     self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
 
     if self.rows > 1:

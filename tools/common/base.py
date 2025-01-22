@@ -167,17 +167,19 @@ class CarverBase():
                         region.tag_redraw()
 
 
-    def selection_fallback(self, context, shape='BOX'):
-        # filter_out_objects_not_inside_the_selection_bounding_box
+    def validate_selection(self, context, shape='BOX'):
+        """Filters out objects that are not inside the selection shape bounding box"""
+        """Returns selection state (so operator can be cancelled if there are no objects inside the selection bounding box)"""
+
         self.selected_objects = selection_fallback(self, context, self.selected_objects, shape=shape, include_cutters=True)
 
         # silently_fail_if_no_objects_inside_selection_bounding_box
-        empty = False
         if len(self.selected_objects) == 0:
-            self.cancel(context)
-            empty = True
+            selection = False
+        else:
+            selection = True
 
-        return empty
+        return selection
 
 
     def confirm(self, context):
