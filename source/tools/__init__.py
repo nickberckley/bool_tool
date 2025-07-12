@@ -1,12 +1,21 @@
-import bpy
-from . import (
-    carver_box,
-    carver_circle,
-    carver_polyline,
-)
-from .common import (
-    ui,
-)
+if "bpy" in locals():
+    import importlib
+    for mod in [carver_box,
+                carver_circle,
+                carver_polyline,
+                ui,
+                ]:
+        importlib.reload(mod)
+else:
+    import bpy
+    from . import (
+        carver_box,
+        carver_circle,
+        carver_polyline,
+    )
+    from .common import (
+        ui,
+    )
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
