@@ -1,5 +1,6 @@
 import bpy
-from .list import list_canvas_cutters
+from .list import list_canvas_cutters, list_cutter_users
+from .object import convert_to_mesh
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -74,3 +75,46 @@ def active_modifier_poll(context):
                 return True
     else:
         return False
+
+
+def has_evaluated_mesh(context, obj):
+    """Checks if an object (non-mesh) has an evaluated mesh created by Geometry Nodes modifiers"""
+
+    depsgraph = context.view_layer.depsgraph
+    obj_eval = depsgraph.id_eval_get(obj)
+    geometry = obj_eval.evaluated_geometry()
+
+    if geometry.mesh:
+        return True
+    else:
+        return False
+
+
+def list_candidate_objects(self, context, canvas):
+    """Filter out objects from selected ones that can't be used as a cutter"""
+
+    cutters = []
+    for obj in context.selected_objects:
+        if obj == context.active_object:
+            continue
+        if obj.library or obj.override_library:
+            self.report({'ERROR'}, f"{obj.name} is linked and can not be used as a cutter")
+            continue
+
+        if obj.type == 'MESH':
+            # exclude_if_object_is_already_a_cutter_for_canvas
+            if canvas in list_cutter_users([obj]):
+                continue
+            # exclude_if_canvas_is_cutting_the_object_(avoid_dependancy_loop)
+            if obj in list_cutter_users([canvas]):
+                self.report({'WARNING'}, f"{obj.name} can not cut its own cutter (dependancy loop)")
+                continue
+
+            cutters.append(obj)
+
+        elif obj.type in ('CURVE', 'FONT'):
+            if has_evaluated_mesh(context, obj):
+                convert_to_mesh(context, obj)
+                cutters.append(obj)
+
+    return cutters

@@ -5,6 +5,7 @@ from ..functions.poll import (
     basic_poll,
     is_linked,
     is_instanced_data,
+    list_candidate_objects,
 )
 from ..functions.object import (
     apply_modifier,
@@ -16,7 +17,6 @@ from ..functions.object import (
     delete_cutter,
 )
 from ..functions.list import (
-    list_candidate_objects,
     list_cutter_users,
     list_pre_boolean_modifiers,
 )
@@ -176,7 +176,7 @@ class AutoBoolean(ModifierProperties):
         if is_linked(context, context.active_object):
             self.report({'ERROR'}, "Modifiers can't be applied to linked object")
             return {'CANCELLED'}
-        
+
         self.cutters = list_candidate_objects(self, context, context.active_object)
         if len(self.cutters) == 0:
             return {'CANCELLED'}
