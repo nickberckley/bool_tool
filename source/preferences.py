@@ -47,7 +47,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         name = "Boolean Solver",
         description = "Which solver to use for automatic and brush booleans",
         items = [('FAST', "Fast", ""),
-                 ('EXACT', "Exact", "")],
+                 ('EXACT', "Exact", ""),
+                 ('MANIFOLD', "Manifold", "")],
         default = 'FAST',
     )
     wireframe: bpy.props.BoolProperty(

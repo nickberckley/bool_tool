@@ -24,7 +24,8 @@ class CarverModifierProperties():
     solver: bpy.props.EnumProperty(
         name = "Solver",
         items = [('FAST', "Fast", ""),
-                 ('EXACT', "Exact", "")],
+                 ('EXACT', "Exact", ""),
+                 ('MANIFOLD', "Manifold", "")],
         default = 'FAST',
     )
     pin: bpy.props.BoolProperty(
