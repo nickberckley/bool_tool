@@ -18,7 +18,7 @@ from ...functions.select import (
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def custom_modifier_event(self, context, event, key, modifier):
+def custom_modifier_event(self, context, event, modifier):
     """Creates custom modifier event when key is held and hides cursor until it's released"""
 
     if event.value == 'PRESS':
@@ -46,7 +46,7 @@ class CarverModifierKeys():
 
         self.snap = context.scene.tool_settings.use_snap
         if (self.move == False) and (not hasattr(self, "rotate") or (hasattr(self, "rotate") and not self.rotate)):
-    
+
             # change_the_snap_increment_value_using_the_wheel_mouse
             for i, area in enumerate(context.screen.areas):
                 if area.type == 'VIEW_3D':
@@ -122,7 +122,7 @@ class CarverModifierKeys():
             self.columns += 1
 
         if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
-            custom_modifier_event(self, context, event, event.type, "gap")
+            custom_modifier_event(self, context, event, "gap")
 
 
     def modifier_move(self, context, event):
@@ -221,7 +221,7 @@ class CarverBase():
             # Set Cutter Properties
             canvas = None
             if context.active_object and context.active_object in self.selected_objects:
-                canvas = context.active_object    
+                canvas = context.active_object
             else:
                 canvas = self.selected_objects[0]
 
