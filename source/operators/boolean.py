@@ -60,7 +60,7 @@ class ModifierProperties():
             layout.prop(self, "material_mode")
             layout.prop(self, "use_self")
             layout.prop(self, "use_hole_tolerant")
-        elif prefs.solver == 'FAST':
+        elif prefs.solver == 'FLOAT':
             layout.prop(self, "double_threshold")
 
 

@@ -7,6 +7,9 @@ from .. import __package__ as base_package
 def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=False, pin=False, redo=True, single_user=False):
     "Adds boolean modifier with specified cutter and properties to a single object"
 
+    if bpy.app.version < (5, 0, 0) and solver == 'FLOAT':
+        solver = 'FAST'
+
     prefs = context.preferences.addons[base_package].preferences
 
     modifier = canvas.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')

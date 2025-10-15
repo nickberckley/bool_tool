@@ -46,10 +46,10 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     solver: bpy.props.EnumProperty(
         name = "Boolean Solver",
         description = "Which solver to use for automatic and brush booleans",
-        items = [('FAST', "Fast", ""),
+        items = [('FLOAT', "Float", ""),
                  ('EXACT', "Exact", ""),
                  ('MANIFOLD', "Manifold", "")],
-        default = 'FAST',
+        default = 'FLOAT',
     )
     wireframe: bpy.props.BoolProperty(
         name = "Display Cutters as Wireframe",
