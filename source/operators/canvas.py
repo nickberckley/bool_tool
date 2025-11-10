@@ -7,8 +7,7 @@ from ..functions.poll import (
     is_instanced_data,
 )
 from ..functions.object import (
-    apply_modifier,
-    convert_to_mesh,
+    apply_modifiers,
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
@@ -193,17 +192,18 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
             # Apply Modifiers
             if prefs.apply_order == 'ALL':
-                convert_to_mesh(context, canvas)
+                apply_modifiers(context, canvas, [mod for mod in canvas.modifiers], single_user=True)
 
             elif prefs.apply_order == 'BEFORE':
                 modifiers = list_pre_boolean_modifiers(canvas)
-                for mod in modifiers:
-                    apply_modifier(context, canvas, mod, single_user=True)
+                apply_modifiers(context, canvas, modifiers, single_user=True)
 
             elif prefs.apply_order == 'BOOLEANS':
+                boolean_mods = []
                 for mod in canvas.modifiers:
                     if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
-                        apply_modifier(context, canvas, mod, single_user=True)
+                        boolean_mods.append(mod)
+                apply_modifiers(context, canvas, boolean_mods, single_user=True)
 
             # remove_boolean_properties
             canvas.booleans.canvas = False

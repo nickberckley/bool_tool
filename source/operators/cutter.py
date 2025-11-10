@@ -6,7 +6,7 @@ from ..functions.poll import (
     is_instanced_data,
 )
 from ..functions.object import (
-    apply_modifier,
+    apply_modifiers,
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
@@ -266,10 +266,12 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             for canvas in self.canvases:
                 context.view_layer.objects.active = canvas
 
+                boolean_mods = []
                 for mod in canvas.modifiers:
                     if "boolean_" in mod.name:
                         if mod.object in self.cutters:
-                            apply_modifier(context, canvas, mod, single_user=True)
+                            boolean_mods.append(mod)
+                apply_modifiers(context, canvas, boolean_mods, single_user=True)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([canvas])
@@ -281,9 +283,11 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             if self.method == 'SPECIFIED':
                 # Apply Modifier for Slices (for_specified_method)
                 for slice in self.slices:
+                    boolean_mods = []
                     for mod in slice.modifiers:
                         if mod.type == 'BOOLEAN' and mod.object in self.cutters:
-                            apply_modifier(context, slice, mod, single_user=True)
+                            boolean_mods.append(mod)
+                    apply_modifiers(context, slice, boolean_mods, single_user=True)
 
 
             unused_cutters, leftovers = list_unused_cutters(self.cutters, self.canvases, do_leftovers=True)

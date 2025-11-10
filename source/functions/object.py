@@ -1,4 +1,5 @@
 import bpy, bmesh, mathutils
+from contextlib import contextmanager
 from .. import __package__ as base_package
 
 
@@ -31,57 +32,66 @@ def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=Fals
         canvas.modifiers.move(index, 0)
 
     if apply:
+        # Select all faces of the cutter so that newly created faces in canvas
+        # are also selected after applying the modifier.
         for face in cutter.data.polygons:
             face.select = True
 
-        if context.mode == 'EDIT_MESH':
-            """Applying boolean modifier in mesh edit mode:"""
-            """1. Hiding other visible modifiers and creating new (temporary) mesh from evaluated object"""
-            """2. Transfering temporary mesh to `bmesh` to update active mesh in edit mode"""
-            """3. Removing boolean modifier and purging temporary mesh"""
-            """4. Restoring visibility of other modifiers from (1)"""
-
-            visible_modifiers = []
-            for mod in canvas.modifiers:
-                if mod == modifier:
-                    continue
-                if mod.show_viewport == True:
-                    visible_modifiers.append(mod)
-                    mod.show_viewport = False
-
-            evaluated_obj = canvas.evaluated_get(context.evaluated_depsgraph_get())
-            temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
-
-            bm = bmesh.from_edit_mesh(canvas.data)
-            bm.clear()
-            bm.from_mesh(temp_data)
-            bmesh.update_edit_mesh(canvas.data)
-            evaluated_obj.to_mesh_clear()
-
-            canvas.modifiers.remove(modifier)
-            bpy.data.meshes.remove(temp_data)
-
-            for mod in visible_modifiers:
-                mod.show_viewport = True
-
-        else:
-            context_override = {'object': canvas, 'mode': 'OBJECT'}
-            with context.temp_override(**context_override):
-                apply_modifier(context, canvas, modifier, single_user=single_user)
+        apply_modifiers(context, canvas, [modifier], single_user=single_user)
 
 
-def apply_modifier(context, obj, modifier, single_user=False):
-    """Applies given modifier to object."""
+def apply_modifiers(context, obj, modifiers, single_user=False):
+    """
+    Apply modifiers on object.
+    Instead of using `bpy.ops.object.modifier_apply`, this function uses
+    `bpy.data.meshes.new_from_object` built-in function to create a temporary
+    mesh from the evaluated object (basically with visible modifiers applied).
+    Temporary mesh is then transferred to objects mesh with `bmesh`.
 
-    context.view_layer.objects.active = obj
+    This method is up to 2x faster, although it's considered experimental
+    and may fail in some cases, so a fallback to `bpy.ops.object.modifier_apply` is kept.
+    """
 
     try:
-        bpy.ops.object.modifier_apply(modifier=modifier.name)
-    except:
-        if single_user:
-            # Make Single User
-            context.active_object.data = context.active_object.data.copy()
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
+        with hide_modifiers(obj, excluding=modifiers):
+            # Create a temporary mesh from evaluated object.
+            evaluated_obj = obj.evaluated_get(context.evaluated_depsgraph_get())
+            temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
+
+            # Create `bmesh` from temporary mesh and update edit mesh.
+            if context.mode == 'EDIT_MESH':
+                bm = bmesh.from_edit_mesh(obj.data)
+                bm.clear()
+                bm.from_mesh(temp_data)
+                bmesh.update_edit_mesh(obj.data)
+            else:
+                bm = bmesh.new()
+                bm.from_mesh(temp_data)
+                bm.to_mesh(obj.data)
+            bm.free()
+            evaluated_obj.to_mesh_clear()
+
+            print("THIS HAPPENED")
+
+            # Remove modifiers and purge temporary mesh.
+            bpy.data.meshes.remove(temp_data)
+            for mod in modifiers:
+                obj.modifiers.remove(mod)
+
+    except Exception as e:
+        print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
+
+        # Use `bpy.ops` operator to apply modifiers if above fails.
+        context_override = {"object": obj, "mode": 'OBJECT'}
+        with context.temp_override(**context_override):
+            for mod in modifiers:
+                try:
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
+                except:
+                    if single_user:
+                        # Make single user and then try applying.
+                        context.active_object.data = context.active_object.data.copy()
+                        bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
 def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False, collection=True):
@@ -226,3 +236,22 @@ def set_object_origin(obj, position=False):
     obj.location = position
     obj.data.transform(mat.inverted())
     obj.data.update()
+
+
+@contextmanager
+def hide_modifiers(obj, excluding: list):
+    """Hides all modifiers of a given object in viewport except those in excluding list"""
+
+    visible_modifiers = []
+    for mod in obj.modifiers:
+        if mod in excluding:
+            continue
+        if mod.show_viewport == True:
+            visible_modifiers.append(mod)
+            mod.show_viewport = False
+
+    try:
+        yield
+    finally:
+        for mod in visible_modifiers:
+            mod.show_viewport = True

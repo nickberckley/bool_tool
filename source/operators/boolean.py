@@ -8,8 +8,7 @@ from ..functions.poll import (
     list_candidate_objects,
 )
 from ..functions.object import (
-    apply_modifier,
-    convert_to_mesh,
+    apply_modifiers,
     add_boolean_modifier,
     set_cutter_properties,
     change_parent,
@@ -198,7 +197,7 @@ class AutoBoolean(ModifierProperties):
 
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
-            convert_to_mesh(context, canvas)
+            apply_modifiers(context, canvas, [mod for mod in canvas.modifiers], single_user=True)
         else:
             if canvas.data.shape_keys:
                 self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
@@ -233,8 +232,7 @@ class AutoBoolean(ModifierProperties):
         # apply_modifiers_before_final_boolean
         if prefs.apply_order == 'BEFORE' and prefs.pin:
             modifiers = list_pre_boolean_modifiers(canvas)
-            for mod in modifiers:
-                apply_modifier(context, canvas, mod, single_user=True)
+            apply_modifiers(context, canvas, modifiers, single_user=True)
 
         return {'FINISHED'}
 
