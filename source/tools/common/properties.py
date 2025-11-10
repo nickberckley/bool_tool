@@ -1,4 +1,5 @@
-import bpy, math
+import bpy
+import math
 
 
 #### ------------------------------ PROPERTIES ------------------------------ ####

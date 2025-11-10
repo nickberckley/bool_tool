@@ -1,4 +1,7 @@
-import bpy, mathutils, math, os
+import bpy
+import mathutils
+import math
+import os
 from .. import __file__ as base_file
 
 from .common.base import (

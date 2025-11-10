@@ -1,4 +1,6 @@
-import bpy, bmesh, mathutils
+import bpy
+import bmesh
+import mathutils
 from contextlib import contextmanager
 from .. import __package__ as base_package
 

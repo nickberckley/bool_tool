@@ -1,4 +1,5 @@
-import bpy, math
+import bpy
+import math
 
 from ...functions.mesh import (
     create_cutter_shape,

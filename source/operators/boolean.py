@@ -16,19 +16,20 @@ from ..functions.object import (
     delete_cutter,
 )
 from ..functions.list import (
-    list_cutter_users,
     list_pre_boolean_modifiers,
 )
 
+
+#### ------------------------------ PROPERTIES ------------------------------ ####
 
 class ModifierProperties():
     material_mode: bpy.props.EnumProperty(
         name = "Materials",
         description = "Method for setting materials on the new faces",
-        items = (('INDEX', "Index Based", "Set the material on new faces based on the order of the material slot lists. If a material doesn’t exist on the\n"
-                  "modifier object, the face will use the same material slot or the first if the object doesn’t have enough slots."),
-                 ('TRANSFER', "Transfer", "Transfer materials from non-empty slots to the result mesh, adding new materials as necessary.\n"
-                  "For empty slots, fall back to using the same material index as the operand mesh.")),
+        items = (('INDEX', "Index Based", ("Set the material on new faces based on the order of the material slot lists. If a material doesn't exist on the\n"
+                                           "modifier object, the face will use the same material slot or the first if the object doesn't have enough slots.")),
+                 ('TRANSFER', "Transfer", ("Transfer materials from non-empty slots to the result mesh, adding new materials as necessary.\n"
+                                           "For empty slots, fall back to using the same material index as the operand mesh."))),
         default = 'INDEX',
     )
     use_self: bpy.props.BoolProperty(
@@ -315,7 +316,7 @@ def register():
     addon = bpy.context.window_manager.keyconfigs.addon
     km = addon.keymaps.new(name="Object Mode")
 
-    # brush_operators
+    # Brush Operators
     kmi = km.keymap_items.new("object.boolean_brush_union", 'NUMPAD_PLUS', 'PRESS', ctrl=True)
     kmi.active = True
     addon_keymaps.append((km, kmi))
@@ -332,7 +333,7 @@ def register():
     kmi.active = True
     addon_keymaps.append((km, kmi))
 
-    # auto_operators
+    # Auto Operators
     kmi = km.keymap_items.new("object.boolean_auto_union", 'NUMPAD_PLUS', 'PRESS', ctrl=True, shift=True)
     kmi.active = True
     addon_keymaps.append((km, kmi))

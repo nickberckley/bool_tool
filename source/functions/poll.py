@@ -1,4 +1,5 @@
 import bpy
+
 from .list import list_canvas_cutters, list_cutter_users
 from .object import convert_to_mesh
 

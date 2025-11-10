@@ -5,7 +5,7 @@ from . import ui
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def update_sidebar_category(self, context):
-    """Change sidebar category of add-ons panels"""
+    """Change sidebar category of add-ons panel."""
 
     panel_classes = [
         ui.VIEW3D_PT_boolean,
@@ -31,13 +31,12 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # UI
     show_in_sidebar: bpy.props.BoolProperty(
         name = "Show Addon Panel in Sidebar",
-        description = ("Add add-on operators and properties to 3D viewport sidebar category.\n"
-                       "Most of the features are already available in 3D viewport's Object > Boolean menu, but brush list is only in sidebar panel"),
+        description = "Add a sidebar panel in 3D Viewport with add-ons operators and properties",
         default = True,
     )
     sidebar_category: bpy.props.StringProperty(
         name = "Category Name",
-        description = "Set sidebar category name. You can type in name of the existing category and panel will be added there, instead of creating new category",
+        description = "Sidebar category name. Using the name of the existing category will add panel there",
         default = "Edit",
         update = update_sidebar_category,
     )

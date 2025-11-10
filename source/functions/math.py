@@ -1,4 +1,6 @@
-import bpy, math, mathutils
+import bpy
+import math
+import mathutils
 
 
 magic_number = 1.41

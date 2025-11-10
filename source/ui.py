@@ -37,7 +37,7 @@ def boolean_extras_menu(self, context):
     col = layout.column(align=True)
 
     if context.active_object:
-        # canvas_operators
+        # Canvas operators
         active_object = context.active_object
         if active_object.booleans.canvas == True and any(mod.name.startswith("boolean_") for mod in active_object.modifiers):
             col.separator()
@@ -45,7 +45,7 @@ def boolean_extras_menu(self, context):
             col.operator("object.boolean_apply_all", text="Apply All Cutters")
             col.operator("object.boolean_remove_all", text="Remove All Cutters")
 
-        # cutter_operators
+        # Cutter operators
         if active_object.booleans.cutter:
             col.separator()
             col.operator("object.boolean_toggle_cutter", text="Toggle Cutter").method='ALL'
@@ -174,7 +174,7 @@ class VIEW3D_MT_carve(bpy.types.Menu):
         carve_menu(self, context)
 
 
-# Object > Menu
+# 3D Viewport (Object Mode) -> Object
 class VIEW3D_MT_boolean(bpy.types.Menu):
     bl_label = "Boolean"
     bl_idname = "VIEW3D_MT_boolean"

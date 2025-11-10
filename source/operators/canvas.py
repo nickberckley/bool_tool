@@ -1,4 +1,5 @@
-import bpy, itertools
+import bpy
+import itertools
 from .. import __package__ as base_package
 
 from ..functions.poll import (

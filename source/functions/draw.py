@@ -1,6 +1,7 @@
-import bpy, gpu
-from gpu_extras.batch import batch_for_shader
+import bpy
+import gpu
 from bpy_extras import view3d_utils
+from gpu_extras.batch import batch_for_shader
 
 from .math import (
     draw_circle,

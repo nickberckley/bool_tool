@@ -1,5 +1,7 @@
-import bpy, mathutils
+import bpy
+import mathutils
 from bpy_extras import view3d_utils
+
 from .math import get_bounding_box
 from .poll import is_linked, is_instanced_data
 
@@ -59,7 +61,7 @@ def is_inside_selection(context, obj, rect_min, rect_max):
     for corner_2d in bound_corners_2d:
         if corner_2d and (rect_min.x <= corner_2d.x <= rect_max.x and rect_min.y <= corner_2d.y <= rect_max.y):
             return True
-    
+
     # check_if_any_part_of_the_bounding_box_intersects_the_selection_rectangle
     min_x = min(corner_2d.x for corner_2d in bound_corners_2d if corner_2d)
     max_x = max(corner_2d.x for corner_2d in bound_corners_2d if corner_2d)

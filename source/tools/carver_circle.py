@@ -1,4 +1,5 @@
-import bpy, os
+import bpy
+import os
 from .. import __file__ as base_file
 
 from .common.ui import (
