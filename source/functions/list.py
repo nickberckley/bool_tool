@@ -145,17 +145,17 @@ def list_unused_cutters(cutters, *canvases, do_leftovers=False):
     return cutters, leftovers
 
 
-def list_pre_boolean_modifiers(obj):
-    """Returns list of boolean modifiers + all modifiers that come before last boolean modifier"""
+def list_pre_boolean_modifiers(obj) -> list:
+    """Returns a list of boolean modifiers & modifiers that come before last boolean modifier"""
 
-    # find_the_index_of_last_boolean_modifier
+    # Find the index of a last boolean modifier
     last_boolean_index = -1
     for i in reversed(range(len(obj.modifiers))):
         if obj.modifiers[i].type == 'BOOLEAN':
             last_boolean_index = i
             break
 
-    # if_boolean_modifier_found_list_all_modifiers_before
+    # If boolean modifier is found, list all modifiers that come before it.
     if last_boolean_index != -1:
         return [mod for mod in obj.modifiers[:last_boolean_index + 1]]
     else:

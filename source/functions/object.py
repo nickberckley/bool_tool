@@ -7,7 +7,7 @@ from .. import __package__ as base_package
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=False, pin=False, redo=True, single_user=False):
+def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, redo=True):
     "Adds boolean modifier with specified cutter and properties to a single object"
 
     if bpy.app.version < (5, 0, 0) and solver == 'FLOAT':
@@ -15,11 +15,12 @@ def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=Fals
 
     prefs = context.preferences.addons[base_package].preferences
 
-    modifier = canvas.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
+    modifier = obj.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
 
+    # Set solver options (inherited from operator properties).
     if redo:
         modifier.material_mode = self.material_mode
         modifier.use_self = self.use_self
@@ -29,20 +30,15 @@ def add_boolean_modifier(self, context, canvas, cutter, mode, solver, apply=Fals
     if prefs.show_in_editmode:
         modifier.show_in_editmode = True
 
+    # Move modifier to the index 0 (make it first in the stack).
     if pin:
-        index = canvas.modifiers.find(modifier.name)
-        canvas.modifiers.move(index, 0)
+        index = obj.modifiers.find(modifier.name)
+        obj.modifiers.move(index, 0)
 
-    if apply:
-        # Select all faces of the cutter so that newly created faces in canvas
-        # are also selected after applying the modifier.
-        for face in cutter.data.polygons:
-            face.select = True
-
-        apply_modifiers(context, canvas, [modifier], single_user=single_user)
+    return modifier
 
 
-def apply_modifiers(context, obj, modifiers, single_user=False):
+def apply_modifiers(context, obj, modifiers: list, single_user=False):
     """
     Apply modifiers on object.
     Instead of using `bpy.ops.object.modifier_apply`, this function uses

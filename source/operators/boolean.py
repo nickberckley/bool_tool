@@ -1,4 +1,5 @@
 import bpy
+from collections import defaultdict
 from .. import __package__ as base_package
 
 from ..functions.poll import (
@@ -95,17 +96,17 @@ class BrushBoolean(ModifierProperties):
         prefs = context.preferences.addons[base_package].preferences
         canvas = context.active_object
 
-        # Create Slices
+        # Create slices.
         if self.mode == "SLICE":
             for cutter in self.cutters:
-                """NOTE: Slices need to be created in separate loop to avoid inheriting boolean modifiers that operator adds"""
+                """NOTE: Slices need to be created in a separate loop to avoid inheriting boolean modifiers that the operator adds."""
                 slice = create_slice(context, canvas, modifier=True)
-                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver)
+                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
 
         for cutter in self.cutters:
+            mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent, collection=prefs.use_collection)
-            add_boolean_modifier(self, context, canvas, cutter, "DIFFERENCE" if self.mode == "SLICE" else self.mode, prefs.solver, pin=prefs.pin)
-
+            add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
 
         context.view_layer.objects.active = canvas
         canvas.booleans.canvas = True
@@ -186,42 +187,55 @@ class AutoBoolean(ModifierProperties):
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
         canvas = context.active_object
+        new_modifiers = defaultdict(list)
 
-        # apply_modifiers
-        if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
-            apply_modifiers(context, canvas, [mod for mod in canvas.modifiers], single_user=True)
-
-        # Create Slices
+        # Create slices.
         if self.mode == "SLICE":
             for cutter in self.cutters:
-                """NOTE: Slices need to be created in separate loop to avoid inheriting boolean modifiers that operator adds"""
+                """NOTE: Slices need to be created in a separate loop to avoid inheriting boolean modifiers that the operator adds."""
                 slice = create_slice(context, canvas)
-                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, apply=True, single_user=True)
-
+                modifier = add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
+                new_modifiers[slice].append(modifier)
+                slice.select_set(True)
 
         for cutter in self.cutters:
-            # Add Modifier (& Apply)
+            # Add boolean modifier on canvas.
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, apply=True, pin=prefs.pin, single_user=True)
+            modifier = add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
+            new_modifiers[canvas].append(modifier)
 
-            # Transfer Children
+            # Transfer cutters children to canvas.
             for child in cutter.children:
                 change_parent(child, canvas)
 
-            # Delete Cutter
+            # Select all faces of the cutter so that newly created faces in canvas
+            # are also selected after applying the modifier.
+            for face in cutter.data.polygons:
+                face.select = True
+
+        # Apply modifiers on canvas & slices.
+        for obj, modifiers in new_modifiers.items():
+            modifiers = self._get_modifiers_to_apply(prefs, obj, modifiers)
+            apply_modifiers(context, obj, modifiers, single_user=True)
+
+        # Delete cutters.
+        for cutter in self.cutters:
             delete_cutter(cutter)
 
-            if self.mode == "SLICE":
-                slice.select_set(True)
-                context.view_layer.objects.active = slice
-
-
-        # apply_modifiers_before_final_boolean
-        if prefs.apply_order == 'BEFORE' and prefs.pin:
-            modifiers = list_pre_boolean_modifiers(canvas)
-            apply_modifiers(context, canvas, modifiers, single_user=True)
-
         return {'FINISHED'}
+
+
+    def _get_modifiers_to_apply(self, prefs, obj, new_modifiers) -> list:
+        """Returns a list of modifiers that need to be applied based on add-on preferences."""
+
+        if prefs.apply_order == 'ALL':
+            modifiers = [mod for mod in obj.modifiers]
+        elif prefs.apply_order == 'BOOLEANS':
+            modifiers = new_modifiers
+        elif prefs.apply_order == 'BEFORE':
+            modifiers = list_pre_boolean_modifiers(obj)
+
+        return modifiers
 
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):

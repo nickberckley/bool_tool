@@ -8,6 +8,7 @@ from ...functions.mesh import (
 )
 from ...functions.object import (
     add_boolean_modifier,
+    apply_modifiers,
     set_cutter_properties,
     delete_cutter,
     set_object_origin,
@@ -209,7 +210,14 @@ class CarverBase():
         # Add Modifier
         for obj in self.selected_objects:
             if self.mode == 'DESTRUCTIVE':
-                add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, apply=True, pin=self.pin, redo=False)
+                # Select all faces of the cutter so that newly created faces in canvas
+                # are also selected after applying the modifier.
+                for face in self.cutter.data.polygons:
+                    face.select = True
+
+                mod = add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
+                apply_modifiers(context, obj, [mod], single_user=True)
+
             elif self.mode == 'MODIFIER':
                 add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
                 obj.booleans.canvas = True
