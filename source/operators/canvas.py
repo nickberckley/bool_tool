@@ -36,7 +36,7 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvases = list_selected_canvases(context)
@@ -79,7 +79,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
 
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
@@ -153,7 +153,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
 
 
     def invoke(self, context, event):

@@ -68,16 +68,19 @@ class ModifierProperties():
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
 
 class BrushBoolean(ModifierProperties):
+    @classmethod
+    def poll(cls, context):
+        return basic_poll(cls, context)
 
     def invoke(self, context, event):
-        # abort_when_no_selected_objects
+        # Abort if there are less than 2 selected objects.
         if len(context.selected_objects) < 2:
             self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
             return {'CANCELLED'}
 
-        # abort_when_linked
+        # Abort if active object is linked.
         if is_linked(context, context.active_object):
-            self.report({'WARNING'}, "Booleans can not be performed on linked objects")
+            self.report({'WARNING'}, "Boolean operators can not be performed on linked objects")
             return {'CANCELLED'}
 
         self.cutters = list_candidate_objects(self, context, context.active_object)
@@ -115,10 +118,6 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
     mode = "UNION"
 
 
@@ -127,10 +126,6 @@ class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_label = "Boolean Intersection (Brush)"
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
 
     mode = "INTERSECT"
 
@@ -141,10 +136,6 @@ class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
     mode = "DIFFERENCE"
 
 
@@ -154,10 +145,6 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
     mode = "SLICE"
 
 
@@ -165,22 +152,24 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 #### ------------------------------ /auto_boolean/ ------------------------------ ####
 
 class AutoBoolean(ModifierProperties):
+    @classmethod
+    def poll(cls, context):
+        return basic_poll(cls, context)
 
     def invoke(self, context, event):
-        # abort_when_no_selected_objects
+        # Abort if there are less than 2 selected objects.
         if len(context.selected_objects) < 2:
             self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
             return {'CANCELLED'}
 
-        # abort_when_linked
+        # Abort if active object is linked.
         if is_linked(context, context.active_object):
-            self.report({'ERROR'}, "Modifiers can't be applied to linked object")
+            self.report({'ERROR'}, "Modifiers cannot be applied to linked object")
             return {'CANCELLED'}
 
         self.cutters = list_candidate_objects(self, context, context.active_object)
         if len(self.cutters) == 0:
             return {'CANCELLED'}
-
 
         if is_instanced_data(context.active_object):
             return context.window_manager.invoke_confirm(self, event,
@@ -244,10 +233,6 @@ class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
     mode = "UNION"
 
 
@@ -256,10 +241,6 @@ class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_label = "Boolean Difference (Auto)"
     bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
 
     mode = "DIFFERENCE"
 
@@ -270,10 +251,6 @@ class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
-
     mode = "INTERSECT"
 
 
@@ -282,10 +259,6 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
     bl_label = "Boolean Slice (Auto)"
     bl_description = "Slice active object along the selected ones. Will create slices as separate objects"
     bl_options = {'REGISTER', 'UNDO'}
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(context)
 
     mode = "SLICE"
 

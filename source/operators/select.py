@@ -25,7 +25,7 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context) and context.active_object.booleans.cutter
+        return basic_poll(cls, context) and context.active_object.booleans.cutter
 
     def execute(self, context):
         cutters = list_selected_cutters(context)
@@ -48,7 +48,7 @@ class OBJECT_OT_boolean_select_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(context) and is_canvas(context.active_object)
+        return basic_poll(cls, context) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvases = list_selected_canvases(context)
@@ -72,7 +72,7 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         prefs = context.preferences.addons[base_package].preferences
-        return (basic_poll(context) and active_modifier_poll(context) and
+        return (basic_poll(cls, context) and active_modifier_poll(context.active_object) and
                 context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER' and
                 prefs.double_click)
 

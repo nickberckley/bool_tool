@@ -121,10 +121,10 @@ def selection_fallback(self, context, objects, shape='BOX', include_cutters=Fals
 
             if self.mode == 'DESTRUCTIVE':
                 if obj.data.shape_keys:
-                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
+                    self.report({'ERROR'}, f"Modifiers cannot be applied to {obj.name} because it has shape keys")
                     continue
                 if is_instanced_data(obj):
-                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has instanced object data")
+                    self.report({'ERROR'}, f"Modifiers cannot be applied to {obj.name} because it has instanced object data")
                     continue
 
             intersecting_objects.append(obj)
