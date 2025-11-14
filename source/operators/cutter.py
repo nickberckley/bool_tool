@@ -232,16 +232,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
         elif self.method == 'ALL':
             self.cutters = list_selected_cutters(context)
-            self.canvases = []
-
-            for obj in list_cutter_users(self.cutters):
-                # excude_canvases_with_shape_keys
-                if obj.data.shape_keys:
-                    self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
-                    continue
-
-                self.canvases.append(obj)
-
+            self.canvases = list_cutter_users(self.cutters)
 
         if any(obj for obj in self.canvases if is_instanced_data(obj)):
             return context.window_manager.invoke_confirm(self, event,
@@ -258,6 +249,8 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
         leftovers = []
 
         if self.cutters:
+            # Select all faces of the cutter so that newly created faces in canvas
+            # are also selected after applying the modifier.
             for cutter in self.cutters:
                 for face in cutter.data.polygons:
                     face.select = True

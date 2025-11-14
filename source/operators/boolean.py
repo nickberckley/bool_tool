@@ -72,6 +72,7 @@ class BrushBoolean(ModifierProperties):
     def poll(cls, context):
         return basic_poll(cls, context)
 
+
     def invoke(self, context, event):
         # Abort if there are less than 2 selected objects.
         if len(context.selected_objects) < 2:
@@ -80,7 +81,7 @@ class BrushBoolean(ModifierProperties):
 
         # Abort if active object is linked.
         if is_linked(context, context.active_object):
-            self.report({'WARNING'}, "Boolean operators can not be performed on linked objects")
+            self.report({'WARNING'}, "Boolean operators cannot be performed on linked objects")
             return {'CANCELLED'}
 
         self.cutters = list_candidate_objects(self, context, context.active_object)
@@ -156,6 +157,7 @@ class AutoBoolean(ModifierProperties):
     def poll(cls, context):
         return basic_poll(cls, context)
 
+
     def invoke(self, context, event):
         # Abort if there are less than 2 selected objects.
         if len(context.selected_objects) < 2:
@@ -188,11 +190,6 @@ class AutoBoolean(ModifierProperties):
         # apply_modifiers
         if (prefs.apply_order == 'ALL') or (prefs.apply_order == 'BEFORE' and prefs.pin == False):
             apply_modifiers(context, canvas, [mod for mod in canvas.modifiers], single_user=True)
-        else:
-            if canvas.data.shape_keys:
-                self.report({'ERROR'}, "Modifiers can't be applied to object with shape keys")
-                return {'CANCELLED'}
-
 
         # Create Slices
         if self.mode == "SLICE":

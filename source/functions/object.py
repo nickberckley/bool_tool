@@ -73,19 +73,26 @@ def apply_modifiers(context, obj, modifiers, single_user=False):
             bm.free()
             evaluated_obj.to_mesh_clear()
 
-            print("THIS HAPPENED")
-
             # Remove modifiers and purge temporary mesh.
             bpy.data.meshes.remove(temp_data)
             for mod in modifiers:
                 obj.modifiers.remove(mod)
 
+            # Remove shape keys if there are any.
+            # (after above operations none of the shape keys have any effect).
+            if obj.data.shape_keys:
+                obj.shape_key_clear()
+
+    # Use `bpy.ops` operator to apply modifiers if above fails.
     except Exception as e:
         print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
 
-        # Use `bpy.ops` operator to apply modifiers if above fails.
         context_override = {"object": obj, "mode": 'OBJECT'}
         with context.temp_override(**context_override):
+            # Apply shape keys if there are any.
+            if obj.data.shape_keys:
+                bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+
             for mod in modifiers:
                 try:
                     bpy.ops.object.modifier_apply(modifier=mod.name)

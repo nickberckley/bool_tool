@@ -157,17 +157,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
 
     def invoke(self, context, event):
-        # Filter Objects
-        self.canvases = []
-        for obj in list_selected_canvases(context):
-            # excude_canvases_with_shape_keys
-            if obj.data.shape_keys:
-                self.report({'ERROR'}, f"Modifiers can't be applied to {obj.name} because it has shape keys")
-                continue
-
-            self.canvases.append(obj)
-
-
+        self.canvases = list_selected_canvases(context)
         if any(obj for obj in self.canvases if is_instanced_data(obj)):
             return context.window_manager.invoke_confirm(self, event,
                                                         title="Apply Boolean Cutters", confirm_text="Yes", icon='WARNING',
@@ -184,6 +174,8 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
         cutters, __ = list_canvas_cutters(self.canvases)
         slices = list_canvas_slices(self.canvases)
 
+        # Select all faces of the cutter so that newly created faces in canvas
+        # are also selected after applying the modifier.
         for cutter in cutters:
             for face in cutter.data.polygons:
                 face.select = True
