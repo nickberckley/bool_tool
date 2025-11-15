@@ -217,7 +217,7 @@ class AutoBoolean(ModifierProperties):
         # Apply modifiers on canvas & slices.
         for obj, modifiers in new_modifiers.items():
             modifiers = self._get_modifiers_to_apply(prefs, obj, modifiers)
-            apply_modifiers(context, obj, modifiers, single_user=True)
+            apply_modifiers(context, obj, modifiers)
 
         # Delete cutters.
         for cutter in cutters:

@@ -193,7 +193,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
             elif prefs.apply_order == 'BOOLEANS':
                 modifiers = [mod for mod in canvas.modifiers if mod.type == 'BOOLEAN' and "boolean_" in mod.name]
 
-            apply_modifiers(context, canvas, modifiers, single_user=True)
+            apply_modifiers(context, canvas, modifiers)
 
             # remove_boolean_properties
             canvas.booleans.canvas = False

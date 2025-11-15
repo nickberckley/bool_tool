@@ -3,6 +3,10 @@ import bmesh
 from contextlib import contextmanager
 from .. import __package__ as base_package
 
+from .poll import (
+    is_instanced_data,
+)
+
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
@@ -37,7 +41,7 @@ def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, re
     return modifier
 
 
-def apply_modifiers(context, obj, modifiers: list, single_user=False):
+def apply_modifiers(context, obj, modifiers: list):
     """
     Apply modifiers on object.
     Instead of using `bpy.ops.object.modifier_apply`, this function uses
@@ -48,6 +52,10 @@ def apply_modifiers(context, obj, modifiers: list, single_user=False):
     This method is up to 2x faster, although it's considered experimental
     and may fail in some cases, so a fallback to `bpy.ops.object.modifier_apply` is kept.
     """
+
+    # Make object data unique if it's instanced.
+    if is_instanced_data(obj):
+        context.active_object.data = context.active_object.data.copy()
 
     try:
         with hide_modifiers(obj, excluding=modifiers):
@@ -89,13 +97,7 @@ def apply_modifiers(context, obj, modifiers: list, single_user=False):
                 bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
 
             for mod in modifiers:
-                try:
-                    bpy.ops.object.modifier_apply(modifier=mod.name)
-                except:
-                    if single_user:
-                        # Make single user and then try applying.
-                        context.active_object.data = context.active_object.data.copy()
-                        bpy.ops.object.modifier_apply(modifier=mod.name)
+                bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
 @contextmanager

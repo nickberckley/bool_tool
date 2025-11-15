@@ -266,7 +266,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                     if "boolean_" in mod.name:
                         if mod.object in self.cutters:
                             boolean_mods.append(mod)
-                apply_modifiers(context, canvas, boolean_mods, single_user=True)
+                apply_modifiers(context, canvas, boolean_mods)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([canvas])
@@ -282,7 +282,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                     for mod in slice.modifiers:
                         if mod.type == 'BOOLEAN' and mod.object in self.cutters:
                             boolean_mods.append(mod)
-                    apply_modifiers(context, slice, boolean_mods, single_user=True)
+                    apply_modifiers(context, slice, boolean_mods)
 
 
             unused_cutters, leftovers = list_unused_cutters(self.cutters, self.canvases, do_leftovers=True)

@@ -218,7 +218,7 @@ class CarverBase():
                     face.select = True
 
                 mod = add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
-                apply_modifiers(context, obj, [mod], single_user=True)
+                apply_modifiers(context, obj, [mod])
 
             elif self.mode == 'MODIFIER':
                 add_boolean_modifier(self, context, obj, self.cutter, "DIFFERENCE", self.solver, pin=self.pin, redo=False)
