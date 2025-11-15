@@ -6,9 +6,11 @@ from ...functions.mesh import (
     extrude,
     shade_smooth_by_angle,
 )
-from ...functions.object import (
+from ...functions.modifier import (
     add_boolean_modifier,
     apply_modifiers,
+)
+from ...functions.object import (
     set_cutter_properties,
     delete_cutter,
     set_object_origin,

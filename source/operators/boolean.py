@@ -8,9 +8,11 @@ from ..functions.poll import (
     is_instanced_data,
     list_candidate_objects,
 )
-from ..functions.object import (
-    apply_modifiers,
+from ..functions.modifier import (
     add_boolean_modifier,
+    apply_modifiers,
+)
+from ..functions.object import (
     set_cutter_properties,
     change_parent,
     create_slice,

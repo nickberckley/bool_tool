@@ -7,8 +7,10 @@ from ..functions.poll import (
     is_canvas,
     is_instanced_data,
 )
-from ..functions.object import (
+from ..functions.modifier import (
     apply_modifiers,
+)
+from ..functions.object import (
     object_visibility_set,
     delete_empty_collection,
     delete_cutter,
