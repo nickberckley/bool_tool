@@ -4,6 +4,7 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
     is_instanced_data,
+    destructive_op_confirmation,
 )
 from ..functions.modifier import (
     apply_modifiers,
@@ -236,14 +237,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             self.cutters = list_selected_cutters(context)
             self.canvases = list_cutter_users(self.cutters)
 
-        if any(obj for obj in self.canvases if is_instanced_data(obj)):
-            return context.window_manager.invoke_confirm(self, event,
-                                                        title="Apply Boolean Cutter", confirm_text="Yes", icon='WARNING',
-                                                        message=("Canvas object(s) have instanced object data.\n"
-                                                                 "In order to apply modifiers, they need to be made single-user.\n"
-                                                                 "Do you proceed?"))
-        else:
-            return self.execute(context)
+        return destructive_op_confirmation(self, context, event, self.canvases, title="Apply Boolean Cutter")
 
 
     def execute(self, context):

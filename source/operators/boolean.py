@@ -7,6 +7,7 @@ from ..functions.poll import (
     is_linked,
     is_instanced_data,
     list_candidate_objects,
+    destructive_op_confirmation,
 )
 from ..functions.modifier import (
     add_boolean_modifier,
@@ -171,14 +172,7 @@ class AutoBoolean(ModifierProperties):
             self.report({'ERROR'}, "Modifiers cannot be applied to linked object")
             return {'CANCELLED'}
 
-        if is_instanced_data(context.active_object):
-            return context.window_manager.invoke_confirm(self, event,
-                                                        title="Auto Boolean", confirm_text="Yes", icon='WARNING',
-                                                        message=("Canvas object has instanced object data.\n"
-                                                                 "In order to apply modifiers, it needs to be made single-user.\n"
-                                                                 "Do you proceed?"))
-        else:
-            return self.execute(context)
+        return destructive_op_confirmation(self, context, event, [context.active_object], title="Auto Boolean")
 
 
     def execute(self, context):

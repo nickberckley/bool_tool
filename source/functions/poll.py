@@ -138,3 +138,43 @@ def list_candidate_objects(self, context, canvas):
                 cutters.append(obj)
 
     return cutters
+
+
+def destructive_op_confirmation(self, context, event, canvases: list, title="Boolean Operation"):
+    """
+    Creates & returns the confirmation pop-up window for destructive boolean operators.\n
+    Confirmation window is triggered by canvas objects that have instanced object data or shape keys.\n
+    If none of the canvas objects have them the operator is executed without any confirmation.
+    """
+
+    has_instanced_data = any(obj for obj in canvases if is_instanced_data(obj))
+    has_shape_keys = any(obj for obj in canvases if obj.data.shape_keys)
+
+    if has_instanced_data or has_shape_keys:
+        # Instanced data message.
+        if has_instanced_data and not has_shape_keys:
+            message = ("Object(s) you're trying to cut have instanced object data.\n"
+                       "In order to apply modifiers, they need to be made single-user.\n"
+                       "Do you proceed?")
+
+        # Shape keys message.
+        if has_shape_keys and not has_instanced_data:
+            message = ("Object(s) you're trying to cut have shape keys.\n"
+                       "In order to apply modifiers shape keys need to be applied as well.\n"
+                       "Do you proceed?")
+
+        # Combined message.
+        if has_instanced_data and has_shape_keys:
+            message = ("Object(s) you're trying to cut have shape keys and instanced object data.\n"
+                       "In order to apply modifiers shape keys need to be applied, and object data made single user.\n"
+                       "Do you proceed?")
+
+        popup = context.window_manager.invoke_confirm(self, event, title=title,
+                                                      confirm_text="Yes", icon='WARNING',
+                                                      message=message)
+
+        return popup
+
+    # Execute without confirmation window.
+    else:
+        return self.execute(context)

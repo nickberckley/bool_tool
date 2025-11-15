@@ -6,6 +6,7 @@ from ..functions.poll import (
     basic_poll,
     is_canvas,
     is_instanced_data,
+    destructive_op_confirmation,
 )
 from ..functions.modifier import (
     apply_modifiers,
@@ -160,14 +161,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.canvases = list_selected_canvases(context)
-        if any(obj for obj in self.canvases if is_instanced_data(obj)):
-            return context.window_manager.invoke_confirm(self, event,
-                                                        title="Apply Boolean Cutters", confirm_text="Yes", icon='WARNING',
-                                                        message=("Canvas object(s) have instanced object data.\n"
-                                                                 "In order to apply modifiers, they need to be made single-user.\n"
-                                                                 "Do you proceed?"))
-        else:
-            return self.execute(context)
+        return destructive_op_confirmation(self, context, event, self.canvases, title="Apply Boolean Cutters")
 
 
     def execute(self, context):
