@@ -98,6 +98,14 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
 
     # Features
+    fast_modifier_apply: bpy.props.BoolProperty(
+        name = "Faster Destructive Booleans",
+        description = ("Experimental method of applying modifiers that results in 30-50% faster destructive booleans.\n"
+                       "Performance improvements also affect the add-ons operators that apply cutters.\n"
+                       "However, changing modifier properties in the redo panel (like material transfer)\n"
+                       "is not available for this method yet."),
+        default = False,
+    )
     double_click: bpy.props.BoolProperty(
         name = "Double-click Select",
         description = ("Select boolean cutters by dbl-clicking on the boolean modifier.\n"
@@ -157,6 +165,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         # Features
         layout.separator()
         col = layout.column(align=True, heading="Features")
+        col.prop(self, "fast_modifier_apply")
         col.prop(self, "double_click")
 
         # Experimentals

@@ -53,11 +53,17 @@ def apply_modifiers(context, obj, modifiers: list):
     and may fail in some cases, so a fallback to `bpy.ops.object.modifier_apply` is kept.
     """
 
+    prefs = context.preferences.addons[base_package].preferences
+
     # Make object data unique if it's instanced.
     if is_instanced_data(obj):
         context.active_object.data = context.active_object.data.copy()
 
     try:
+        # Don't use this method if it's not enabled by user in add-on preferences.
+        if not prefs.fast_modifier_apply:
+            raise Exception("")
+
         with hide_modifiers(obj, excluding=modifiers):
             # Create a temporary mesh from evaluated object.
             evaluated_obj = obj.evaluated_get(context.evaluated_depsgraph_get())
@@ -88,7 +94,7 @@ def apply_modifiers(context, obj, modifiers: list):
 
     # Use `bpy.ops` operator to apply modifiers if above fails.
     except Exception as e:
-        print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
+        # print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
 
         context_override = {"object": obj, "mode": 'OBJECT'}
         with context.temp_override(**context_override):
