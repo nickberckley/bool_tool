@@ -3,6 +3,9 @@ import bmesh
 from contextlib import contextmanager
 from .. import __package__ as base_package
 
+from .object import (
+    convert_to_mesh,
+)
 from .poll import (
     is_instanced_data,
 )
@@ -101,6 +104,12 @@ def apply_modifiers(context, obj, modifiers: list):
             # Apply shape keys if there are any.
             if obj.data.shape_keys:
                 bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+
+            # If all modifiers need to be applied convert to Mesh.
+            if modifiers == obj.modifiers.values():
+                print("Applying all modifiers by converting to Mesh")
+                convert_to_mesh(context, obj)
+                return
 
             for mod in modifiers:
                 bpy.ops.object.modifier_apply(modifier=mod.name)
