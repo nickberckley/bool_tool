@@ -21,10 +21,6 @@ from .common.ui import (
     carver_ui_common,
 )
 
-from ..functions.select import (
-    cursor_snap,
-)
-
 
 description = "Cut primitive shapes into mesh objects by box drawing"
 
@@ -123,9 +119,6 @@ class OBJECT_OT_carve_box(CarverBase,
         self.initial_aspect = self.aspect  # Initial shape aspect.
         self._stored_phase = "DRAW"
 
-        # modifier_keys
-        self.snap = False
-
         # Add Draw Handler
         self._handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_shaders,
                                                                (context,),
@@ -144,7 +137,6 @@ class OBJECT_OT_carve_box(CarverBase,
         self.redraw_region(context)
 
         # Modifier Keys
-        self.event_snap(context, event)
         self.event_aspect(context, event)
         self.event_origin(context, event)
         self.event_rotate(context, event)
@@ -171,10 +163,6 @@ class OBJECT_OT_carve_box(CarverBase,
 
             # Draw
             elif self.phase == "DRAW":
-                # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                if self.snap:
-                    cursor_snap(self, context, event, self.mouse)
-
                 self.update_cutter_shape(context)
 
             # Extrude

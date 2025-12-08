@@ -83,27 +83,6 @@ class CarverEvents():
         return self._stored_phase
 
 
-    # Individual Events
-    def event_snap(self, context, event):
-        """Modifier keys for snapping"""
-
-        self.snap = context.scene.tool_settings.use_snap
-
-        # change_the_snap_increment_value_using_the_wheel_mouse
-        for i, area in enumerate(context.screen.areas):
-            if area.type == 'VIEW_3D':
-                space = context.screen.areas[i].spaces.active
-
-        if event.type == 'WHEELUPMOUSE':
-                space.overlay.grid_subdivisions -= 1
-        elif event.type == 'WHEELDOWNMOUSE':
-                space.overlay.grid_subdivisions += 1
-
-        # invert_snapping
-        if event.ctrl:
-            self.snap = not self.snap
-
-
     def event_aspect(self, context, event):
         """Modifier keys for changing aspect of the shape"""
 
@@ -144,6 +123,7 @@ class CarverEvents():
             del self._stored_first_vertex
 
 
+        # Set correct phase.
         if event.type == 'R':
             stored_phase = self._custom_modifier_event(context, event, "ROTATE",
                                                        cursor='MOVE_X', store_values=True, restore_mouse=False,

@@ -22,10 +22,6 @@ from .common.ui import (
     carver_ui_common,
 )
 
-from ..functions.select import (
-    cursor_snap,
-)
-
 
 description = "Cut custom polygonal shapes into mesh objects"
 
@@ -100,9 +96,6 @@ class OBJECT_OT_carve_polyline(CarverBase,
         self._distance_from_first = 0
         self._stored_phase = "DRAW"
 
-        # modifier_keys
-        self.snap = False
-
         # Add Draw Handler
         self._handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_shaders,
                                                                (context,),
@@ -121,7 +114,6 @@ class OBJECT_OT_carve_polyline(CarverBase,
         self.redraw_region(context)
 
         # Modifier Keys
-        self.event_snap(context, event)
         self.event_array(context, event)
         self.event_move(context, event)
 
@@ -146,10 +138,6 @@ class OBJECT_OT_carve_polyline(CarverBase,
                                                                               first_vert_world)
                     distance_screen = (Vector(self.mouse.current) - first_vert_screen).length
                     self._distance_from_first = max(100 - distance_screen, 0)
-
-                # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                if self.snap:
-                    cursor_snap(self, context, event, self.mouse_path)
 
                 self.update_cutter_shape(context)
 
