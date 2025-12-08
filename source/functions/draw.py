@@ -1,22 +1,15 @@
 import bpy
 import gpu
+import math
+import mathutils
 from bpy_extras import view3d_utils
+from mathutils import Vector
 from gpu_extras.batch import batch_for_shader
 
-from .math import (
-    draw_circle,
-    draw_polygon,
-    draw_array,
-)
-
-
-magic_number = 1.41
-color = (0.48, 0.04, 0.04, 1.0)
-secondary_color = (0.28, 0.04, 0.04, 1.0)
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def draw_shader(color, alpha, type, coords, size=1, indices=None):
+def draw_shader(type, color, alpha, coords, size=1, indices=None):
     """Creates a batch for a draw type"""
 
     gpu.state.blend_set('ALPHA')
@@ -43,89 +36,105 @@ def draw_shader(color, alpha, type, coords, size=1, indices=None):
         batch = batch_for_shader(shader, 'LINE_LOOP', {"pos": coords})
 
     if type == 'SOLID':
+        gpu.state.depth_test_set('NONE')
         shader = gpu.shader.from_builtin('UNIFORM_COLOR')
         shader.uniform_float("color", (color[0], color[1], color[2], alpha))
         batch = batch_for_shader(shader, 'TRIS', {"pos": coords}, indices=indices)
-
-    if type == 'OUTLINE':
-        shader = gpu.shader.from_builtin('UNIFORM_COLOR')
-        shader.uniform_float("color", (color[0], color[1], color[2], alpha))
-        batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": coords})
-        gpu.state.line_width_set(size)
 
     batch.draw(shader)
     gpu.state.point_size_set(1.0)
     gpu.state.blend_set('NONE')
 
 
-def carver_shape_box(self, context, shape):
-    """Shape overlay for box carver tool"""
+def draw_bmesh_faces(faces, world_matrix):
+    """
+    Get world-space vertex pairs and indices from `bmesh` face. To be used in GPU batch.
+    Adapted from "Blockout" extension by niewinny (https://github.com/niewinny/blockout).
+    """
 
-    subdivision = self.subdivision if shape == 'CIRCLE' else 4
-    rotation = 0 if shape == 'CIRCLE' else 45
+    if not faces:
+        return None, None
 
-    # Create Shape
-    coords, indices, bounds = draw_circle(self, subdivision, rotation)
-    self.verts = coords
+    vertices = []
+    indices = []
 
-    # Draw Shaders
-    draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
-    if not self.rotate and not self.bevel:
-        draw_shader(color, 0.6, 'OUTLINE', bounds, size=2)
+    vert_index_map = {}
+    vert_count = 0
+    for face in faces:
+        face_indices = []
 
-    # Array
-    if self.rows > 1 or self.columns > 1:
-        carver_shape_array(self, coords, indices, 'SOLID')
+        # Collect unique vertices only (avoid storing verts that are shared by faces multiple times).
+        # (Iterating over face corners because unlike `face.verts` they're ordered).
+        for loop in face.loops:
+            vert = loop.vert
+            co = world_matrix @ Vector(vert.co)
 
+            if vert not in vert_index_map:
+                vertices.append(co)
+                vert_index_map[vert] = vert_count
+                face_indices.append(vert_count)
+                vert_count += 1
+            else:
+                face_indices.append(vert_index_map[vert])
 
-    if self.snap:
-        mini_grid(self, context)
+        # Triangulate face and map local indices to global vertex indices.
+        if len(face_indices) >= 3:
+            try:
+                face_verts_co = [vertices[idx] for idx in face_indices]
+                tris = mathutils.geometry.tessellate_polygon([face_verts_co])
+                for tri in tris:
+                    indices.append((face_indices[tri[0]], face_indices[tri[1]], face_indices[tri[2]]))
+            except:
+                # Fallback to simple fan triangulation if tessellation fails.
+                for i in range(1, len(face_indices) - 1):
+                    indices.append((face_indices[0], face_indices[i], face_indices[i + 1]))
 
-    gpu.state.blend_set('NONE')
-
-
-def carver_shape_polyline(self, context):
-    """Shape overlay for polyline carver tool"""
-
-    # Create Shape
-    coords, indices, first_point, array_coords = draw_polygon(self)
-    self.verts = list(dict.fromkeys(self.mouse_path))
-
-    # Draw Shaders
-    draw_shader(color, 1.0, 'POINTS', coords, size=5)
-    draw_shader(color, 1.0, 'LINE_LOOP' if self.closed else 'LINES', coords, size=2)
-
-    if self.closed and len(self.mouse_path) > 2:
-        # polygon_fill
-        draw_shader(color, 0.4, 'SOLID', coords, size=2, indices=indices[:-2])
-
-    if (self.closed and len(coords) > 3) or (self.closed == False and len(coords) > 4):
-        # circle_around_first_point
-        draw_shader(color, 0.8, 'OUTLINE', first_point, size=3)
-
-    # Array
-    if len(self.mouse_path) > 2 and (self.rows > 1 or self.columns > 1):
-        carver_shape_array(self, array_coords, indices, 'LINE_LOOP' if self.closed == False else 'SOLID')
+    return vertices, indices
 
 
-    if self.snap:
-        mini_grid(self, context)
+def draw_bmesh_edges(edges, world_matrix):
+    """Convert bmesh edges into world-space vertex pairs to be used in GPU batch."""
 
-    gpu.state.blend_set('NONE')
+    if not edges:
+        return None
+
+    vertices = []
+    for edge in edges:
+        v1 = world_matrix @ edge.verts[0].co
+        v2 = world_matrix @ edge.verts[1].co
+        vertices.append(v1)
+        vertices.append(v2)
+
+    return vertices
 
 
-def carver_shape_array(self, verts, indices, shader):
-    """Draws given shape for each row and column of the array"""
+def draw_circle_around_point(context, obj, vert, radius, segments):
+    """
+    Draws the screen-aligned circle around given vertex of the object.
+    Returns the list of vertices for GPU batch.
+    """
 
-    rows, columns = draw_array(self, verts)
-    self.duplicates = {**{f"row_{k}": v for k, v in rows.items()}, **{f"column_{k}": v for k, v in columns.items()}}
+    region = context.region
+    rv3d = context.region_data
+    vert_world = obj.matrix_world @ vert.co
+    radius = min(radius, 25)
 
-    if self.rows > 1:
-        for i, duplicate in rows.items():
-            draw_shader(secondary_color, 0.4, shader, duplicate, size=2, indices=indices[:-2])
-    if self.columns > 1:
-        for i, duplicate in columns.items():
-            draw_shader(secondary_color, 0.4, shader, duplicate, size=2, indices=indices[:-2])
+    vertices = []
+    for i in range(segments + 1):
+        angle = i * (2 * math.pi / segments)
+
+        # Calculate offset and vertex position in screen-space.
+        offset_x = radius * math.cos(angle)
+        offset_y = radius * math.sin(angle)
+        vert_screen = view3d_utils.location_3d_to_region_2d(region, rv3d, vert_world)
+
+        if vert_screen:
+            # Add offset in screen-space and convert back to world-space.
+            circle_screen = Vector((vert_screen.x + offset_x, vert_screen.y + offset_y))
+            circle_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, circle_screen, vert_world)
+            vertices.append(circle_3d)
+
+    return vertices
 
 
 def mini_grid(self, context):

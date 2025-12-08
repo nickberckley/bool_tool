@@ -1,29 +1,29 @@
 import bpy
-import mathutils
 import math
 import os
+from mathutils import Vector
+from bpy_extras import view3d_utils
 from .. import __file__ as base_file
 
 from .common.base import (
-    CarverModifierKeys,
     CarverBase,
 )
 from .common.properties import (
-    CarverOperatorProperties,
-    CarverModifierProperties,
-    CarverCutterProperties,
-    CarverArrayProperties,
+    CarverPropsArray,
+)
+from .common.types import (
+    Selection,
+    Mouse,
+    Workplane,
+    Cutter,
+    Effects,
 )
 from .common.ui import (
     carver_ui_common,
 )
 
-from ..functions.draw import (
-    carver_shape_polyline,
-)
 from ..functions.select import (
     cursor_snap,
-    selection_fallback,
 )
 
 
@@ -39,7 +39,7 @@ class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "ops.object.carver_polyline")
+    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "tool_icons", "ops.object.carver_polyline")
     bl_keymap = (
         ("object.carve_polyline", {"type": 'LEFTMOUSE', "value": 'CLICK'}, None),
         ("object.carve_polyline", {"type": 'LEFTMOUSE', "value": 'CLICK', "ctrl": True}, None),
@@ -61,8 +61,8 @@ class MESH_WT_carve_polyline(OBJECT_WT_carve_polyline):
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
-class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operator,
-                               CarverOperatorProperties, CarverModifierProperties, CarverCutterProperties, CarverArrayProperties):
+class OBJECT_OT_carve_polyline(CarverBase,
+                               CarverPropsArray):
     bl_idname = "object.carve_polyline"
     bl_label = "Polyline Carve"
     bl_description = description
@@ -70,11 +70,10 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
     bl_cursor_pending = 'PICK_AREA'
 
     # SHAPE-properties
-    closed: bpy.props.BoolProperty(
-        name = "Closed Polygon",
-        description = "When enabled, mouse position at the moment of execution will be registered as last point of the polygon",
-        default = True,
-    )
+    shape = 'POLYLINE'
+    origin = None
+    aspect = None
+
 
     @classmethod
     def poll(cls, context):
@@ -82,34 +81,32 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
 
 
     def invoke(self, context, event):
-        self.selected_objects = context.selected_objects
-        self.mouse_path = [(event.mouse_region_x, event.mouse_region_y),
-                           (event.mouse_region_x, event.mouse_region_y)]
+        # Validate Selection
+        self.objects = Selection(*self.validate_selection(context))
 
-        # initialize_empty_values
-        self.verts = []
-        self.duplicates = []
-        self.cutter = None
-        self.view_depth = mathutils.Vector()
-        self.cached_mouse_position = () # needed_for_custom_modifier_keys
-        self.distance_from_first = 0
+        if len(self.objects.selected) == 0:
+            self.report({'WARNING'}, "Select mesh objects that should be carved")
+            return {'CANCELLED'}
 
-        # cached_variables
-        """Important for storing context as it was when operator was invoked (untouched by the modal)"""
-        self.initial_selection = context.selected_objects
+        # Initialize Core Components
+        self.mouse = Mouse().from_event(event)
+        self.workplane = Workplane(*self.calculate_workplane(context))
+        self.cutter = Cutter(*self.create_cutter(context))
+        self.effects = Effects().from_invoke(self, context)
+
+         # cached_variables
+        """Important for storing context as it was when operator was invoked (untouched by the modal)."""
+        self.phase = "DRAW"
+        self._distance_from_first = 0
+        self._stored_phase = "DRAW"
 
         # modifier_keys
         self.snap = False
-        self.move = False
-        self.gap = False
-
-        # overlay_position (needed_for_moving_the_shape)
-        self.position_offset_x = 0
-        self.position_offset_y = 0
-        self.initial_position = False
 
         # Add Draw Handler
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_shape_polyline, (self, context), 'WINDOW', 'POST_PIXEL')
+        self._handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_shaders,
+                                                               (context,),
+                                                               'WINDOW', 'POST_VIEW')
         context.window.cursor_set("MUTE")
         context.window_manager.modal_handler_add(self)
 
@@ -126,103 +123,189 @@ class OBJECT_OT_carve_polyline(CarverBase, CarverModifierKeys, bpy.types.Operato
         # find_the_limit_of_the_3d_viewport_region
         self.redraw_region(context)
 
-
         # Modifier Keys
         self.modifier_snap(context, event)
         self.modifier_array(context, event)
         self.modifier_move(context, event)
 
-        if event.type in {'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
-                          'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9',
-                          'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE', 'N'}:
+        if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}
+        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            if self.phase != "BEVEL":
+                return {'PASS_THROUGH'}
 
 
         # Mouse Move
         if event.type == 'MOUSEMOVE':
-            # move
-            if self.move:
-                self.position_offset_x += (event.mouse_region_x - self.last_mouse_region_x)
-                self.position_offset_y += (event.mouse_region_y - self.last_mouse_region_y)
-                self.last_mouse_region_x = event.mouse_region_x
-                self.last_mouse_region_y = event.mouse_region_y
+            self.mouse.current = Vector((event.mouse_region_x, event.mouse_region_y))
 
-            # array
-            elif self.gap:
-                self.rows_gap = event.mouse_region_x * 0.1
-                self.columns_gap = event.mouse_region_y * 0.1
+            # Draw
+            if self.phase == "DRAW":
+                # Calculate the distance from the initial mouse position.
+                if self.mouse.current_3d:
+                    first_vert_world = self.cutter.obj.matrix_world @ self.cutter.verts[0].co
+                    first_vert_screen = view3d_utils.location_3d_to_region_2d(context.region,
+                                                                              context.region_data,
+                                                                              first_vert_world)
+                    distance_screen = (Vector(self.mouse.current) - first_vert_screen).length
+                    self._distance_from_first = max(100 - distance_screen, 0)
 
-            # Draw Shape
-            else:
-                if len(self.mouse_path) > 0:
-                    self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
+                # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                if self.snap:
+                    cursor_snap(self, context, event, self.mouse_path)
 
-                    # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                    if self.snap:
-                        cursor_snap(self, context, event, self.mouse_path)
+                self.update_cutter_shape(context)
 
-                    # get_distance_from_first_point
-                    distance = math.sqrt((self.mouse_path[-1][0] - self.mouse_path[0][0]) ** 2 +
-                                         (self.mouse_path[-1][1] - self.mouse_path[0][1]) ** 2)
-                    min_radius = 0
-                    max_radius = 30
-                    self.distance_from_first = max(max_radius - distance, min_radius)
+            # Extrude
+            elif self.phase == "EXTRUDE":
+                self.set_extrusion_depth(context)
 
 
         # Add Points & Confirm
-        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type == 'RET' and event.value == 'PRESS'):
-            # selection_fallback (expand_selection_on_every_polyline_click)
-            if len(self.initial_selection) == 0:
-                self.selected_objects = selection_fallback(self, context, context.view_layer.objects, shape='POLYLINE')
-                for obj in self.selected_objects:
-                    obj.select_set(True)
+        elif event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+            if self.phase == "DRAW":
+                # Confirm Shape (if clicked on the first vert)
+                if self._distance_from_first > 75:
+                    verts = self.cutter.verts
+                    if len(verts) > 3:
+                        self._remove_polyline_point(context, jump_mouse=False)
+                        self.extrude_cutter(context)
+                        self.Cut(context)
 
+                        # Not setting depth manually, performing a cut here.
+                        if self.depth != 'MANUAL':
+                            self.confirm(context)
+                            return {'FINISHED'}
+                        else:
+                            return {'RUNNING_MODAL'}
 
-            # add_new_points
-            if not (event.type == 'RET' and event.value == 'PRESS') and (self.distance_from_first < 15):
-                self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
-                if self.closed == False:
-                    """NOTE: Additional vert is needed for open loop."""
-                    self.mouse_path.append((event.mouse_region_x, event.mouse_region_y))
+                # Add Point
+                else:
+                    self._insert_polyline_point()
 
-            # confirm_cut
-            else:
-                if self.closed == False:
-                    self.verts.pop() # dont_add_current_mouse_position_as_vert
-
-                if self.distance_from_first > 15:
-                    self.verts[-1] = self.verts[0]
-
-                if len(self.verts) / 2 <= 1:
-                    self.report({'INFO'}, "At least two points are required to make polygonal shape")
-                    self.cancel(context)
-                    return {'FINISHED'}
-
-                if self.closed and self.mouse_path[-1] == self.mouse_path[-2]:
-                    context.window.cursor_warp(event.mouse_region_x - 1, event.mouse_region_y)
-
-                selection = self.validate_selection(context, shape='POLYLINE')
-                if not selection:
-                    self.cancel(context)
-                    return {'FINISHED'}
-
+            # Confirm Depth
+            if self.phase == "EXTRUDE":
                 self.confirm(context)
                 return {'FINISHED'}
 
 
+        # Confirm
+        elif event.type == 'RET':
+            verts = self.cutter.verts
+            if len(verts) > 2:
+                # Confirm Shape
+                if self.phase == "DRAW" and event.value == 'RELEASE':
+                    self.extrude_cutter(context)
+                    self.Cut(context)
+
+                    # Not setting depth manually, performing a cut here.
+                    if self.depth != 'MANUAL':
+                        self.confirm(context)
+                        return {'FINISHED'}
+                    else:
+                        return {'RUNNING_MODAL'}
+
+                # Confirm Depth
+                if self.phase == "EXTRUDE" and event.value == 'PRESS':
+                    self.confirm(context)
+                    return {'FINISHED'}
+            else:
+                self.report({'WARNING'}, "At least three points are required to make a polygonal shape")
+
+
         # Remove Last Point
         if event.type == 'BACK_SPACE' and event.value == 'PRESS':
-            if len(self.mouse_path) > 2:
-                context.window.cursor_warp(int(self.mouse_path[-2][0]), int(self.mouse_path[-2][1]))
-                self.mouse_path = self.mouse_path[:-1]
+            self._remove_polyline_point(context)
 
 
         # Cancel
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            self.cancel(context)
+            self.finalize(context, clean_up=True, abort=True)
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
+
+
+    # Polyline-specific features.
+    def _insert_polyline_point(self):
+        """Inserts a new vertex in the cutter geometry and connects it to the previous last one."""
+
+        bm = self.cutter.bm
+        verts = self.cutter.verts
+        x, y = self.mouse.current_3d.x, self.mouse.current_3d.y
+
+        # Lock the position of the last vert to cursor position at the moment of press.
+        last_vert = verts[-1]
+        last_vert.co = Vector((x, y, 0))
+
+        # Find and remove edge between last vert and the first vert.
+        if verts.index(last_vert) != 1:
+            first_vert = verts[0]
+            edge_to_remove = None
+            for edge in last_vert.link_edges:
+                if first_vert in edge.verts:
+                    edge_to_remove = edge
+                    break
+            if edge_to_remove:
+                self.cutter.bm.edges.remove(edge_to_remove)
+
+        # Insert new point in bmesh and connect to last one.
+        new_vert = bm.verts.new(Vector((x, y, 0)))
+        bm.edges.new([last_vert, new_vert])
+        verts.append(new_vert)
+
+        # Create a new face.
+        if len(verts) >= 3:
+            face = self.cutter.bm.faces.new(verts)
+            self.cutter.faces = [face]
+
+        # Update bmesh.
+        bm.to_mesh(self.cutter.mesh)
+
+
+    def _remove_polyline_point(self, context, jump_mouse=True):
+        """Removes the last vertex in cutter geometry and moves cursor to the one before that."""
+
+        obj = self.cutter.obj
+        bm = self.cutter.bm
+        verts = self.cutter.verts
+        faces = self.cutter.faces
+
+        if len(verts) <= 2:
+            return
+
+        # Remove last vertex.
+        last_vert = verts[-1]
+        bm.verts.remove(last_vert)
+        verts.pop()
+
+        # Reconstruct the face.
+        face = faces[0]
+        if face is not None:
+            if len(verts) >= 3:
+                new_face = bm.faces.new(verts)
+                faces[0] = new_face
+            else:
+                faces[0] = None
+
+        # Create an edge between new last vertex and the first vertex.
+        new_last = verts[-1]
+        first_vert = verts[0]
+        edge_exists = any(first_vert in edge.verts for edge in new_last.link_edges)
+        if not edge_exists:
+            bm.edges.new([new_last, first_vert])
+
+        # Update bmesh.
+        bm.to_mesh(self.cutter.mesh)
+
+        # Jump mouse to the new last vert.
+        if jump_mouse:
+            vert_world = obj.matrix_world @ new_last.co
+            screen_pos = view3d_utils.location_3d_to_region_2d(context.region,
+                                                               context.region_data,
+                                                               vert_world)
+            if screen_pos:
+                context.window.cursor_warp(int(screen_pos.x), int(screen_pos.y))
 
 
 

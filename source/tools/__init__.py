@@ -20,9 +20,10 @@ else:
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
+"""NOTE: Order of modules is important because of dependancies. Don't change without a reason."""
 modules = [
+    carver_circle,
     carver_box,
-    # carver_circle,
     carver_polyline,
     ui,
 ]

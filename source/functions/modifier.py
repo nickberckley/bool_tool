@@ -21,7 +21,7 @@ def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, re
 
     prefs = context.preferences.addons[base_package].preferences
 
-    modifier = obj.modifiers.new("boolean_" + cutter.name, 'BOOLEAN')
+    modifier = obj.modifiers.new("boolean_" + cutter.name.replace("boolean_", ""), 'BOOLEAN')
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
@@ -44,7 +44,7 @@ def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, re
     return modifier
 
 
-def apply_modifiers(context, obj, modifiers: list):
+def apply_modifiers(context, obj, modifiers: list, force_clean=False):
     """
     Apply modifiers on object.
     Instead of using `bpy.ops.object.modifier_apply`, this function uses
@@ -63,9 +63,10 @@ def apply_modifiers(context, obj, modifiers: list):
         context.active_object.data = context.active_object.data.copy()
 
     try:
-        # Don't use this method if it's not enabled by user in add-on preferences.
+        # Don't use this method if it's not enabled by user in preferences, unless caller forces it.
         if not prefs.fast_modifier_apply:
-            raise Exception("")
+            if not force_clean:
+                raise Exception()
 
         with hide_modifiers(obj, excluding=modifiers):
             # Create a temporary mesh from evaluated object.
@@ -99,7 +100,7 @@ def apply_modifiers(context, obj, modifiers: list):
     except Exception as e:
         # print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
 
-        context_override = {"object": obj, "mode": 'OBJECT'}
+        context_override = {"active_object": obj, "mode": 'OBJECT'}
         with context.temp_override(**context_override):
             # Apply shape keys if there are any.
             if obj.data.shape_keys:
@@ -132,3 +133,33 @@ def hide_modifiers(obj, excluding: list):
     finally:
         for mod in visible_modifiers:
             mod.show_viewport = True
+
+
+def add_modifier_asset(obj, path: str, asset: str):
+    """Loads the node group asset and adds a Geometry Nodes modifier using it."""
+
+    try:
+        # Load the node group.
+        if bpy.app.version >= (5, 0, 0):
+            with bpy.data.libraries.load(path, link=True, pack=True) as (data_from, data_to):
+                if asset in data_from.node_groups:
+                    data_to.node_groups = [asset]
+
+        else:
+            with bpy.data.libraries.load(path) as (data_from, data_to):
+                if asset in data_from.node_groups:
+                    data_to.node_groups = [asset]
+
+        node_group = bpy.data.node_groups[asset]
+
+        # Add modifier on the object.
+        mod = obj.modifiers.new(asset, type='NODES')
+        mod.node_group = node_group
+        mod.show_group_selector = False
+        mod.show_manage_panel = False
+
+        return mod
+
+    except Exception as e:
+        print("Modifier node group could not be loaded:", e)
+        return None

@@ -1,9 +1,5 @@
 import bpy
-import mathutils
 from bpy_extras import view3d_utils
-
-from .math import get_bounding_box
-from .poll import is_linked, is_instanced_data
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -46,84 +42,3 @@ def cursor_snap(self, context, event, mouse_pos):
         # replace_the_last_mouse_location_by_the_snapped_location
         if len(self.mouse_path) > 0:
             self.mouse_path[len(self.mouse_path) - (index + 1) ] = tuple(snap_loc_2d)
-
-
-def is_inside_selection(context, obj, rect_min, rect_max):
-    """Checks if the bounding box of an object intersects with the selection bounding box"""
-
-    region = context.region
-    rv3d = context.space_data.region_3d
-
-    bound_corners = [obj.matrix_world @ mathutils.Vector(corner) for corner in obj.bound_box]
-    bound_corners_2d = [view3d_utils.location_3d_to_region_2d(region, rv3d, corner) for corner in bound_corners]
-
-    # check_if_2d_point_is_inside_rectangle_(defined_by_min_and_max_points)
-    for corner_2d in bound_corners_2d:
-        if corner_2d and (rect_min.x <= corner_2d.x <= rect_max.x and rect_min.y <= corner_2d.y <= rect_max.y):
-            return True
-
-    # check_if_any_part_of_the_bounding_box_intersects_the_selection_rectangle
-    min_x = min(corner_2d.x for corner_2d in bound_corners_2d if corner_2d)
-    max_x = max(corner_2d.x for corner_2d in bound_corners_2d if corner_2d)
-    min_y = min(corner_2d.y for corner_2d in bound_corners_2d if corner_2d)
-    max_y = max(corner_2d.y for corner_2d in bound_corners_2d if corner_2d)
-
-    return not (max_x < rect_min.x or min_x > rect_max.x or max_y < rect_min.y or min_y > rect_max.y)
-
-
-def selection_fallback(self, context, objects, shape='BOX', include_cutters=False):
-    """Returns mesh objects that fall inside given 2d rectangle (bounding box of the shape) coordinates"""
-    """Needed to know exactly which objects should be carved, to avoid adding and applying unnecessary modifiers"""
-    """NOTE: bounding box isn't always returning correct results, but checking full shape would be too expensive"""
-
-    if shape == 'POLYLINE':
-        x_values = [point[0] for point in self.mouse_path]
-        y_values = [point[1] for point in self.mouse_path]
-        rect_min = mathutils.Vector((min(x_values), min(y_values)))
-        rect_max = mathutils.Vector((max(x_values), max(y_values)))
-
-    elif shape == 'BOX':
-        if self.origin == 'EDGE':
-            rect_min = mathutils.Vector((min(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                         min(self.mouse_path[0][1], self.mouse_path[1][1])))
-            rect_max = mathutils.Vector((max(self.mouse_path[0][0], self.mouse_path[1][0]),
-                                         max(self.mouse_path[0][1], self.mouse_path[1][1])))
-
-        elif self.origin == 'CENTER':
-            # get_bounding_box_of_the_shape
-            min_x, min_y, max_x, max_y = get_bounding_box(self.verts)
-
-            rect_min = mathutils.Vector((min(min_x, max_x), min(min_y, max_y)))
-            rect_max = mathutils.Vector((max(min_x, max_x), max(min_y, max_y)))
-
-    # ARRAY
-    if self.rows > 1:
-        rect_max.x = rect_min.x + (rect_max.x - rect_min.x) * self.rows + (self.rows_gap * (self.rows - 1))
-    if self.columns > 1:
-        rect_min.y = rect_max.y - (rect_max.y - rect_min.y) * self.columns - (self.columns_gap * (self.columns - 1))
-
-
-    intersecting_objects = []
-    for obj in objects:
-        if obj.type != 'MESH':
-            continue
-        if obj == self.cutter:
-            continue
-        if tuple(round(v, 4) for v in obj.dimensions) == (0.0, 0.0, 0.0):
-            continue
-        if include_cutters == False and obj.booleans.cutter != "":
-            continue
-
-        if is_inside_selection(context, obj, rect_min, rect_max):
-            if is_linked(context, obj):
-                self.report({'ERROR'}, f"{obj.name} is linked and can not be carved")
-                continue
-
-            if self.mode == 'DESTRUCTIVE':
-                if is_instanced_data(obj):
-                    self.report({'ERROR'}, f"Modifiers cannot be applied to {obj.name} because it has instanced object data")
-                    continue
-
-            intersecting_objects.append(obj)
-
-    return intersecting_objects

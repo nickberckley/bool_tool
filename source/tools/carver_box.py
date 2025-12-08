@@ -1,29 +1,28 @@
 import bpy
-import mathutils
 import os
+from mathutils import Vector
 from .. import __file__ as base_file
 
 from .common.base import (
-    CarverModifierKeys,
     CarverBase,
 )
 from .common.properties import (
-    CarverOperatorProperties,
-    CarverModifierProperties,
-    CarverCutterProperties,
-    CarverArrayProperties,
-    CarverBevelProperties,
+    CarverPropsArray,
+    CarverPropsBevel,
+)
+from .common.types import (
+    Selection,
+    Mouse,
+    Workplane,
+    Cutter,
+    Effects,
 )
 from .common.ui import (
     carver_ui_common,
 )
 
-from ..functions.draw import (
-    carver_shape_box,
-)
 from ..functions.select import (
     cursor_snap,
-    selection_fallback,
 )
 
 
@@ -39,16 +38,16 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "ops.object.carver_box")
+    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "tool_icons", "ops.object.carver_box")
     bl_keymap = (
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
-        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": [("shape", 'BOX')]}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "alt": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True, "alt": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "alt": True}, {"properties": None}),
+        ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "ctrl": True, "shift": True, "alt": True}, {"properties": None}),
     )
 
     def draw_settings(context, layout, tool):
@@ -63,26 +62,21 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
-class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
-                          CarverOperatorProperties, CarverModifierProperties, CarverCutterProperties,
-                          CarverArrayProperties, CarverBevelProperties):
+class OBJECT_OT_carve_box(CarverBase,
+                          CarverPropsArray,
+                          CarverPropsBevel):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
     bl_description = description
     bl_options = {'REGISTER', 'UNDO', 'DEPENDS_ON_CURSOR'}
     bl_cursor_pending = 'PICK_AREA'
 
-    shape: bpy.props.EnumProperty(
-        name = "Shape",
-        items = (('BOX', "Box", ""),
-                 ('CIRCLE', "Circle", ""),
-                 ('POLYLINE', "Polyline", "")),
-        default = 'BOX',
-    )
-
     # SHAPE-properties
+    shape = 'BOX'
+
     aspect: bpy.props.EnumProperty(
         name = "Aspect",
+        description = "The initial aspect",
         items = (('FREE', "Free", "Use an unconstrained aspect"),
                  ('FIXED', "Fixed", "Use a fixed 1:1 aspect")),
         default = 'FREE',
@@ -100,12 +94,6 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
         soft_min = -360, soft_max = 360,
         default = 0,
     )
-    subdivision: bpy.props.IntProperty(
-        name = "Circle Subdivisions",
-        description = "Number of vertices that will make up the circular shape that will be extruded into a cylinder",
-        min = 3, soft_max = 128,
-        default = 16,
-    )
 
 
     @classmethod
@@ -114,36 +102,34 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
 
 
     def invoke(self, context, event):
-        self.selected_objects = context.selected_objects
-        self.mouse_path = [(event.mouse_region_x, event.mouse_region_y),
-                           (event.mouse_region_x, event.mouse_region_y)]
+        # Validate Selection
+        self.objects = Selection(*self.validate_selection(context))
 
-        # initialize_empty_values
-        self.verts = []
-        self.duplicates = []
-        self.cutter = None
-        self.view_depth = mathutils.Vector()
-        self.cached_mouse_position = () # needed_for_custom_modifier_keys
+        if len(self.objects.selected) == 0:
+            self.report({'WARNING'}, "Select mesh objects that should be carved")
+            bpy.ops.view3d.select_box('INVOKE_DEFAULT')
+            return {'CANCELLED'}
+
+        # Initialize Core Components
+        self.mouse = Mouse().from_event(event)
+        self.workplane = Workplane(*self.calculate_workplane(context))
+        self.cutter = Cutter(*self.create_cutter(context))
+        self.effects = Effects().from_invoke(self, context)
 
          # cached_variables
-        """Important for storing context as it was when operator was invoked (untouched by the modal)"""
-        self.initial_origin = self.origin
-        self.initial_aspect = self.aspect
+        """Important for storing context as it was when operator was invoked (untouched by the modal)."""
+        self.phase = "DRAW"
+        self.initial_origin = self.origin  # Initial shape origin.
+        self.initial_aspect = self.aspect  # Initial shape aspect.
+        self._stored_phase = "DRAW"
 
         # modifier_keys
         self.snap = False
-        self.move = False
-        self.rotate = False
-        self.gap = False
-        self.bevel = False
-
-        # overlay_position (needed_for_moving_the_shape)
-        self.position_offset_x = 0
-        self.position_offset_y = 0
-        self.initial_position = False
 
         # Add Draw Handler
-        self._handle = bpy.types.SpaceView3D.draw_handler_add(carver_shape_box, (self, context, self.shape), 'WINDOW', 'POST_PIXEL')
+        self._handler = bpy.types.SpaceView3D.draw_handler_add(self.draw_shaders,
+                                                               (context,),
+                                                               'WINDOW', 'POST_VIEW')
         context.window.cursor_set("MUTE")
         context.window_manager.modal_handler_add(self)
 
@@ -153,14 +139,13 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
     def modal(self, context, event):
         # Status Bar Text
         snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array"
+        shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array, [F]: Flip"
         array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
         bevel_text = ", [B]: Bevel" if self.shape == 'BOX' else ""
         context.workspace.status_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + bevel_text + array_text + snap_text)
 
         # find_the_limit_of_the_3d_viewport_region
         self.redraw_region(context)
-
 
         # Modifier Keys
         self.modifier_snap(context, event)
@@ -169,88 +154,73 @@ class OBJECT_OT_carve_box(CarverBase, CarverModifierKeys, bpy.types.Operator,
         self.modifier_rotate(context, event)
         self.modifier_bevel(context, event)
         self.modifier_array(context, event)
+        self.modifier_flip(context, event)
         self.modifier_move(context, event)
 
-        if event.type in {'NUMPAD_1', 'NUMPAD_2', 'NUMPAD_3', 'NUMPAD_4',
-                          'NUMPAD_5', 'NUMPAD_6', 'NUMPAD_7', 'NUMPAD_8', 'NUMPAD_9',
-                          'MIDDLEMOUSE', 'N'}:
+        if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}
-
-        if self.bevel == False and event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            return {'PASS_THROUGH'}
+        if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
+            if self.phase != "BEVEL":
+                return {'PASS_THROUGH'}
 
 
         # Mouse Move
         if event.type == 'MOUSEMOVE':
-            # move
-            if self.move:
-                self.position_offset_x += (event.mouse_region_x - self.last_mouse_region_x)
-                self.position_offset_y += (event.mouse_region_y - self.last_mouse_region_y)
-                self.last_mouse_region_x = event.mouse_region_x
-                self.last_mouse_region_y = event.mouse_region_y
+            self.mouse.current = Vector((event.mouse_region_x, event.mouse_region_y))
 
-            # rotate
-            elif self.rotate:
-                self.rotation = event.mouse_region_x * 0.01
+            # Array
+            if self.phase == "ARRAY":
+                self.rows_gap = event.mouse_region_x * 0.002
+                self.columns_gap = event.mouse_region_y * 0.002
 
-            # array
-            elif self.gap:
-                self.rows_gap = event.mouse_region_x * 0.1
-                self.columns_gap = event.mouse_region_y * 0.1
+            # Draw
+            elif self.phase == "DRAW":
+                # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
+                if self.snap:
+                    cursor_snap(self, context, event, self.mouse)
 
-            # bevel
-            elif self.bevel:
-                self.bevel_radius = event.mouse_region_x * 0.002
+                self.update_cutter_shape(context)
 
-            # Draw Shape
-            else:
-                if len(self.mouse_path) > 0:
-                    # aspect
-                    if self.aspect == 'FIXED':
-                        side = max(abs(event.mouse_region_x - self.mouse_path[0][0]),
-                                   abs(event.mouse_region_y - self.mouse_path[0][1]))
-                        self.mouse_path[len(self.mouse_path) - 1] = \
-                                        (self.mouse_path[0][0] + (side if event.mouse_region_x >= self.mouse_path[0][0] else -side),
-                                         self.mouse_path[0][1] + (side if event.mouse_region_y >= self.mouse_path[0][1] else -side))
-
-                    elif self.aspect == 'FREE':
-                        self.mouse_path[len(self.mouse_path) - 1] = (event.mouse_region_x, event.mouse_region_y)
-
-                    # snap (find_the_closest_position_on_the_overlay_grid_and_snap_the_shape_to_it)
-                    if self.snap:
-                        cursor_snap(self, context, event, self.mouse_path)
+            # Extrude
+            elif self.phase == "EXTRUDE":
+                self.set_extrusion_depth(context)
 
 
         # Confirm
-        elif (event.type == 'LEFTMOUSE' and event.value == 'RELEASE') or (event.type == 'RET' and event.value == 'PRESS'):
-            # selection_fallback
-            if len(self.selected_objects) == 0:
-                self.selected_objects = selection_fallback(self, context, context.view_layer.objects, shape='BOX')
-                for obj in self.selected_objects:
-                    obj.select_set(True)
+        elif event.type == 'LEFTMOUSE':
+            # Confirm Shape
+            if self.phase == "DRAW" and event.value == 'RELEASE':
+                """
+                Protection against creating a very small rectangle (or even with 0 dimensions)
+                by clicking and releasing very quickly, in a very small distance.
+                """
+                delta_x = abs(event.mouse_region_x - self.mouse.initial[0])
+                delta_y = abs(event.mouse_region_y - self.mouse.initial[1])
+                min_distance = 5
 
-                if len(self.selected_objects) == 0:
-                    self.cancel(context)
+                if delta_x < min_distance or delta_y < min_distance:
+                    self.finalize(context, clean_up=True, abort=True)
                     return {'FINISHED'}
-            else:
-                selection = self.validate_selection(context, shape='BOX')
-                if not selection:
-                    self.cancel(context)
+
+                self.extrude_cutter(context)
+                self.Cut(context)
+
+                # Not setting depth manually, performing a cut here.
+                if self.depth != 'MANUAL':
+                    self.confirm(context)
                     return {'FINISHED'}
+                else:
+                    return {'RUNNING_MODAL'}
 
-            # protection_against_returning_no_rectangle_by_clicking
-            delta_x = abs(event.mouse_region_x - self.mouse_path[0][0])
-            delta_y = abs(event.mouse_region_y - self.mouse_path[0][1])
-            min_distance = 5
-
-            if delta_x > min_distance or delta_y > min_distance:
+            # Confirm Depth
+            if self.phase == "EXTRUDE" and event.value == 'PRESS':
                 self.confirm(context)
                 return {'FINISHED'}
 
 
         # Cancel
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            self.cancel(context)
+            self.finalize(context, clean_up=True, abort=True)
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}

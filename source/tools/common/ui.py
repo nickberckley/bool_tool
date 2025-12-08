@@ -7,13 +7,24 @@ from ... import __package__ as base_package
 def carver_ui_common(context, layout, props):
     """Common tool properties for all Carver tools"""
 
-    layout.prop(props, "mode", text="")
-    layout.prop(props, "depth", text="")
-    layout.prop(props, "solver", expand=True)
+    if context.region.type == 'TOOL_HEADER':
+        layout.prop(props, "mode", text="")
+        layout.prop(props, "alignment", text="")
+        layout.prop(props, "depth", text="")
+        layout.prop(props, "solver", expand=True)
+
+    else:
+        # Use labels for Properties editor/sidebar.
+        layout.prop(props, "mode", text="Mode")
+        layout.prop(props, "alignment", text="Alignment")
+        layout.prop(props, "depth", text="Depth")
+        row = layout.row()
+        row.prop(props, "solver", expand=True)
+        layout.separator()
 
     # Popovers
     layout.popover("TOPBAR_PT_carver_shape", text="Shape")
-    layout.popover("TOPBAR_PT_carver_array", text="Array")
+    layout.popover("TOPBAR_PT_carver_effects", text="Effects")
     layout.popover("TOPBAR_PT_carver_cutter", text="Cutter")
 
 
@@ -21,7 +32,7 @@ def carver_ui_common(context, layout, props):
 #### ------------------------------ /popovers/ ------------------------------ ####
 
 class TOPBAR_PT_carver_shape(bpy.types.Panel):
-    bl_label = "Carver Shape"
+    bl_label = "Cutter Shape"
     bl_idname = "TOPBAR_PT_carver_shape"
     bl_region_type = 'HEADER'
     bl_space_type = 'TOPBAR'
@@ -32,12 +43,14 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        prefs = context.preferences.addons[base_package].preferences
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
 
-        # Box
+        # Box & Circle
         if tool.idname == "object.carve_box" or tool.idname == "object.carve_circle":
-            props = tool.operator_properties("object.carve_box")
+            if tool.idname == "object.carve_box":
+                props = tool.operator_properties("object.carve_box")
+            else:
+                props = tool.operator_properties("object.carve_circle")
 
             if tool.idname == "object.carve_circle":
                 layout.prop(props, "subdivision", text="Vertices")
@@ -45,29 +58,24 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
             layout.prop(props, "aspect", expand=True)
             layout.prop(props, "origin", expand=True)
 
-            # bevel
-            if tool.idname == 'object.carve_box':
-                layout.separator()
-                layout.prop(props, "use_bevel", text="Bevel")
-                col = layout.column(align=True)
-                row = col.row(align=True)
-                if prefs.experimental:
-                    row.prop(props, "bevel_profile", text="Profile", expand=True)
-                col.prop(props, "bevel_segments", text="Segments")
-                col.prop(props, "bevel_radius", text="Radius")
-
-                if props.use_bevel == False:
-                    col.enabled = False
+            if props.alignment == 'SURFACE':
+                layout.prop(props, "orientation")
+                layout.prop(props, "offset", text="Offset")
+                layout.prop(props, "align_to_all")
+            if props.alignment == 'CURSOR':
+                layout.prop(props, "alignment_axis", text="Align to", expand=True)
 
         # Polyline
         elif tool.idname == "object.carve_polyline":
             props = tool.operator_properties("object.carve_polyline")
-            layout.prop(props, "closed")
+            if props.alignment == 'SURFACE':
+                layout.prop(props, "offset", text="Offset")
+                layout.prop(props, "align_to_all")
 
 
-class TOPBAR_PT_carver_array(bpy.types.Panel):
-    bl_label = "Carver Array"
-    bl_idname = "TOPBAR_PT_carver_array"
+class TOPBAR_PT_carver_effects(bpy.types.Panel):
+    bl_label = "Cutter Effects"
+    bl_idname = "TOPBAR_PT_carver_effects"
     bl_region_type = 'HEADER'
     bl_space_type = 'TOPBAR'
     bl_category = 'Tool'
@@ -78,25 +86,42 @@ class TOPBAR_PT_carver_array(bpy.types.Panel):
         layout.use_property_decorate = False
 
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box" or tool.idname == "object.carve_circle":
+        if tool.idname == "object.carve_box":
             props = tool.operator_properties("object.carve_box")
+        elif tool.idname == "object.carve_circle":
+            props = tool.operator_properties("object.carve_circle")
         elif tool.idname == "object.carve_polyline":
             props = tool.operator_properties("object.carve_polyline")
 
-        # Rows
-        col = layout.column(align=True)
-        col.prop(props, "rows")
-        row = col.row(align=True)
-        row.prop(props, "rows_direction", text="Direction", expand=True)
-        col.prop(props, "rows_gap", text="Gap")
+        # Bevel
+        if tool.idname == 'object.carve_box':
+            header, panel = layout.panel("OBJECT_OT_carver_effects_bevel", default_closed=False)
+            header.label(text="Bevel")
+            if panel:
+                panel.prop(props, "use_bevel", text="Side Bevel")
+                col = panel.column(align=True)
+                col.prop(props, "bevel_segments", text="Segments")
+                col.prop(props, "bevel_width", text="Radius")
 
-        # Columns
-        layout.separator()
-        col = layout.column(align=True)
-        col.prop(props, "columns")
-        row = col.row(align=True)
-        row.prop(props, "columns_direction", text="Direction", expand=True)
-        col.prop(props, "columns_gap", text="Gap")
+                if props.use_bevel == False:
+                    col.enabled = False
+
+        # Array
+        header, panel = layout.panel("OBJECT_OT_carver_effects_array", default_closed=False)
+        header.label(text="Array")
+        if panel:
+            col = panel.column(align=True)
+            col.prop(props, "columns")
+            row = col.row(align=True)
+            row.prop(props, "columns_direction", text="Direction", expand=True)
+            col.prop(props, "columns_gap", text="Gap")
+
+            panel.separator()
+            col = panel.column(align=True)
+            col.prop(props, "rows")
+            row = col.row(align=True)
+            row.prop(props, "rows_direction", text="Direction", expand=True)
+            col.prop(props, "rows_gap", text="Gap")
 
 
 class TOPBAR_PT_carver_cutter(bpy.types.Panel):
@@ -112,13 +137,17 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
         layout.use_property_decorate = False
 
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box" or tool.idname == "object.carve_circle":
+        if tool.idname == "object.carve_box":
             props = tool.operator_properties("object.carve_box")
+        elif tool.idname == "object.carve_circle":
+            props = tool.operator_properties("object.carve_circle")
         elif tool.idname == "object.carve_polyline":
             props = tool.operator_properties("object.carve_polyline")
 
         # modifier_&_cutter
         col = layout.column()
+        row = col.row()
+        row.prop(props, "display", text="Display", expand=True)
         col.prop(props, "pin", text="Pin Modifier")
         if props.mode == 'MODIFIER':
             col.prop(props, "parent")
@@ -128,7 +157,10 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
         layout.separator()
         col = layout.column(align=True)
         col.prop(props, "auto_smooth", text="Auto Smooth")
-        col.prop(props, "sharp_angle")
+        col1 = layout.column()
+        col1.prop(props, "sharp_angle")
+        if not props.auto_smooth:
+            col1.enabled = False
 
 
 
@@ -136,7 +168,7 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
 
 classes = [
     TOPBAR_PT_carver_shape,
-    TOPBAR_PT_carver_array,
+    TOPBAR_PT_carver_effects,
     TOPBAR_PT_carver_cutter,
 ]
 

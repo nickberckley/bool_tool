@@ -108,8 +108,11 @@ class BrushBoolean(ModifierProperties):
 
         for cutter in cutters:
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            set_cutter_properties(context, canvas, cutter, self.mode, parent=prefs.parent, collection=prefs.use_collection)
+            display = 'WIRE' if prefs.wireframe else 'BOUNDS'
+            set_cutter_properties(context, cutter, self.mode, display=display, collection=prefs.use_collection)
             add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
+            if prefs.parent:
+                change_parent(cutter, canvas)
 
         canvas.booleans.canvas = True
 
