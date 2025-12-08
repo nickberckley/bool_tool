@@ -3,7 +3,9 @@ import bmesh
 import mathutils
 import math
 from bpy_extras import view3d_utils
-from mathutils import Vector, Matrix
+
+from .object import hide_objects
+from .types import Ray
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
@@ -85,8 +87,8 @@ def ensure_attribute(bm, name, domain):
     return attr
 
 
-def raycast(context, position):
-    """Cast a ray in the scene"""
+def raycast(context, position, objects):
+    """Cast a ray in the scene to get the surface on any of the given objects."""
 
     region = context.region
     rv3d = context.region_data
@@ -96,25 +98,8 @@ def raycast(context, position):
     direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, position)
 
     # Cast Ray
-    hit, location, normal, index, object, matrix = context.scene.ray_cast(depsgraph, origin, direction)
-    ray = Ray(hit, location, normal, index, object, matrix)
+    with hide_objects(context, exceptions=objects):
+        hit, location, normal, index, object, matrix = context.scene.ray_cast(depsgraph, origin, direction)
+        ray = Ray(hit, location, normal, index, object, matrix)
 
     return ray
-
-
-
-#### ------------------------------ CLASSES ------------------------------ ####
-
-class Ray:
-    def __init__(self,
-                 hit: bool,
-                 location: Vector,
-                 normal: Vector,
-                 index: int, obj,
-                 matrix: Matrix):
-        self.hit = hit
-        self.location = location if location is not None else mathutils.Vector()
-        self.normal = normal if normal is not None else mathutils.Vector()
-        self.index = index
-        self.obj = obj
-        self.matrix = matrix if matrix is not None else mathutils.Matrix()

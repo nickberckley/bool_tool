@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import mathutils
+from contextlib import contextmanager
 from .. import __package__ as base_package
 
 
@@ -149,3 +150,23 @@ def set_object_origin(obj, bm, point='CENTER', custom=None):
     bm.to_mesh(obj.data)
 
     obj.location = position_world
+
+
+@contextmanager
+def hide_objects(context, exceptions: list):
+    """Hides objects during the context, and restores their visibility afterwards."""
+
+    hidden_objects = []
+    for obj in context.scene.objects:
+        if obj in exceptions:
+            continue
+        if obj.hide_get() == False:
+            hidden_objects.append(obj)
+            obj.hide_set(True)
+
+    try:
+        yield
+
+    finally:
+        for obj in hidden_objects:
+            obj.hide_set(False)
