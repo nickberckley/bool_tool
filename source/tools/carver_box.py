@@ -138,11 +138,7 @@ class OBJECT_OT_carve_box(CarverBase,
 
     def modal(self, context, event):
         # Status Bar Text
-        snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[SHIFT]: Aspect, [ALT]: Origin, [R]: Rotate, [ARROWS]: Array, [F]: Flip"
-        array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
-        bevel_text = ", [B]: Bevel" if self.shape == 'BOX' else ""
-        context.workspace.status_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + bevel_text + array_text + snap_text)
+        self.status(context)
 
         # find_the_limit_of_the_3d_viewport_region
         self.redraw_region(context)
@@ -224,6 +220,103 @@ class OBJECT_OT_carve_box(CarverBase,
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
+
+
+    def status(cls, context):
+        """Set the status bar text to modal modifier keys."""
+
+        # Draw
+        def modal_keys_draw(self, context):
+            layout = self.layout
+            row = layout.row(align=True)
+
+            row.label(text="", icon='MOUSE_MOVE')
+            row.label(text="Draw")
+            row.label(text="", icon='MOUSE_LMB')
+            row.label(text="Confirm")
+            row.label(text="", icon='MOUSE_MMB')
+            row.label(text="Rotate View")
+            row.label(text="", icon='MOUSE_RMB')
+            row.label(text="Cancel")
+
+            row.label(text="", icon='EVENT_SPACEKEY')
+            row.label(text="     Move")
+            row.label(text="", icon='EVENT_R')
+            row.label(text="Rotate")
+            row.label(text="", icon='KEY_SHIFT')
+            row.label(text="Aspect")
+            row.label(text="", icon='EVENT_ALT')
+            row.label(text="   Origin")
+
+            row.label(text="", icon='EVENT_LEFT_ARROW')
+            row.label(text="", icon='EVENT_DOWN_ARROW')
+            row.label(text="", icon='EVENT_RIGHT_ARROW')
+            row.label(text="", icon='EVENT_UP_ARROW')
+            row.label(text="Array")
+            row.label(text="", icon='EVENT_B')
+            row.label(text="Bevel")
+
+            # Restore rest of the status bar.
+            layout.separator_spacer()
+            layout.template_reports_banner()
+            layout.separator_spacer()
+            layout.template_running_jobs()
+
+            layout.separator_spacer()
+            row = layout.row()
+            row.alignment = "RIGHT"
+            text = context.screen.statusbar_info()
+            row.label(text=text + " ")
+
+        # Extrude
+        def modal_keys_extrude(self, context):
+            layout = self.layout
+            row = layout.row(align=True)
+
+            row.label(text="", icon='MOUSE_MOVE')
+            row.label(text="Set Depth")
+            row.label(text="", icon='MOUSE_LMB')
+            row.label(text="Confirm")
+            row.label(text="", icon='MOUSE_MMB')
+            row.label(text="Rotate View")
+            row.label(text="", icon='MOUSE_RMB')
+            row.label(text="Cancel")
+
+            row.label(text="", icon='EVENT_SPACEKEY')
+            row.label(text="     Move")
+            row.label(text="", icon='EVENT_R')
+            row.label(text="Rotate")
+            row.label(text="", icon='EVENT_F')
+            row.label(text="Flip Direction")
+
+            row.label(text="", icon='EVENT_LEFT_ARROW')
+            row.label(text="", icon='EVENT_DOWN_ARROW')
+            row.label(text="", icon='EVENT_RIGHT_ARROW')
+            row.label(text="", icon='EVENT_UP_ARROW')
+            row.label(text="Array")
+            row.label(text="", icon='EVENT_B')
+            row.label(text="Bevel")
+
+            # Restore rest of the status bar.
+            layout.separator_spacer()
+            layout.template_reports_banner()
+            layout.separator_spacer()
+            layout.template_running_jobs()
+
+            layout.separator_spacer()
+            row = layout.row()
+            row.alignment = "RIGHT"
+            text = context.screen.statusbar_info()
+            row.label(text=text + " ")
+
+        # Missing keys:
+        # Wheelup and Wheeldown to control bevel segments when B is pressed.
+        # A to adjust array gap when array effect is used.
+
+        if cls.phase == 'DRAW':
+            context.workspace.status_text_set(modal_keys_draw)
+        elif cls.phase == 'EXTRUDE':
+            context.workspace.status_text_set(modal_keys_extrude)
 
 
 

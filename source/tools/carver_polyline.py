@@ -85,7 +85,7 @@ class OBJECT_OT_carve_polyline(CarverBase,
         self.objects = Selection(*self.validate_selection(context))
 
         if len(self.objects.selected) == 0:
-            self.report({'WARNING'}, "Select mesh objects that should be carved")
+            bpy.ops.view3d.select('INVOKE_DEFAULT')
             return {'CANCELLED'}
 
         # Initialize Core Components
@@ -114,11 +114,8 @@ class OBJECT_OT_carve_polyline(CarverBase,
 
 
     def modal(self, context, event):
-        # Tool Settings Text
-        snap_text = ", [MOUSEWHEEL]: Change Snapping Increment" if self.snap else ""
-        shape_text = "[BACKSPACE]: Remove Last Point, [ENTER]: Confirm"
-        array_text = ", [A]: Gap" if (self.rows > 1 or self.columns > 1) else ""
-        context.workspace.status_text_set("[CTRL]: Snap Invert, [SPACEBAR]: Move, " + shape_text + array_text + snap_text)
+        # Status Bar Text
+        self.status(context)
 
         # find_the_limit_of_the_3d_viewport_region
         self.redraw_region(context)
@@ -226,6 +223,95 @@ class OBJECT_OT_carve_polyline(CarverBase,
         return {'RUNNING_MODAL'}
 
 
+    def status(cls, context):
+        """Set the status bar text to modal modifier keys."""
+
+        # Draw
+        def modal_keys_draw(self, context):
+            layout = self.layout
+            row = layout.row(align=True)
+
+            row.label(text="", icon='MOUSE_LMB')
+            row.label(text="Insert Point")
+            row.label(text="", icon='MOUSE_MMB')
+            row.label(text="Rotate View")
+            row.label(text="", icon='MOUSE_RMB')
+            row.label(text="Cancel")
+            row.label(text="", icon='KEY_RETURN')
+            row.label(text="Confirm")
+
+            row.label(text="", icon='EVENT_SPACEKEY')
+            row.label(text="     Move")
+            row.label(text="", icon='EVENT_BACKSPACE')
+            row.label(text="   Remove Last Point")
+
+            row.label(text="", icon='EVENT_LEFT_ARROW')
+            row.label(text="", icon='EVENT_DOWN_ARROW')
+            row.label(text="", icon='EVENT_RIGHT_ARROW')
+            row.label(text="", icon='EVENT_UP_ARROW')
+            row.label(text="Array")
+
+            # Restore rest of the status bar.
+            layout.separator_spacer()
+            layout.template_reports_banner()
+            layout.separator_spacer()
+            layout.template_running_jobs()
+
+            layout.separator_spacer()
+            row = layout.row()
+            row.alignment = "RIGHT"
+            text = context.screen.statusbar_info()
+            row.label(text=text + " ")
+
+        # Extrude
+        def modal_keys_extrude(self, context):
+            layout = self.layout
+            row = layout.row(align=True)
+
+            row.label(text="", icon='MOUSE_MOVE')
+            row.label(text="Set Depth")
+            row.label(text="", icon='MOUSE_LMB')
+            row.label(text="", icon='KEY_RETURN')
+            row.label(text="Confirm")
+            row.label(text="", icon='MOUSE_MMB')
+            row.label(text="Rotate View")
+            row.label(text="", icon='MOUSE_RMB')
+            row.label(text="Cancel")
+
+            row.label(text="", icon='EVENT_SPACEKEY')
+            row.label(text="     Move")
+            row.label(text="", icon='EVENT_R')
+            row.label(text="Rotate")
+            row.label(text="", icon='EVENT_F')
+            row.label(text="Flip Direction")
+
+            row.label(text="", icon='EVENT_LEFT_ARROW')
+            row.label(text="", icon='EVENT_DOWN_ARROW')
+            row.label(text="", icon='EVENT_RIGHT_ARROW')
+            row.label(text="", icon='EVENT_UP_ARROW')
+            row.label(text="Array")
+
+            # Restore rest of the status bar.
+            layout.separator_spacer()
+            layout.template_reports_banner()
+            layout.separator_spacer()
+            layout.template_running_jobs()
+
+            layout.separator_spacer()
+            row = layout.row()
+            row.alignment = "RIGHT"
+            text = context.screen.statusbar_info()
+            row.label(text=text + " ")
+
+        # Missing keys:
+        # A to adjust array gap when array effect is used.
+
+        if cls.phase == 'DRAW':
+            context.workspace.status_text_set(modal_keys_draw)
+        elif cls.phase == 'EXTRUDE':
+            context.workspace.status_text_set(modal_keys_extrude)
+
+
     # Polyline-specific features.
     def _insert_polyline_point(self):
         """Inserts a new vertex in the cutter geometry and connects it to the previous last one."""
@@ -265,6 +351,9 @@ class OBJECT_OT_carve_polyline(CarverBase,
 
     def _remove_polyline_point(self, context, jump_mouse=True):
         """Removes the last vertex in cutter geometry and moves cursor to the one before that."""
+
+        if self.phase != "DRAW":
+            return
 
         obj = self.cutter.obj
         bm = self.cutter.bm

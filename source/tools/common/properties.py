@@ -55,11 +55,10 @@ class CarverPropsShape():
         min = 0.0, soft_max = 0.1,
         default = 0.01,
     )
-    flip_direction: bpy.props.BoolProperty(
-        name = "Flip Direction",
-        description = "Change which way the geometry is extruded",
-        options = {'SKIP_SAVE', 'HIDDEN', 'SKIP_PRESET', },
-        default = False,
+    align_to_all: bpy.props.BoolProperty(
+        name = "Align to Anything",
+        description = "Use all visible objects for surface alignment, not just selected objects",
+        default = True,
     )
     alignment_axis: bpy.props.EnumProperty(
         name = "Alignment Axis",
@@ -69,10 +68,12 @@ class CarverPropsShape():
                  ('Z', "Z", "")),
         default = 'Z',
     )
-    align_to_all: bpy.props.BoolProperty(
-        name = "Align to Anything",
-        description = "Use all visible objects for surface alignment, not just selected objects",
-        default = True,
+
+    flip_direction: bpy.props.BoolProperty(
+        name = "Flip Direction",
+        description = "Change which way the geometry is extruded",
+        options = {'SKIP_SAVE', 'HIDDEN', 'SKIP_PRESET', },
+        default = False,
     )
 
 
