@@ -119,9 +119,8 @@ class CarverEvents():
 
             # Restore origin at edge (first vertex).
             if self.origin == 'EDGE':
-                point = self._stored_first_vertex.co
+                point = self.cutter.bm.verts[0].co
                 set_object_origin(self.cutter.obj, self.cutter.bm, point="CUSTOM", custom=point)
-            del self._stored_first_vertex
 
 
         # Set correct phase.
@@ -146,7 +145,6 @@ class CarverEvents():
                     self._stored_rotation = self.rotation
                     self._stored_cutter_center = self.cutter.center
                     self._stored_cutter_euler = obj.rotation_euler.copy()
-                    self._stored_first_vertex = self.cutter.verts[0]
 
                 # Calculate angle and direction.
                 to_start = (self._stored_mouse_pos_3d - self._stored_cutter_center).normalized()
