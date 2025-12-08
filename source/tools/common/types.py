@@ -159,6 +159,7 @@ class Effects:
         mod.limit_method = 'WEIGHT'
         mod.segments = cls.bevel_segments
         mod.width = cls.bevel_width
+        mod.profile = cls.bevel_profile
 
         """NOTE:
         In order to allow beveling during the shape creation phase,

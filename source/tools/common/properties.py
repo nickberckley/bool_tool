@@ -184,5 +184,11 @@ class CarverPropsBevel():
     bevel_width: bpy.props.FloatProperty(
         name = "Bevel Width",
         min = 0, soft_max = 5,
-        default = 1,
+        default = 0.1,
+    )
+    bevel_profile: bpy.props.FloatProperty(
+        name = "Bevel Profile",
+        description = "The bevel profile shape (0.5 = round)",
+        min = 0, max = 1,
+        default = 0.5,
     )

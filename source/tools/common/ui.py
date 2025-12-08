@@ -102,6 +102,7 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
                 col = panel.column(align=True)
                 col.prop(props, "bevel_segments", text="Segments")
                 col.prop(props, "bevel_width", text="Radius")
+                col.prop(props, "bevel_profile", text="Profile", slider=True)
 
                 if props.use_bevel == False:
                     col.enabled = False
