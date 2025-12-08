@@ -121,9 +121,9 @@ class OBJECT_OT_carve_polyline(CarverBase,
         self.redraw_region(context)
 
         # Modifier Keys
-        self.modifier_snap(context, event)
-        self.modifier_array(context, event)
-        self.modifier_move(context, event)
+        self.event_snap(context, event)
+        self.event_array(context, event)
+        self.event_move(context, event)
 
         if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}

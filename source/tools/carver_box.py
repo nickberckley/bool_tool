@@ -144,14 +144,14 @@ class OBJECT_OT_carve_box(CarverBase,
         self.redraw_region(context)
 
         # Modifier Keys
-        self.modifier_snap(context, event)
-        self.modifier_aspect(context, event)
-        self.modifier_origin(context, event)
-        self.modifier_rotate(context, event)
-        self.modifier_bevel(context, event)
-        self.modifier_array(context, event)
-        self.modifier_flip(context, event)
-        self.modifier_move(context, event)
+        self.event_snap(context, event)
+        self.event_aspect(context, event)
+        self.event_origin(context, event)
+        self.event_rotate(context, event)
+        self.event_bevel(context, event)
+        self.event_array(context, event)
+        self.event_flip(context, event)
+        self.event_move(context, event)
 
         if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}

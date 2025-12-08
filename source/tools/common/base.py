@@ -45,49 +45,46 @@ from ...functions.poll import (
 )
 
 
-#### ------------------------------ FUNCTIONS ------------------------------ ####
-
-def custom_modifier_event(self, context, event, modifier,
-                          cursor='NONE', store_values=False, restore_mouse=True,
-                          postprocess=None):
-    """Creates custom modifier event when key is held and hides cursor until it's released"""
-
-    # Initialize Modifier Phase
-    if event.value == 'PRESS':
-        if self.phase != modifier:
-            self._stored_phase = self.phase
-            self.phase = modifier
-            self.mouse.cached = self.mouse.current
-            context.window.cursor_set(cursor)
-
-            if store_values:
-                # Store center of the geometry as a Vector.
-                verts = [v.co for v in self.cutter.bm.verts]
-                self.cutter.center = sum(verts, Vector()) / len(verts)
-
-    # End Modifier Phase
-    elif event.value == 'RELEASE':
-        if self.phase == modifier:
-            context.window.cursor_set('MUTE')
-            if restore_mouse:
-                context.window.cursor_warp(int(self.mouse.cached[0]), int(self.mouse.cached[1]))
-            self.mouse.current = self.mouse.cached
-            self.phase = self._stored_phase
-
-            if postprocess is not None:
-                postprocess(self)
-
-    return self._stored_phase
-
-
-
 #### ------------------------------ /base/ ------------------------------ ####
 
-class CarverModifierKeys():
-    """NOTE: Order of the modifier key events is important, because key value might change after function checks for it"""
-    """Functions that check last are most important because they can overwrite all modifier states"""
+class CarverEvents():
 
-    def modifier_snap(self, context, event):
+    def _custom_modifier_event(self, context, event, modifier,
+                               cursor='NONE', store_values=False, restore_mouse=True,
+                               postprocess=None):
+        """Creates custom modifier event when key is held and hides cursor until it's released"""
+
+        # Initialize Modifier Phase
+        if event.value == 'PRESS':
+            if self.phase in ("DRAW", "EXTRUDE"):
+                self._stored_phase = self.phase
+                self.phase = modifier
+                self.mouse.cached = self.mouse.current
+                context.window.cursor_set(cursor)
+
+                if store_values:
+                    # Store center of the geometry as a Vector.
+                    verts = [v.co for v in self.cutter.bm.verts]
+                    center = sum(verts, Vector()) / len(verts)
+                    self.cutter.center = self.cutter.obj.matrix_world @ center
+
+        # End Modifier Phase
+        elif event.value == 'RELEASE':
+            if self.phase == modifier:
+                context.window.cursor_set('MUTE')
+                if restore_mouse:
+                    context.window.cursor_warp(int(self.mouse.cached[0]), int(self.mouse.cached[1]))
+                self.mouse.current = self.mouse.cached
+                self.phase = self._stored_phase
+
+                if postprocess is not None:
+                    postprocess(self)
+
+        return self._stored_phase
+
+
+    # Individual Events
+    def event_snap(self, context, event):
         """Modifier keys for snapping"""
 
         self.snap = context.scene.tool_settings.use_snap
@@ -107,10 +104,10 @@ class CarverModifierKeys():
             self.snap = not self.snap
 
 
-    def modifier_aspect(self, context, event):
+    def event_aspect(self, context, event):
         """Modifier keys for changing aspect of the shape"""
 
-        if event.shift:
+        if event.shift and self.phase == "DRAW":
             if self.initial_aspect == 'FREE':
                 self.aspect = 'FIXED'
             elif self.initial_aspect == 'FIXED':
@@ -119,10 +116,10 @@ class CarverModifierKeys():
             self.aspect = self.initial_aspect
 
 
-    def modifier_origin(self, context, event):
+    def event_origin(self, context, event):
         """Modifier keys for changing the origin of the shape"""
 
-        if event.alt:
+        if event.alt and self.phase == "DRAW":
             if self.initial_origin == 'EDGE':
                 self.origin = 'CENTER'
             elif self.initial_origin == 'CENTER':
@@ -131,7 +128,7 @@ class CarverModifierKeys():
             self.origin = self.initial_origin
 
 
-    def modifier_rotate(self, context, event):
+    def event_rotate(self, context, event):
         """Modifier keys for rotating the shape"""
 
         def _remove_rotate_phase_properties(self):
@@ -143,14 +140,14 @@ class CarverModifierKeys():
             # Restore origin at edge (first vertex).
             if self.origin == 'EDGE':
                 point = self._stored_first_vertex.co
-                set_object_origin(self.cutter.obj, self.cutter.bm, point='CUSTOM', custom=point)
-                del self._stored_first_vertex
+                set_object_origin(self.cutter.obj, self.cutter.bm, point="CUSTOM", custom=point)
+            del self._stored_first_vertex
 
 
         if event.type == 'R':
-            stored_phase = custom_modifier_event(self, context, event, "ROTATE",
-                                                 cursor='MOVE_X', store_values=True, restore_mouse=False,
-                                                 postprocess=_remove_rotate_phase_properties)
+            stored_phase = self._custom_modifier_event(context, event, "ROTATE",
+                                                       cursor='MOVE_X', store_values=True, restore_mouse=False,
+                                                       postprocess=_remove_rotate_phase_properties)
 
         if self.phase == "ROTATE":
             region = context.region
@@ -163,18 +160,12 @@ class CarverModifierKeys():
             if current_mouse_pos_3d is not None:
                 # Store values.
                 obj = self.cutter.obj
-
                 if not hasattr(self, '_stored_mouse_pos_3d'):
                     self._stored_mouse_pos_3d = current_mouse_pos_3d.copy()
                     self._stored_rotation = self.rotation
-                    self._stored_cutter_center = obj.matrix_world @ self.cutter.center
+                    self._stored_cutter_center = self.cutter.center
                     self._stored_cutter_euler = obj.rotation_euler.copy()
-
-                    if self.origin == 'EDGE':
-                        for v in self.cutter.faces[0].verts:
-                            if v.co == Vector((0, 0, 0)):
-                                self._stored_first_vertex = v
-                                break
+                    self._stored_first_vertex = self.cutter.verts[0]
 
                 # Calculate angle and direction.
                 to_start = (self._stored_mouse_pos_3d - self._stored_cutter_center).normalized()
@@ -202,7 +193,7 @@ class CarverModifierKeys():
                     obj.rotation_euler = new_rot.to_euler()
 
 
-    def modifier_bevel(self, context, event):
+    def event_bevel(self, context, event):
         """Modifier keys for beveling the shape"""
 
         def _remove_empty_bevel_modifier(self):
@@ -227,9 +218,9 @@ class CarverModifierKeys():
 
         # Set correct phase.
         if event.type == 'B':
-            stored_phase = custom_modifier_event(self, context, event, "BEVEL",
-                                                 cursor='PICK_AREA', store_values=True,
-                                                 postprocess=_remove_empty_bevel_modifier)
+            stored_phase = self._custom_modifier_event(context, event, "BEVEL",
+                                                       cursor='PICK_AREA', store_values=True,
+                                                       postprocess=_remove_empty_bevel_modifier)
 
         if self.phase == "BEVEL":
             self.use_bevel = True
@@ -259,7 +250,7 @@ class CarverModifierKeys():
             self.effects.update(self, 'BEVEL')
 
 
-    def modifier_array(self, context, event):
+    def event_array(self, context, event):
         """Modifier keys for creating the array of the shape"""
 
         if event.type == 'LEFT_ARROW' and event.value == 'PRESS':
@@ -279,11 +270,11 @@ class CarverModifierKeys():
             self.effects.update(self, 'ARRAY')
 
         if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
-            custom_modifier_event(self, context, event, "ARRAY")
+            self._custom_modifier_event(context, event, "ARRAY")
             self.effects.update(self, 'ARRAY')
 
 
-    def modifier_flip(self, context, event):
+    def event_flip(self, context, event):
         """Modifier keys for flipping the direction of extrusion."""
 
         if event.type == 'F' and event.value == 'PRESS':
@@ -291,17 +282,18 @@ class CarverModifierKeys():
                 self.flip_direction = not self.flip_direction
 
 
-    def modifier_move(self, context, event):
+    def event_move(self, context, event):
         """Modifier keys for moving the cutter shape."""
 
         def _remove_move_phase_properties(self):
             del self._stored_cutter_location
+            self.mouse.cached_3d = None
 
 
         if event.type == 'SPACE':
-            stored_phase = custom_modifier_event(self, context, event, "MOVE",
-                                                 cursor='SCROLL_XY', restore_mouse=False,
-                                                 postprocess=_remove_move_phase_properties)
+            stored_phase = self._custom_modifier_event(context, event, "MOVE",
+                                                       cursor='SCROLL_XY', restore_mouse=False,
+                                                       postprocess=_remove_move_phase_properties)
 
         if self.phase == "MOVE":
             region = context.region
@@ -313,15 +305,15 @@ class CarverModifierKeys():
                                                          (self.workplane.location, self.workplane.normal))
             if current_mouse_pos_3d is not None:
                 if not hasattr(self, '_stored_cutter_location'):
-                    self.mouse.cached = current_mouse_pos_3d.copy()
+                    self.mouse.cached_3d = current_mouse_pos_3d.copy()
                     self._stored_cutter_location = self.cutter.obj.location.copy()
 
-                offset = current_mouse_pos_3d - self.mouse.cached
+                offset = current_mouse_pos_3d - self.mouse.cached_3d
                 self.cutter.obj.location = self._stored_cutter_location + offset
 
 
 class CarverBase(bpy.types.Operator,
-                 CarverModifierKeys,
+                 CarverEvents,
                  CarverPropsOperator,
                  CarverPropsShape,
                  CarverPropsModifier,
@@ -473,10 +465,14 @@ class CarverBase(bpy.types.Operator,
             draw_shader('SOLID', (0.48, 0.04, 0.04), 0.4, vertices, indices=indices)
 
         # Draw Line
-        # if self.phase in ("BEVEL", "ROTATE"):
-        #     vertices = [self.cutter.center, self.mouse.current_3d]
-        #     if vertices is not None:
-        #         draw_shader('LINES', (0.00, 0.00, 0.00), 1.0, vertices)
+        if self.phase in ("BEVEL", "ROTATE"):
+            current_mouse_pos_3d = region_2d_to_plane_3d(context.region, context.region_data,
+                                                     self.mouse.current,
+                                                     (self.workplane.location, self.workplane.normal))
+            if current_mouse_pos_3d is not None:
+                vertices = [self.cutter.center, current_mouse_pos_3d]
+                if vertices is not None:
+                    draw_shader('LINES', (0.00, 0.00, 0.00), 1.0, vertices)
 
         # Draw Circle around First Vertex
         if self.shape == 'POLYLINE' and self.phase == 'DRAW':

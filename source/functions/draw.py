@@ -22,6 +22,7 @@ def draw_shader(type, color, alpha, coords, size=1, indices=None):
         batch = batch_for_shader(shader, 'POINTS', {"pos": coords}, indices=indices)
 
     elif type in 'LINES':
+        gpu.state.line_width_set(size)
         shader = gpu.shader.from_builtin('POLYLINE_UNIFORM_COLOR')
         shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
         shader.uniform_float("lineWidth", size)
@@ -43,6 +44,7 @@ def draw_shader(type, color, alpha, coords, size=1, indices=None):
 
     batch.draw(shader)
     gpu.state.point_size_set(1.0)
+    gpu.state.line_width_set(1.0)
     gpu.state.blend_set('NONE')
 
 
