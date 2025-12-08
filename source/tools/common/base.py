@@ -73,7 +73,7 @@ class CarverEvents():
             if self.phase == modifier:
                 context.window.cursor_set('MUTE')
                 if restore_mouse:
-                    context.window.cursor_warp(int(self.mouse.cached[0]), int(self.mouse.cached[1]))
+                    context.window.cursor_warp(int(self.mouse.cached[0]), int(self.mouse.cached[1]) + 100)
                 self.mouse.current = self.mouse.cached
                 self.phase = self._stored_phase
 
@@ -83,6 +83,7 @@ class CarverEvents():
         return self._stored_phase
 
 
+    # Individual Events
     def event_aspect(self, context, event):
         """Modifier keys for changing aspect of the shape"""
 
@@ -177,20 +178,14 @@ class CarverEvents():
         """Modifier keys for beveling the shape"""
 
         def _remove_empty_bevel_modifier(self):
-            if not getattr(self, "effects", None):
-                return
-            if not getattr(self.effects, "bevel", None):
-                return
-
             bevel = self.effects.bevel
             if bevel.width == 0:
                 self.cutter.obj.modifiers.remove(bevel)
-                if self.effects.weld is not None:
-                    print("it should be removed here")
-                    self.cutter.obj.modifiers.remove(self.effects.weld)
-
                 self.effects.bevel = None
-                self.effects.weld = None
+
+                if self.effects.weld is not None:
+                    self.cutter.obj.modifiers.remove(self.effects.weld)
+                    self.effects.weld = None
 
 
         if self.shape != 'BOX':
@@ -206,10 +201,16 @@ class CarverEvents():
             self.use_bevel = True
 
             # Initialize bevel effect if it doesn't exist.
-            if not getattr(self, "effects", None) or not getattr(self.effects, "bevel", None):
+            if self.effects.bevel is None:
                 self.bevel_width = 0
                 affect = 'VERTICES' if stored_phase == "DRAW" else 'EDGES'
-                self.effects.bevel = Effects().add_bevel_modifier(self, affect=affect)
+                self.effects.add_bevel_modifier(self, affect=affect)
+
+                # Force the geometry to update.
+                if stored_phase == "DRAW":
+                    self.update_cutter_shape(context)
+                elif stored_phase == "EXTRUDE":
+                    self.set_extrusion_depth(context)
 
             # Calculate bevel width.
             region = context.region
@@ -435,7 +436,7 @@ class CarverBase(bpy.types.Operator,
         obj = self.cutter.obj
 
         # Get evaluated cutter object.
-        depsgraph = bpy.context.evaluated_depsgraph_get()
+        depsgraph = context.evaluated_depsgraph_get()
         eval_cutter_obj = obj.evaluated_get(depsgraph)
         eval_cutter_mesh = eval_cutter_obj.to_mesh()
 

@@ -92,6 +92,8 @@ class Effects:
         # Bevel
         if hasattr(cls, "use_bevel") and cls.use_bevel:
             self.add_bevel_modifier(cls, affect='VERTICES')
+        else:
+            self.bevel = None
 
         return self
 
@@ -192,7 +194,7 @@ class Effects:
         self.add_weld_modifier(cls)
 
         self.bevel = mod
-        return self.bevel
+
 
     def transfer_bevel_weights(self, cls):
         """Transfer bevel weights from vertices to edges."""
