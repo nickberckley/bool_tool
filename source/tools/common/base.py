@@ -401,12 +401,18 @@ class CarverBase(bpy.types.Operator,
         mesh = bpy.data.meshes.new(name="boolean_cutter")
         bm = bmesh.new()
 
-        # Create an Object
+        # Create the Object
         obj = bpy.data.objects.new("boolean_cutter", mesh)
+        obj.matrix_world = self.workplane.matrix
         set_cutter_properties(context, obj, "Difference", collection=True,
                               display='WIRE' if self.shape == 'POLYLINE' else self.display)
-        obj.matrix_world = self.workplane.matrix
         obj.booleans.carver = True
+
+        # Initial Rotation
+        if self.rotation != 0:
+            rotation_matrix = Matrix.Rotation(self.rotation, 4, self.workplane.normal)
+            temp_matrix_world = rotation_matrix @ obj.matrix_world
+            obj.rotation_euler = temp_matrix_world.to_euler()
 
         # Create Verts
         if self.shape == 'BOX':
