@@ -137,10 +137,19 @@ def set_object_origin(obj, bm, point='CENTER', custom=None):
     """Sets object origin to given position by shifting vertices"""
 
     # Center of the bounding box.
-    if point == 'CENTER':
+    if point == 'CENTER_OBJ':
         position_local = 0.125 * sum((mathutils.Vector(b) for b in obj.bound_box), mathutils.Vector())
         position_world = obj.matrix_world @ position_local
 
+    # Center of the geometry.
+    elif point == 'CENTER_MESH':
+        if len(bm.verts) > 0:
+            position_local = sum((v.co for v in bm.verts), mathutils.Vector()) / len(bm.verts)
+        else:
+            position_local = mathutils.Vector((0, 0, 0))
+        position_world = obj.matrix_world @ position_local
+
+    # Custom origin point (should be local Vector).
     elif point == 'CUSTOM':
         position_local = custom
         position_world = obj.matrix_world @ custom

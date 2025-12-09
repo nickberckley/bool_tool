@@ -113,6 +113,15 @@ class CarverPropsCutter():
                  ('BOUNDS', "Bounds", "Display only the bounds of the cutter object")),
         default = 'BOUNDS'
     )
+    cutter_origin: bpy.props.EnumProperty(
+        name = "Cutter Origin Point",
+        items = (('CENTER_OBJ', "Bounding Box", "Put the object origin at the center of the cutters bounding box"),
+                 ('CENTER_MESH', "Geometry", "Put the object origin at the center of the cutters geometry (not including effects)"),
+                 ('FACE_CENTER', "First Face", "Put the object origin at the center of cutters first face (i.e. shape)"),
+                 ('MOUSE_INITIAL', "Mouse Click", "Put the object origin at the point where mouse was first clicked"),
+                 ('CANVAS', "Same as Canvas", "Put the object origin of the cutter to the origin point of the cutter")),
+        default = 'CENTER_MESH',
+    )
 
     auto_smooth: bpy.props.BoolProperty(
         name = "Shade Auto Smooth",

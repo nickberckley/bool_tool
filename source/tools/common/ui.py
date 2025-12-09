@@ -144,6 +144,7 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
         if props.mode == 'MODIFIER':
             col.prop(props, "parent")
             col.prop(props, "hide")
+            col.prop(props, "cutter_origin", text="Origin")
 
         # auto_smooth
         layout.separator()

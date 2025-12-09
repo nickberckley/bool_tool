@@ -120,7 +120,7 @@ class CarverEvents():
             # Restore origin at edge (first vertex).
             if self.origin == 'EDGE':
                 point = self.cutter.bm.verts[0].co
-                set_object_origin(self.cutter.obj, self.cutter.bm, point="CUSTOM", custom=point)
+                set_object_origin(self.cutter.obj, self.cutter.bm, point='CUSTOM', custom=point)
 
 
         # Set correct phase.
@@ -160,7 +160,7 @@ class CarverEvents():
 
                     # Offset the object location when drawing from edge to move rotation pivot to center.
                     if self.origin == 'EDGE':
-                        set_object_origin(obj, self.cutter.bm, point='CENTER')
+                        set_object_origin(obj, self.cutter.bm, point='CENTER_OBJ')
 
                     # Calculate rotation amount.
                     rotation_total = Matrix.Rotation(self.rotation, 4, self.workplane.normal)
@@ -885,17 +885,37 @@ class CarverBase(bpy.types.Operator,
             face.select = True
 
         if self.mode == 'MODIFIER':
-            # Set remaining cutter properties.
-            set_object_origin(cutter, self.cutter.bm, point='CENTER')
             cutter.display_type = self.display
 
+            # Set the object origin of the cutter.
+            if self.cutter_origin == 'FACE_CENTER':
+                point = 'CUSTOM'
+                custom = self.cutter.faces[0].calc_center_median()
+            elif self.cutter_origin == 'MOUSE_INITIAL':
+                point = 'CUSTOM'
+                initial_mouse_pos_3d = region_2d_to_plane_3d(context.region, context.region_data,
+                                                             self.mouse.initial,
+                                                             (self.workplane.location, self.workplane.normal))
+                custom = cutter.matrix_world.inverted() @ initial_mouse_pos_3d
+            elif self.cutter_origin == 'CANVAS':
+                point = 'CUSTOM'
+                custom = cutter.matrix_world.inverted() @ self.objects.active.matrix_world.translation
+            else:
+                point = self.cutter_origin
+                custom = None
+
+            set_object_origin(cutter, self.cutter.bm, point=point, custom=custom)
+
+            # Parent cutter to canvas.
             if self.parent:
                 cutter.parent = self.objects.active
                 cutter.matrix_parent_inverse = self.objects.active.matrix_world.inverted()
 
+            # Hide cutter.
             if self.hide:
                 cutter.hide_set(True)
 
+            # Set Boolean properties to canvases.
             for obj in intersecting_canvases:
                 obj.booleans.canvas = True
 
