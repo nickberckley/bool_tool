@@ -232,25 +232,43 @@ class CarverEvents():
     def event_array(self, context, event):
         """Modifier keys for creating the array of the shape"""
 
+        # Add duplicates.
         if event.type == 'LEFT_ARROW' and event.value == 'PRESS':
             self.columns -= 1
-            self.effects.update(self, 'ARRAY')
-
         if event.type == 'RIGHT_ARROW' and event.value == 'PRESS':
             self.columns += 1
-            self.effects.update(self, 'ARRAY')
-
         if event.type == 'DOWN_ARROW' and event.value == 'PRESS':
             self.rows -= 1
-            self.effects.update(self, 'ARRAY')
-
         if event.type == 'UP_ARROW' and event.value == 'PRESS':
             self.rows += 1
-            self.effects.update(self, 'ARRAY')
 
+        if event.type in ['LEFT_ARROW',
+                          'RIGHT_ARROW',
+                          'DOWN_ARROW',
+                          'UP_ARROW',] and event.value == 'PRESS':
+            self.effects.update(self, 'ARRAY_COUNT')
+
+            # Force the geometry to update.
+            if self.phase == "DRAW":
+                self.update_cutter_shape(context)
+            elif self.phase == "EXTRUDE":
+                self.set_extrusion_depth(context)
+
+        # Adjust gap.
         if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
-            self._custom_modifier_event(context, event, "ARRAY")
-            self.effects.update(self, 'ARRAY')
+            stored_phase = self._custom_modifier_event(context, event, "ARRAY", cursor='MUTE',
+                                                       store_values=True, restore_mouse=True)
+
+        if self.phase == "ARRAY":
+            region = context.region
+            rv3d = context.region_data
+
+            self.mouse.cached_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, self.mouse.cached, self.cutter.center)
+            self.mouse.current_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, self.mouse.current, self.cutter.center)
+            d = (self.cutter.center - self.mouse.current_3d).length - (self.cutter.center - self.mouse.cached_3d).length
+            self.gap = 1 + (d * 0.2)
+
+            self.effects.update(self, 'ARRAY_GAP')
 
 
     def event_flip(self, context, event):
@@ -450,7 +468,7 @@ class CarverBase(bpy.types.Operator,
             draw_shader('SOLID', (0.48, 0.04, 0.04), 0.4, vertices, indices=indices)
 
         # Draw Line
-        if self.phase in ("BEVEL", "ROTATE"):
+        if self.phase in ("BEVEL", "ROTATE", "ARRAY"):
             current_mouse_pos_3d = region_2d_to_plane_3d(context.region, context.region_data,
                                                      self.mouse.current,
                                                      (self.workplane.location, self.workplane.normal))

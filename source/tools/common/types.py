@@ -72,8 +72,7 @@ class Cutter:
 class Effects:
 
     def __init__(self):
-        self.array_col = None
-        self.array_row = None
+        self.array = None
         self.bevel = None
         self.smooth = None
         self.weld = None
@@ -88,6 +87,8 @@ class Effects:
         # Array
         if cls.rows > 1 or cls.columns > 1:
             self.add_array_modifier(cls)
+        else:
+            self.array = None
 
         # Bevel
         if hasattr(cls, "use_bevel") and cls.use_bevel:
@@ -100,23 +101,32 @@ class Effects:
     def update(self, cls, effect):
         """Update bevel modifier during modal."""
 
-        if effect == 'ARRAY':
-            if cls.columns > 1:
-                if self.array_col is None:
-                    self.add_array_modifier(cls)
-                else:
-                    self.array_col.count = cls.columns
-                    direction = 1 if cls.columns_direction == 'RIGHT' else -1
-                    self.array_col.relative_offset_displace[1] = direction + cls.columns_gap
+        # Update array count.
+        if effect == 'ARRAY_COUNT':
+            if self.array is None:
+                self.add_array_modifier(cls)
 
-            if cls.rows > 1:
-                if self.array_row is None:
-                    self.add_array_modifier(cls)
-                else:
-                    self.array_row.count = cls.rows
-                    direction = 1 if cls.rows_direction == 'UP' else -1
-                    self.array_row.relative_offset_displace[2] = direction + cls.columns_gap
+            else:
+                if cls.columns > 1 or cls.rows > 1:
+                    self.array["Socket_2"] = cls.columns
+                    self.array["Socket_3"] = cls.rows
 
+                # Remove modifier if it's no longer needed.
+                if cls.columns == 1 and cls.rows == 1:
+                    cls.cutter.obj.modifiers.remove(self.array)
+                    self.array = None
+
+        # Update array gap.
+        if effect == 'ARRAY_GAP':
+            if cls.columns > 1 or cls.row > 1:
+                if self.array is not None:
+                    self.array["Socket_4"] = cls.gap
+
+                    # Force the modifier to update in viewport.
+                    self.array.show_viewport = False
+                    self.array.show_viewport = True
+
+        # Update bevel width & segments
         if effect == 'BEVEL':
             self.bevel.segments = cls.bevel_segments
             self.bevel.width = cls.bevel_width
@@ -128,25 +138,28 @@ class Effects:
 
         cutter = cls.cutter.obj
 
+        # Load geometry nodes modifier asset.
+        if self.array is None:
+            root = os.path.abspath(os.path.join(__file__, "..", "..", ".."))
+            assets_path = os.path.join(root, "assets.blend")
+            mod = add_modifier_asset(cutter, path=assets_path, asset="cutter_array")
+
+        if not mod:
+            cls.report({'WARNING'}, "Array modifier cannot be loaded for cutter")
+            return
+
         # Columns
         if cls.columns > 1:
-            col_mod = cutter.modifiers.new("cutter_array_columns", 'ARRAY')
-            col_mod.count = cls.columns
-            col_mod.relative_offset_displace[0] = 0
-            self.array_col = col_mod
-
-            direction = 1 if cls.columns_direction == 'RIGHT' else -1
-            col_mod.relative_offset_displace[1] = direction + cls.columns_gap
+            mod["Socket_2"] = cls.columns
 
         # Rows
         if cls.rows > 1:
-            row_mod = cutter.modifiers.new("cutter_array_rows", 'ARRAY')
-            row_mod.count = cls.rows
-            row_mod.relative_offset_displace[0] = 0
-            self.array_row = row_mod
+            mod["Socket_3"] = cls.rows
 
-            direction = 1 if cls.rows_direction == 'UP' else -1
-            row_mod.relative_offset_displace[2] = direction + cls.columns_gap
+        # Gap
+        mod["Socket_4"] = cls.gap
+
+        self.array = mod
 
 
     # Bevel

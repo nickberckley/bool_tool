@@ -156,13 +156,8 @@ class OBJECT_OT_carve_box(CarverBase,
         if event.type == 'MOUSEMOVE':
             self.mouse.current = Vector((event.mouse_region_x, event.mouse_region_y))
 
-            # Array
-            if self.phase == "ARRAY":
-                self.rows_gap = event.mouse_region_x * 0.002
-                self.columns_gap = event.mouse_region_y * 0.002
-
             # Draw
-            elif self.phase == "DRAW":
+            if self.phase == "DRAW":
                 self.update_cutter_shape(context)
 
             # Extrude

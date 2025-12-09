@@ -137,34 +137,17 @@ class CarverPropsArray():
         min = 1, soft_max = 16,
         default = 1,
     )
-    rows_gap: bpy.props.FloatProperty(
-        name = "Gap between rows (relative unit)",
-        min = 0, soft_max = 3,
-        default = 0.25,
-    )
-    rows_direction: bpy.props.EnumProperty(
-        name = "Direction of Rows",
-        items = (('UP', "Up", ""),
-                 ('DOWN', "Down", "")),
-        default = 'DOWN',
-    )
-
     columns: bpy.props.IntProperty(
         name = "Columns",
         description = "Number of times shape is duplicated vertically",
         min = 1, soft_max = 16,
         default = 1,
     )
-    columns_direction: bpy.props.EnumProperty(
-        name = "Direction of Rows",
-        items = (('LEFT', "Left", ""),
-                 ('RIGHT', "Right", "")),
-        default = 'RIGHT',
-    )
-    columns_gap: bpy.props.FloatProperty(
-        name = "Gap between columns (relative unit)",
-        min = 0, soft_max = 3,
-        default = 0.25,
+    gap: bpy.props.FloatProperty(
+        name = "Gap",
+        description = "Spacing between duplicates, both in rows and columns (relative unit)",
+        min = 1, soft_max = 10,
+        default = 1.1,
     )
 
 

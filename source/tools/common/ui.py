@@ -113,17 +113,8 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
         if panel:
             col = panel.column(align=True)
             col.prop(props, "columns")
-            row = col.row(align=True)
-            row.prop(props, "columns_direction", text="Direction", expand=True)
-            col.prop(props, "columns_gap", text="Gap")
-
-            panel.separator()
-            col = panel.column(align=True)
             col.prop(props, "rows")
-            row = col.row(align=True)
-            row.prop(props, "rows_direction", text="Direction", expand=True)
-            col.prop(props, "rows_gap", text="Gap")
-
+            col.prop(props, "gap")
 
 class TOPBAR_PT_carver_cutter(bpy.types.Panel):
     bl_label = "Carver Cutter"
