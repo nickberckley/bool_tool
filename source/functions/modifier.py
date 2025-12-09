@@ -3,6 +3,9 @@ import bmesh
 from contextlib import contextmanager
 from .. import __package__ as base_package
 
+from ..functions.list import (
+    list_pre_boolean_modifiers,
+)
 from .object import (
     convert_to_mesh,
 )
@@ -163,3 +166,18 @@ def add_modifier_asset(obj, path: str, asset: str):
     except Exception as e:
         print("Modifier node group could not be loaded:", e)
         return None
+
+
+def get_modifiers_to_apply(context, obj, new_modifiers) -> list:
+    """Returns the list of modifiers that need to be applied based on add-on preferences."""
+
+    prefs = context.preferences.addons[base_package].preferences
+
+    if prefs.apply_order == 'ALL':
+        modifiers = [mod for mod in obj.modifiers]
+    elif prefs.apply_order == 'BOOLEANS':
+        modifiers = new_modifiers
+    elif prefs.apply_order == 'BEFORE':
+        modifiers = list_pre_boolean_modifiers(obj)
+
+    return modifiers

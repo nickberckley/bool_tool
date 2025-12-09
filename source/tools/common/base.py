@@ -32,6 +32,7 @@ from ...functions.mesh import (
 from ...functions.modifier import (
     add_boolean_modifier,
     apply_modifiers,
+    get_modifiers_to_apply,
 )
 from ...functions.object import (
     set_cutter_properties,
@@ -924,9 +925,10 @@ class CarverBase(bpy.types.Operator,
 
         elif self.mode == 'DESTRUCTIVE':
             # Apply modifiers & delete the cutter.
-            for obj, mod in self.objects.modifiers.items():
+            for obj, modifiers in self.objects.modifiers.items():
                 if obj in intersecting_canvases:
-                    apply_modifiers(context, obj, [mod], force_clean=True)
+                    modifiers = get_modifiers_to_apply(context, obj, [modifiers])
+                    apply_modifiers(context, obj, modifiers, force_clean=True)
 
             self.finalize(context, clean_up=True)
             return

@@ -12,15 +12,13 @@ from ..functions.poll import (
 from ..functions.modifier import (
     add_boolean_modifier,
     apply_modifiers,
+    get_modifiers_to_apply,
 )
 from ..functions.object import (
     set_cutter_properties,
     change_parent,
     create_slice,
     delete_cutter,
-)
-from ..functions.list import (
-    list_pre_boolean_modifiers,
 )
 
 
@@ -213,7 +211,7 @@ class AutoBoolean(ModifierProperties):
 
         # Apply modifiers on canvas & slices.
         for obj, modifiers in new_modifiers.items():
-            modifiers = self._get_modifiers_to_apply(prefs, obj, modifiers)
+            modifiers = get_modifiers_to_apply(context, obj, modifiers)
             apply_modifiers(context, obj, modifiers)
 
         # Delete cutters.
@@ -221,19 +219,6 @@ class AutoBoolean(ModifierProperties):
             delete_cutter(cutter)
 
         return {'FINISHED'}
-
-
-    def _get_modifiers_to_apply(self, prefs, obj, new_modifiers) -> list:
-        """Returns a list of modifiers that need to be applied based on add-on preferences."""
-
-        if prefs.apply_order == 'ALL':
-            modifiers = [mod for mod in obj.modifiers]
-        elif prefs.apply_order == 'BOOLEANS':
-            modifiers = new_modifiers
-        elif prefs.apply_order == 'BEFORE':
-            modifiers = list_pre_boolean_modifiers(obj)
-
-        return modifiers
 
 
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
