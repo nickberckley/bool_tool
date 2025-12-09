@@ -1,6 +1,7 @@
 if "bpy" in locals():
     import importlib
-    for mod in [operators,
+    for mod in [icons,
+                operators,
                 tools,
                 manual,
                 preferences,
@@ -13,6 +14,7 @@ if "bpy" in locals():
 else:
     import bpy
     from . import (
+        icons,
         operators,
         tools,
         manual,
@@ -26,6 +28,7 @@ else:
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 modules = [
+    icons,
     operators,
     tools,
     manual,

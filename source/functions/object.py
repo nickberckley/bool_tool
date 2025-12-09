@@ -1,35 +1,26 @@
 import bpy
+import bmesh
 import mathutils
+from contextlib import contextmanager
 from .. import __package__ as base_package
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def set_cutter_properties(context, canvas, cutter, mode, parent=True, hide=False, collection=True):
+def set_cutter_properties(context, cutter, mode, display='BOUNDS', collection=True):
     """Ensures cutter is properly set: has right properties, is hidden, in a collection & parented"""
-
-    prefs = context.preferences.addons[base_package].preferences
 
     # Hide Cutters
     cutter.hide_render = True
-    cutter.display_type = 'WIRE' if prefs.wireframe else 'BOUNDS'
+    cutter.display_type = display
     cutter.lineart.usage = 'EXCLUDE'
     object_visibility_set(cutter, value=False)
-    if hide:
-        cutter.hide_set(True)
-
-    # parent_to_active_canvas
-    if parent and cutter.parent == None:
-        cutter.parent = canvas
-        cutter.matrix_parent_inverse = canvas.matrix_world.inverted()
 
     # Cutters Collection
     if collection:
         cutters_collection = ensure_collection(context)
         if cutters_collection not in cutter.users_collection:
             cutters_collection.objects.link(cutter)
-        if cutter.booleans.carver and parent == False:
-            context.collection.objects.unlink(cutter)
 
     # add_boolean_property
     cutter.booleans.cutter = mode.capitalize()
@@ -103,12 +94,18 @@ def delete_cutter(cutter):
         bpy.data.meshes.remove(orphaned_mesh)
 
 
-def change_parent(object, parent):
+def change_parent(obj, parent, force=False, inverse=False):
     """Changes or removes parent from cutter object while keeping the transformation"""
 
-    matrix_copy = object.matrix_world.copy()
-    object.parent = parent
-    object.matrix_world = matrix_copy
+    if obj.parent is not None:
+        if not force:
+            return
+
+    matrix_copy = obj.matrix_world.copy()
+    obj.parent = parent
+    if inverse:
+        obj.matrix_parent_inverse = parent.matrix_world.inverted()
+    obj.matrix_world = matrix_copy
 
 
 def create_slice(context, canvas, modifier=False):
@@ -136,14 +133,40 @@ def create_slice(context, canvas, modifier=False):
     return slice
 
 
-def set_object_origin(obj, position=False):
+def set_object_origin(obj, bm, point='CENTER', custom=None):
     """Sets object origin to given position by shifting vertices"""
 
-    # default_to_center_of_bounding_box_if_no_position_provided
-    if position == False:
-        position = 0.125 * sum((mathutils.Vector(b) for b in obj.bound_box), mathutils.Vector())
+    # Center of the bounding box.
+    if point == 'CENTER':
+        position_local = 0.125 * sum((mathutils.Vector(b) for b in obj.bound_box), mathutils.Vector())
+        position_world = obj.matrix_world @ position_local
 
-    mat = mathutils.Matrix.Translation(position - obj.location)
-    obj.location = position
-    obj.data.transform(mat.inverted())
-    obj.data.update()
+    elif point == 'CUSTOM':
+        position_local = custom
+        position_world = obj.matrix_world @ custom
+
+    mat = mathutils.Matrix.Translation(position_local)
+    bmesh.ops.transform(bm, matrix=mat.inverted(), verts=bm.verts)
+    bm.to_mesh(obj.data)
+
+    obj.location = position_world
+
+
+@contextmanager
+def hide_objects(context, exceptions: list):
+    """Hides objects during the context, and restores their visibility afterwards."""
+
+    hidden_objects = []
+    for obj in context.scene.objects:
+        if obj in exceptions:
+            continue
+        if obj.hide_get() == False:
+            hidden_objects.append(obj)
+            obj.hide_set(True)
+
+    try:
+        yield
+
+    finally:
+        for obj in hidden_objects:
+            obj.hide_set(False)

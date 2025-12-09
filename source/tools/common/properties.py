@@ -2,25 +2,82 @@ import bpy
 import math
 
 
+# Import Custom Icons
+from ... import icons
+svg_icons = icons.svg_icons["main"]
+icon_measure = svg_icons["MEASURE"].icon_id
+icon_cpu = svg_icons["CPU"].icon_id
+
+
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
-class CarverOperatorProperties():
+class CarverPropsOperator():
     # OPERATOR-properties
     mode: bpy.props.EnumProperty(
         name = "Mode",
-        items = (('DESTRUCTIVE', "Destructive", "Boolean cutters are immediatelly applied and removed after the cut", 'MESH_DATA', 0),
-                 ('MODIFIER', "Modifier", "Cuts are stored as boolean modifiers and cutters are placed inside the collection", 'MODIFIER_DATA', 1)),
-        default = 'DESTRUCTIVE',
+        items = (('DESTRUCTIVE', "Destructive",
+                  "Boolean cutters are immediatelly applied and removed after the cut", 'MESH_DATA', 0),
+                 ('MODIFIER', "Modifier",
+                  "Cuts are stored as boolean modifiers and cutters are placed inside the collection", 'MODIFIER_DATA', 1)),
+        default = 'MODIFIER',
+    )
+    alignment: bpy.props.EnumProperty(
+        name = "Alignment",
+        items = (('SURFACE', "Surface", "Align cutters to the surface normal of the mesh under the mouse", 'SNAP_NORMAL', 0),
+                 ('VIEW', "View", "Align cutters to the current view", 'VIEW_CAMERA_UNSELECTED', 1),
+                 ('CURSOR', "3D Cursor", "Align cutters to the 3D cursor orientation", 'ORIENTATION_CURSOR', 2),
+                 ('GRID', "Grid", "Align cutters to the world grid", 'GRID', 3)),
+        default = 'SURFACE',
     )
     depth: bpy.props.EnumProperty(
         name = "Depth",
-        items = (('VIEW', "View", "Depth is automatically calculated from view orientation", 'VIEW_CAMERA_UNSELECTED', 0),
-                 ('CURSOR', "Cursor", "Depth is derived from 3D cursors location", 'PIVOT_CURSOR', 1)),
-        default = 'VIEW',
+        items = (('MANUAL', "Manual", "Depth can be manually set after creating a cutter shape", icon_measure, 0),
+                 ('AUTO', "Auto", "Depth is set automatically to cover selected objects entirely", icon_cpu, 1),
+                 ('CURSOR', "3D Cursor", "Depth is set to 3D cursors location", 'PIVOT_CURSOR', 2)),
+        default = 'MANUAL',
     )
 
 
-class CarverModifierProperties():
+class CarverPropsShape():
+    # SHAPE-properties
+    orientation: bpy.props.EnumProperty(
+        name = "Orientation",
+        description = "Orientation method for the shape placement",
+        items = (('FACE', "Face Normal", "Orient the shape along the normal of the face"),
+                 ('CLOSEST_EDGE', "Closest Edge", "Orient the shape along the closest edge of the face"),
+                 ('LONGEST_EDGE', "Longest Edge", "Orient the shape along the longest edge of the face")),
+        default = 'CLOSEST_EDGE',
+    )
+    offset: bpy.props.FloatProperty(
+        name = "Offset from Surface",
+        description = ("Distance between the shape and the surface of the mesh.\n"
+                       "Offset is important for avoiding Z-fighting issues and solver failures"),
+        min = 0.0, soft_max = 0.1,
+        default = 0.01,
+    )
+    align_to_all: bpy.props.BoolProperty(
+        name = "Align to Anything",
+        description = "Use all visible objects for surface alignment, not just selected objects",
+        default = True,
+    )
+    alignment_axis: bpy.props.EnumProperty(
+        name = "Alignment Axis",
+        description = "Which axis of the world grid or 3D cursor should be used for workplane alignment",
+        items = (('X', "X", ""),
+                 ('Y', "Y", ""),
+                 ('Z', "Z", "")),
+        default = 'Z',
+    )
+
+    flip_direction: bpy.props.BoolProperty(
+        name = "Flip Direction",
+        description = "Change which way the geometry is extruded",
+        options = {'SKIP_SAVE', 'HIDDEN', 'SKIP_PRESET', },
+        default = False,
+    )
+
+
+class CarverPropsModifier():
     # MODIFIER-properties
     solver: bpy.props.EnumProperty(
         name = "Solver",
@@ -37,7 +94,7 @@ class CarverModifierProperties():
     )
 
 
-class CarverCutterProperties():
+class CarverPropsCutter():
     # CUTTER-properties
     hide: bpy.props.BoolProperty(
         name = "Hide Cutter",
@@ -49,6 +106,12 @@ class CarverCutterProperties():
         description = ("Cutters will be parented to active object being cut, even if cutting multiple objects.\n"
                        "If there is no active object in selection cutters parent might be chosen seemingly randomly"),
         default = True,
+    )
+    display: bpy.props.EnumProperty(
+        name = "Cutter Display",
+        items = (('WIRE', "Wire", "Display the cutter object as a wireframe"),
+                 ('BOUNDS', "Bounds", "Display only the bounds of the cutter object")),
+        default = 'BOUNDS'
     )
 
     auto_smooth: bpy.props.BoolProperty(
@@ -66,7 +129,7 @@ class CarverCutterProperties():
     )
 
 
-class CarverArrayProperties():
+class CarverPropsArray():
     # ARRAY-properties
     rows: bpy.props.IntProperty(
         name = "Rows",
@@ -74,60 +137,41 @@ class CarverArrayProperties():
         min = 1, soft_max = 16,
         default = 1,
     )
-    rows_gap: bpy.props.FloatProperty(
-        name = "Gap between rows (relative unit)",
-        min = 0, soft_max = 250,
-        default = 50,
-    )
-    rows_direction: bpy.props.EnumProperty(
-        name = "Direction of Rows",
-        items = (('LEFT', "Left", ""),
-                 ('RIGHT', "Right", "")),
-        default = 'RIGHT',
-    )
-
     columns: bpy.props.IntProperty(
         name = "Columns",
         description = "Number of times shape is duplicated vertically",
         min = 1, soft_max = 16,
         default = 1,
     )
-    columns_direction: bpy.props.EnumProperty(
-        name = "Direction of Rows",
-        items = (('UP', "Up", ""),
-                 ('DOWN', "Down", "")),
-        default = 'DOWN',
-    )
-    columns_gap: bpy.props.FloatProperty(
-        name = "Gap between columns (relative unit)",
-        min = 0, soft_max = 250,
-        default = 50,
+    gap: bpy.props.FloatProperty(
+        name = "Gap",
+        description = "Spacing between duplicates, both in rows and columns (relative unit)",
+        min = 1, soft_max = 10,
+        default = 1.1,
     )
 
 
-class CarverBevelProperties():
+class CarverPropsBevel():
     # BEVEL-properties
-
     use_bevel: bpy.props.BoolProperty(
         name = "Bevel Cutter",
         description = "Bevel each side edge of the cutter",
         default = False,
     )
-    bevel_profile: bpy.props.EnumProperty(
-        name = "Bevel Profile",
-        items = (('CONVEX', "Convex", "Outside bevel (rounded corners)"),
-                 ('CONCAVE', "Concave", "Inside bevel")),
-        default = 'CONVEX',
-    )
     bevel_segments: bpy.props.IntProperty(
         name = "Bevel Segments",
         description = "Segments for curved edge",
-        min = 2, soft_max = 32,
+        min = 1, soft_max = 32,
         default = 8,
     )
-    bevel_radius: bpy.props.FloatProperty(
-        name = "Bevel Radius",
-        description = "Amout of the bevel (in screen-space units)",
-        min = 0.01, soft_max = 5,
-        default = 1,
+    bevel_width: bpy.props.FloatProperty(
+        name = "Bevel Width",
+        min = 0, soft_max = 5,
+        default = 0.1,
+    )
+    bevel_profile: bpy.props.FloatProperty(
+        name = "Bevel Profile",
+        description = "The bevel profile shape (0.5 = round)",
+        min = 0, max = 1,
+        default = 0.5,
     )

@@ -4,164 +4,102 @@ import mathutils
 import math
 from bpy_extras import view3d_utils
 
+from .object import hide_objects
+from .types import Ray
+
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def create_cutter_shape(self, context):
-    """Creates flat mesh from the vertices provided in `self.verts` (which is created by `carver_overlay`)"""
-
-    # ALIGNMENT: View
-    coords = self.mouse_path[0][0], self.mouse_path[0][1]
-    region = context.region
-    rv3d = context.region_data
-    depth_location = view3d_utils.region_2d_to_vector_3d(region, rv3d, coords)
-    self.view_depth = depth_location
-    plane_direction = depth_location.normalized()
-
-    # depth
-    if self.depth == 'CURSOR':
-        plane_point = context.scene.cursor.location
-    elif self.depth == 'VIEW':
-        __, plane_point = combined_bounding_box(self.selected_objects)
-        plane_point = mathutils.Vector(plane_point)
-
-    # Create Mesh & Object
-    faces = {}
-    mesh = bpy.data.meshes.new(name='cutter')
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-
-    obj = bpy.data.objects.new('cutter', mesh)
-    obj.booleans.carver = True
-    self.cutter = obj
-    context.collection.objects.link(obj)
-
-    # Create Faces from `self.verts`
-    create_face(context, plane_direction, plane_point,
-                bm, "original", faces, self.verts)
-
-    # ARRAY
-    if len(self.duplicates) > 0:
-        for i, duplicate in self.duplicates.items():
-            create_face(context, plane_direction, plane_point,
-                        bm, str(i), faces, duplicate)
-
-    bm.verts.index_update()
-    for i, face in faces.items():
-        bm.faces.new(face)
-
-    # remove_doubles
-    bmesh.ops.remove_doubles(bm, verts=[v for v in bm.verts], dist=0.0001)
-
-    bm.to_mesh(mesh)
-
-
-def extrude(self, mesh):
+def extrude_face(bm, face):
     """Extrudes cutter face (created by carve operation) along view vector to create a non-manifold mesh"""
 
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-    faces = [f for f in bm.faces]
+    bm.faces.ensure_lookup_table()
 
-    # move_the_mesh_towards_view
-    box_bounding, __ = combined_bounding_box(self.selected_objects)
-    for face in faces:
-        for vert in face.verts:
-            vert.co += -self.view_depth * box_bounding
+    # Extrude
+    result = bmesh.ops.extrude_face_region(bm, geom=[bm.faces[face.index]])
 
-    # extrude_the_face
-    ret = bmesh.ops.extrude_face_region(bm, geom=faces)
-    verts_extruded = [v for v in ret['geom'] if isinstance(v, bmesh.types.BMVert)]
-    for v in verts_extruded:
-        if self.depth == 'CURSOR':
-            v.co += self.view_depth * box_bounding
-        elif self.depth == 'VIEW':
-            v.co += self.view_depth * box_bounding * 2
+    # Offset extruded vertices.
+    extruded_verts = [v for v in result['geom'] if isinstance(v, bmesh.types.BMVert)]
+    extruded_edges = [e for e in result['geom'] if isinstance(e, bmesh.types.BMEdge)]
+    extruded_faces = [f for f in result['geom'] if isinstance(f, bmesh.types.BMFace)]
 
-    # correct_normals
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-
-    bm.to_mesh(mesh)
-    mesh.update()
-    bm.free()
+    return extruded_verts, extruded_edges, extruded_faces
 
 
-def combined_bounding_box(objects):
-    """Calculate the combined bounding box of multiple objects."""
-
-    min_corner = mathutils.Vector((float('inf'), float('inf'), float('inf')))
-    max_corner = mathutils.Vector((-float('inf'), -float('inf'), -float('inf')))
-
-    for obj in objects:
-        # Transform the bounding box corners to world space
-        bbox_corners = [obj.matrix_world @ mathutils.Vector(corner) for corner in obj.bound_box]
-
-        for corner in bbox_corners:
-            min_corner.x = min(min_corner.x, corner.x)
-            min_corner.y = min(min_corner.y, corner.y)
-            min_corner.z = min(min_corner.z, corner.z)
-            max_corner.x = max(max_corner.x, corner.x)
-            max_corner.y = max(max_corner.y, corner.y)
-            max_corner.z = max(max_corner.z, corner.z)
-
-    # Calculate the diagonal of the combined bounding box
-    bounding_box_diag = (max_corner - min_corner).length
-    # Calculate the center of bounding box
-    bounding_box_center = (max_corner + min_corner) * 0.5
-
-    return bounding_box_diag, bounding_box_center
-
-
-def create_face(context, direction, depth, bm, name, faces, verts, polyline=False):
-    """Creates bmesh face with given list of vertices and appends it to given 'faces' dict"""
-
-    def intersect_line_plane(context, vert, direction, depth):
-        """Finds the intersection of a line going through each vertex and the infinite plane"""
-
-        region = context.region
-        rv3d = context.region_data
-
-        vec = view3d_utils.region_2d_to_vector_3d(region, rv3d, vert)
-        p0 = view3d_utils.region_2d_to_location_3d(region, rv3d, vert, vec)
-        p1 = p0 + direction
-        loc = mathutils.geometry.intersect_line_plane(p0, p1, depth, direction)
-
-        return loc
-
-    face_verts = []
-    for i, vert in enumerate(verts):
-        loc = intersect_line_plane(context, vert, direction, depth)
-        vertex = bm.verts.new(loc)
-        face_verts.append(vertex)
-
-    faces[name] = face_verts
-
-
-def shade_smooth_by_angle(obj, angle=30):
+def shade_smooth_by_angle(bm, mesh, angle=30):
     """Replication of "Auto Smooth" functionality: Marks faces as smooth, sharp edges (by angle) as sharp"""
 
-    mesh = obj.data
-    bm = bmesh.new()
-    bm.from_mesh(mesh)
-
-    # shade_smooth
     for f in bm.faces:
         f.smooth = True
 
-    # select_sharp_edges
     for edge in bm.edges:
-        if len(edge.link_faces) == 2:
-            face1, face2 = edge.link_faces
-            edge_angle = math.degrees(face1.normal.angle(face2.normal))
-            if edge_angle >= angle:
-                edge.select = True
+        if len(edge.link_faces) != 2:
+            continue
+
+        face1, face2 = edge.link_faces
+        if face1.normal.length <= 0 or face2.normal.length <= 0:\
+            continue
+
+        edge_angle = math.degrees(face1.normal.angle(face2.normal))
+        if edge_angle < 0:
+            continue
+        if edge_angle < angle:
+            continue
+
+        edge.smooth = False
 
     bm.to_mesh(mesh)
-    bm.free()
-    mesh.update()
 
-    # mark_sharp_edges
-    for edge in mesh.edges:
-        if edge.select:
-            edge.use_edge_sharp = True
-    mesh.update()
+
+def are_intersecting(obj_a, obj_b):
+    """Checks if bounding boxes of two given objects intersect."""
+
+    def world_bounds(obj):
+        corners = [obj.matrix_world @ mathutils.Vector(c) for c in obj.bound_box]
+        xs = [c.x for c in corners]
+        ys = [c.y for c in corners]
+        zs = [c.z for c in corners]
+        return (min(xs), max(xs)), (min(ys), max(ys)), (min(zs), max(zs))
+
+    (ax0, ax1), (ay0, ay1), (az0, az1) = world_bounds(obj_a)
+    (bx0, bx1), (by0, by1), (bz0, bz1) = world_bounds(obj_b)
+
+    return (
+        ax1 >= bx0 and ax0 <= bx1 and
+        ay1 >= by0 and ay0 <= by1 and
+        az1 >= bz0 and az0 <= bz1
+    )
+
+
+def ensure_attribute(bm, name, domain):
+    """Ensure that the attribute with the given name and domain exists on mesh."""
+
+    if domain == 'EDGE':
+        attr = bm.edges.layers.float.get(name)
+        if not attr:
+            attr = bm.edges.layers.float.new(name)
+
+    elif domain == 'VERTEX':
+        attr = bm.verts.layers.float.get(name)
+        if not attr:
+            attr = bm.verts.layers.float.new(name)
+
+    return attr
+
+
+def raycast(context, position, objects):
+    """Cast a ray in the scene to get the surface on any of the given objects."""
+
+    region = context.region
+    rv3d = context.region_data
+    depsgraph = context.view_layer.depsgraph
+
+    origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, position)
+    direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, position)
+
+    # Cast Ray
+    with hide_objects(context, exceptions=objects):
+        hit, location, normal, index, object, matrix = context.scene.ray_cast(depsgraph, origin, direction)
+        ray = Ray(hit, location, normal, index, object, matrix)
+
+    return ray
