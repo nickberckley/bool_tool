@@ -69,6 +69,7 @@ class OBJECT_OT_carve_polyline(CarverBase,
     shape = 'POLYLINE'
     origin = None
     aspect = None
+    rotation = 0
 
 
     @classmethod
