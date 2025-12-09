@@ -1,5 +1,3 @@
-import bpy
-import mathutils
 from mathutils import Vector, Matrix
 
 
@@ -16,8 +14,8 @@ class Ray:
                  obj,
                  matrix: Matrix):
         self.hit = hit
-        self.location = location if location is not None else mathutils.Vector()
-        self.normal = normal if normal is not None else mathutils.Vector()
+        self.location = location
+        self.normal = normal
         self.index = index
         self.obj = obj
-        self.matrix = matrix if matrix is not None else mathutils.Matrix()
+        self.matrix = matrix
