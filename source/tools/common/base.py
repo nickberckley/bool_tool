@@ -327,7 +327,10 @@ class CarverEvents():
         if self.use_grid:
             if self.grid.points is None:
                 # Calculate & store the grid.
-                self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix)
+                view_distance = context.region_data.view_distance
+                self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix,
+                                                                    size=int(view_distance),
+                                                                    subdivisions=20)
 
                 # Snap all Polyline points.
                 if self.shape == 'POLYLINE':
@@ -510,8 +513,8 @@ class CarverBase(bpy.types.Operator,
         if self.use_grid and self.phase == "DRAW":
             vertices = self.grid.points
             if vertices is not None:
-                draw_shader('POINTS', (1.0, 1.0, 1.0), 1.0, vertices)
-                draw_shader('LINES', (1.0, 1.0, 1.0), 0.1, vertices, indices=self.grid.indices)
+                draw_shader('POINTS', (0.8, 0.8, 0.8), 1.0, vertices)
+                draw_shader('LINES', (0.8, 0.8, 0.8), 0.1, vertices, indices=self.grid.indices)
 
         # Draw Line
         if self.phase in ("BEVEL", "ROTATE", "ARRAY"):
