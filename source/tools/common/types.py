@@ -74,6 +74,7 @@ class Grid:
     def __init__(self, points, indices):
         self.points = points
         self.indices = indices
+        self.subdivision = 16
 
 
 # Effects

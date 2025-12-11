@@ -330,12 +330,21 @@ class CarverEvents():
                 view_distance = context.region_data.view_distance
                 self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix,
                                                                     size=int(view_distance),
-                                                                    subdivisions=20)
+                                                                    subdivisions=self.grid.subdivision)
 
                 # Snap all Polyline points.
                 if self.shape == 'POLYLINE':
                     for v in self.cutter.verts:
                         v.co = self._snap_to_grid(v.co)
+
+            # Change grid subdivision level.
+            """NOTE: We're settings grid points to `None` to force recalculating."""
+            if event.type == 'PAGE_UP' and event.value == 'PRESS':
+                self.grid.subdivision += 2
+                self.grid.points = None
+            if event.type == 'PAGE_DOWN' and event.value == 'PRESS':
+                self.grid.subdivision -= 2
+                self.grid.points = None
 
 
 class CarverBase(bpy.types.Operator,

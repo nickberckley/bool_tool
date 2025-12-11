@@ -9,6 +9,9 @@ from bpy_extras import view3d_utils
 def setup_grid_3d(matrix, size=10, subdivisions=10) -> tuple[list[Vector], list[Vector]]:
     """Generates the grid of 3D points on the given matrix."""
 
+    if subdivisions < 4:
+        subdivisions = 4
+
     points = []
     indices = []
 
