@@ -174,7 +174,13 @@ class TOPBAR_PT_carver_advanced(bpy.types.Panel):
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
         props = _props_from_tool(tool)
 
-        layout.prop(props, "use_grid", text="Grid")
+        # Grid
+        layout.prop(props, "use_grid")
+        col = layout.column()
+        col.prop(props, "grid_subdivision_method", text="Subdivision")
+        if props.grid_subdivision_method == 'MANUAL':
+            col.prop(props, "grid_increment", text="Increment")
+        col.enabled = props.use_grid
 
 
 

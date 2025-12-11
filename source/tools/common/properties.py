@@ -37,10 +37,24 @@ class CarverPropsOperator():
         default = 'MANUAL',
     )
 
+    # Grid
     use_grid: bpy.props.BoolProperty(
         name = "Snapping Grid",
         description = "Create point grid in 3D space, aligned to the workplane, that cutter vertices can snap to",
         default = False,
+    )
+    grid_subdivision_method: bpy.props.EnumProperty(
+        name = "Subdivision Level",
+        items = (('ZOOM', "Based on Zoom", "Subdivide snapping grid based on viewport zoom level when initializing"),
+                 ('MANUAL', "Manual", "Subdivide snapping grid by specific increments to guarantee precise size")),
+        default = 'ZOOM',
+    )
+    grid_increment: bpy.props.FloatProperty(
+        name = "Snapping Grid Increment",
+        description = "Size of the snapping grid increment in scene units (this will be rounded up or down)",
+        subtype = 'DISTANCE',
+        min = 0.01,
+        default = 1.0,
     )
 
 

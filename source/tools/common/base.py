@@ -327,9 +327,13 @@ class CarverEvents():
         if self.use_grid:
             if self.grid.points is None:
                 # Calculate & store the grid.
-                view_distance = context.region_data.view_distance
+                if self.grid_subdivision_method == 'MANUAL':
+                    size = self.grid_increment * self.grid.subdivision
+                else:
+                    size = int(context.region_data.view_distance)
+
                 self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix,
-                                                                    size=int(view_distance),
+                                                                    size=size,
                                                                     subdivisions=self.grid.subdivision)
 
                 # Snap all Polyline points.
