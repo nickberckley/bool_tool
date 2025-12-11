@@ -68,6 +68,15 @@ class Cutter:
         self.center = Vector() # Center of the geometry.
 
 
+class Grid:
+    """3D points created on the plane."""
+
+    def __init__(self, points, indices):
+        self.points = points
+        self.indices = indices
+        self.subdivision = 16
+
+
 # Effects
 class Effects:
 

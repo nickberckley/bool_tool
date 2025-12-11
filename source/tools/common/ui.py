@@ -2,6 +2,22 @@ import bpy
 from ... import __package__ as base_package
 
 
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def _props_from_tool(tool):
+    """Get properties of the workspace tool operator."""
+
+    if tool.idname == "object.carve_box":
+        props = tool.operator_properties("object.carve_box")
+    elif tool.idname == "object.carve_circle":
+        props = tool.operator_properties("object.carve_circle")
+    elif tool.idname == "object.carve_polyline":
+        props = tool.operator_properties("object.carve_polyline")
+
+    return props
+
+
+
 #### ------------------------------ /toolbar/ ------------------------------ ####
 
 def carver_ui_common(context, layout, props):
@@ -26,6 +42,7 @@ def carver_ui_common(context, layout, props):
     layout.popover("TOPBAR_PT_carver_shape", text="Shape")
     layout.popover("TOPBAR_PT_carver_effects", text="Effects")
     layout.popover("TOPBAR_PT_carver_cutter", text="Cutter")
+    layout.popover("TOPBAR_PT_carver_advanced", text="...")
 
 
 
@@ -44,14 +61,10 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         layout.use_property_decorate = False
 
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
+        props = _props_from_tool(tool)
 
         # Box & Circle
         if tool.idname == "object.carve_box" or tool.idname == "object.carve_circle":
-            if tool.idname == "object.carve_box":
-                props = tool.operator_properties("object.carve_box")
-            else:
-                props = tool.operator_properties("object.carve_circle")
-
             if tool.idname == "object.carve_circle":
                 layout.prop(props, "subdivision", text="Vertices")
             layout.prop(props, "rotation")
@@ -67,7 +80,6 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
 
         # Polyline
         elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
             if props.alignment == 'SURFACE':
                 layout.prop(props, "offset", text="Offset")
                 layout.prop(props, "align_to_all")
@@ -86,12 +98,7 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
         layout.use_property_decorate = False
 
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box":
-            props = tool.operator_properties("object.carve_box")
-        elif tool.idname == "object.carve_circle":
-            props = tool.operator_properties("object.carve_circle")
-        elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
+        props = _props_from_tool(tool)
 
         # Bevel
         if tool.idname == 'object.carve_box':
@@ -116,6 +123,7 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
             col.prop(props, "rows")
             col.prop(props, "gap")
 
+
 class TOPBAR_PT_carver_cutter(bpy.types.Panel):
     bl_label = "Carver Cutter"
     bl_idname = "TOPBAR_PT_carver_cutter"
@@ -129,12 +137,7 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
         layout.use_property_decorate = False
 
         tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box":
-            props = tool.operator_properties("object.carve_box")
-        elif tool.idname == "object.carve_circle":
-            props = tool.operator_properties("object.carve_circle")
-        elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
+        props = _props_from_tool(tool)
 
         # modifier_&_cutter
         col = layout.column()
@@ -156,6 +159,30 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
             col1.enabled = False
 
 
+class TOPBAR_PT_carver_advanced(bpy.types.Panel):
+    bl_label = "Advanced Carver Properties"
+    bl_idname = "TOPBAR_PT_carver_advanced"
+    bl_region_type = 'HEADER'
+    bl_space_type = 'TOPBAR'
+    bl_category = 'Tool'
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
+        props = _props_from_tool(tool)
+
+        # Grid
+        layout.prop(props, "use_grid")
+        col = layout.column()
+        col.prop(props, "grid_subdivision_method", text="Subdivision")
+        if props.grid_subdivision_method == 'MANUAL':
+            col.prop(props, "grid_increment", text="Increment")
+        col.enabled = props.use_grid
+
+
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
@@ -163,6 +190,7 @@ classes = [
     TOPBAR_PT_carver_shape,
     TOPBAR_PT_carver_effects,
     TOPBAR_PT_carver_cutter,
+    TOPBAR_PT_carver_advanced,
 ]
 
 def register():

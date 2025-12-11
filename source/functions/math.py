@@ -6,6 +6,50 @@ from bpy_extras import view3d_utils
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
+def setup_grid_3d(matrix, size=10, subdivisions=10) -> tuple[list[Vector], list[Vector]]:
+    """Generates the grid of 3D points on the given matrix."""
+
+    if subdivisions < 4:
+        subdivisions = 4
+
+    points = []
+    indices = []
+
+    # Calculate the step size between points & number of points per row/column.
+    step = size / subdivisions
+    points_per_side = subdivisions + 1
+
+    # Start offset (to center the grid).
+    start = -size / 2.0
+
+    for i in range(points_per_side):
+        for j in range(points_per_side):
+            local_x = start + (i * step)
+            local_y = start + (j * step)
+            point_local = Vector((local_x, local_y, 0.0))
+
+            # Transform point to world space using the matrix.
+            point_world = matrix @ point_local
+            points.append(point_world)
+
+    # Generate indices for GPU batch.
+    # Horizontal lines (along j axis).
+    for i in range(1, points_per_side - 1):
+        for j in range(points_per_side - 1):
+            index1 = i * points_per_side + j
+            index2 = i * points_per_side + (j + 1)
+            indices.append((index1, index2))
+
+    # Vertical lines (along i axis) - skip first and last column
+    for j in range(1, points_per_side - 1):
+        for i in range(points_per_side - 1):
+            index1 = i * points_per_side + j
+            index2 = (i + 1) * points_per_side + j
+            indices.append((index1, index2))
+
+    return points, indices
+
+
 def distance_from_point_to_segment(point, start, end) -> float:
     """
     Calculates the shortest distance between a point and a segment.

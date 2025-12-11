@@ -16,6 +16,7 @@ from .common.types import (
     Mouse,
     Workplane,
     Cutter,
+    Grid,
     Effects,
 )
 from .common.ui import (
@@ -90,6 +91,7 @@ class OBJECT_OT_carve_polyline(CarverBase,
         self.workplane = Workplane(*self.calculate_workplane(context))
         self.cutter = Cutter(*self.create_cutter(context))
         self.effects = Effects().from_invoke(self, context)
+        self.grid = Grid(None, None)
 
          # cached_variables
         """Important for storing context as it was when operator was invoked (untouched by the modal)."""
@@ -117,6 +119,7 @@ class OBJECT_OT_carve_polyline(CarverBase,
         # Modifier Keys
         self.event_array(context, event)
         self.event_move(context, event)
+        self.event_grid(context, event)
 
         if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}
@@ -311,7 +314,8 @@ class OBJECT_OT_carve_polyline(CarverBase,
 
         # Lock the position of the last vert to cursor position at the moment of press.
         last_vert = verts[-1]
-        last_vert.co = Vector((x, y, 0))
+        last_vert_co = self._snap_to_grid(Vector((x, y, 0)))
+        last_vert.co = last_vert_co
 
         # Find and remove edge between last vert and the first vert.
         if verts.index(last_vert) != 1:
@@ -325,7 +329,7 @@ class OBJECT_OT_carve_polyline(CarverBase,
                 self.cutter.bm.edges.remove(edge_to_remove)
 
         # Insert new point in bmesh and connect to last one.
-        new_vert = bm.verts.new(Vector((x, y, 0)))
+        new_vert = bm.verts.new(last_vert_co)
         bm.edges.new([last_vert, new_vert])
         verts.append(new_vert)
 
