@@ -507,7 +507,7 @@ class CarverBase(bpy.types.Operator,
             draw_shader('SOLID', (0.48, 0.04, 0.04), 0.4, vertices, indices=indices)
 
         # Draw Grid
-        if self.use_grid:
+        if self.use_grid and self.phase == "DRAW":
             vertices = self.grid.points
             if vertices is not None:
                 draw_shader('POINTS', (1.0, 1.0, 1.0), 1.0, vertices)
