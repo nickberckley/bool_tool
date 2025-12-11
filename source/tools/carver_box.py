@@ -15,11 +15,15 @@ from .common.types import (
     Mouse,
     Workplane,
     Cutter,
+    Grid,
     Effects,
 )
 from .common.ui import (
     carver_ui_common,
 )
+
+
+from ..functions.math import setup_grid_3d
 
 
 description = "Cut primitive shapes into mesh objects by box drawing"
@@ -111,6 +115,7 @@ class OBJECT_OT_carve_box(CarverBase,
         self.workplane = Workplane(*self.calculate_workplane(context))
         self.cutter = Cutter(*self.create_cutter(context))
         self.effects = Effects().from_invoke(self, context)
+        self.grid = Grid(*setup_grid_3d(self.workplane.matrix))
 
          # cached_variables
         """Important for storing context as it was when operator was invoked (untouched by the modal)."""

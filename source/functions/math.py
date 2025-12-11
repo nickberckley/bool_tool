@@ -6,6 +6,58 @@ from bpy_extras import view3d_utils
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
+def setup_grid_3d(matrix, grid_size=10.0, subdivisions=10) -> tuple[list[Vector], list[Vector]]:
+    """Generates the grid of 3D points on the given matrix."""
+
+    points = []
+    indices = []
+
+    # Calculate the step size between points & numberof points per row/column.
+    step = grid_size / subdivisions
+    points_per_side = subdivisions + 1
+
+    # Start offset (to center the grid).
+    start = -grid_size / 2.0
+
+    point_map = {}
+    for i in range(points_per_side):
+        for j in range(points_per_side):
+            # Skip the four corner points.
+            is_corner = ((i == 0 or i == points_per_side - 1) and
+                         (j == 0 or j == points_per_side - 1))
+            if is_corner:
+                continue
+
+            local_x = start + (i * step)
+            local_y = start + (j * step)
+            point_local = Vector((local_x, local_y, 0.0))
+
+            # Transform point to world space using the matrix.
+            point_world = matrix @ point_local
+
+            point_map[(i, j)] = len(points)
+            points.append(point_world)
+
+    # Generate indices for GPU batch.
+    # Horizontal lines (along j axis).
+    for i in range(1, points_per_side - 1):
+        for j in range(points_per_side - 1):
+            if (i, j) in point_map and (i, j + 1) in point_map:
+                index1 = point_map[(i, j)]
+                index2 = point_map[(i, j + 1)]
+                indices.append((index1, index2))
+
+    # Vertical lines (along i axis).
+    for j in range(1, points_per_side - 1):
+        for i in range(points_per_side - 1):
+            if (i, j) in point_map and (i + 1, j) in point_map:
+                index1 = point_map[(i, j)]
+                index2 = point_map[(i + 1, j)]
+                indices.append((index1, index2))
+
+    return points, indices
+
+
 def distance_from_point_to_segment(point, start, end) -> float:
     """
     Calculates the shortest distance between a point and a segment.

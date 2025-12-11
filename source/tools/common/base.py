@@ -468,6 +468,12 @@ class CarverBase(bpy.types.Operator,
         if vertices is not None and indices is not None:
             draw_shader('SOLID', (0.48, 0.04, 0.04), 0.4, vertices, indices=indices)
 
+        # Draw Grid
+        vertices = self.grid.points
+        if vertices is not None:
+            draw_shader('POINTS', (1.0, 1.0, 1.0), 1.0, vertices)
+            draw_shader('LINES', (1.0, 1.0, 1.0), 0.1, vertices, indices=self.grid.indices)
+
         # Draw Line
         if self.phase in ("BEVEL", "ROTATE", "ARRAY"):
             current_mouse_pos_3d = region_2d_to_plane_3d(context.region, context.region_data,
