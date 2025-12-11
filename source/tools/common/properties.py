@@ -37,6 +37,12 @@ class CarverPropsOperator():
         default = 'MANUAL',
     )
 
+    use_grid: bpy.props.BoolProperty(
+        name = "Snapping Grid",
+        description = "Create point grid in 3D space, aligned to the workplane, that cutter vertices can snap to",
+        default = False,
+    )
+
 
 class CarverPropsShape():
     # SHAPE-properties

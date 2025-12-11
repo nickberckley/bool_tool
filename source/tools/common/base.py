@@ -20,6 +20,7 @@ from ...functions.draw import (
     draw_circle_around_point,
 )
 from ...functions.math import (
+    setup_grid_3d,
     distance_from_point_to_segment,
     region_2d_to_plane_3d,
     region_2d_to_line_3d,
@@ -310,6 +311,25 @@ class CarverEvents():
                 self.cutter.obj.location = self._stored_cutter_location + offset
 
 
+    def event_grid(self, context, event):
+        """Modifier key for toggling the grid and modifying its properties."""
+
+        # Set correct phase.
+        if event.type == 'G' and event.value == 'PRESS':
+            if self.phase != "DRAW":
+                return
+
+            if not self.use_grid:
+                self.use_grid = True
+            else:
+                self.use_grid = False
+
+        # Calculate & store the grid.
+        if self.use_grid:
+            if self.grid.points is None:
+                self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix)
+
+
 class CarverBase(bpy.types.Operator,
                  CarverEvents,
                  CarverPropsOperator,
@@ -469,10 +489,11 @@ class CarverBase(bpy.types.Operator,
             draw_shader('SOLID', (0.48, 0.04, 0.04), 0.4, vertices, indices=indices)
 
         # Draw Grid
-        vertices = self.grid.points
-        if vertices is not None:
-            draw_shader('POINTS', (1.0, 1.0, 1.0), 1.0, vertices)
-            draw_shader('LINES', (1.0, 1.0, 1.0), 0.1, vertices, indices=self.grid.indices)
+        if self.use_grid:
+            vertices = self.grid.points
+            if vertices is not None:
+                draw_shader('POINTS', (1.0, 1.0, 1.0), 1.0, vertices)
+                draw_shader('LINES', (1.0, 1.0, 1.0), 0.1, vertices, indices=self.grid.indices)
 
         # Draw Line
         if self.phase in ("BEVEL", "ROTATE", "ARRAY"):
