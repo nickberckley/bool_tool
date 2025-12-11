@@ -324,10 +324,15 @@ class CarverEvents():
             else:
                 self.use_grid = False
 
-        # Calculate & store the grid.
         if self.use_grid:
             if self.grid.points is None:
+                # Calculate & store the grid.
                 self.grid.points, self.grid.indices = setup_grid_3d(self.workplane.matrix)
+
+                # Snap all Polyline points.
+                if self.shape == 'POLYLINE':
+                    for v in self.cutter.verts:
+                        v.co = self._snap_to_grid(v.co)
 
 
 class CarverBase(bpy.types.Operator,
@@ -385,6 +390,19 @@ class CarverBase(bpy.types.Operator,
                 active = None
 
         return selected, active
+
+
+    def _snap_to_grid(self, vector: Vector) -> Vector:
+        """Snaps the Vector to the closest point on the 3D grid (also Vector)."""
+
+        if self.use_grid:
+            v_co_world = self.workplane.matrix @ vector
+            closest_point = min(self.grid.points, key=lambda p: (p - v_co_world).length)
+            new_vector = self.workplane.matrix.inverted() @ closest_point
+        else:
+            new_vector = vector
+
+        return new_vector
 
 
     # Core Methods
@@ -553,9 +571,11 @@ class CarverBase(bpy.types.Operator,
                 vert_x, vert_y = corner_signs[i]
 
                 if self.origin == 'CENTER':
-                    v.co = Vector((vert_x * size_x - size_x / 2, vert_y * size_y - size_y / 2, 0))
+                    v_co = Vector((vert_x * size_x - size_x / 2, vert_y * size_y - size_y / 2, 0))
                 elif self.origin == 'EDGE':
-                    v.co = Vector((vert_x * x, vert_y * y, 0))
+                    v_co = Vector((vert_x * x, vert_y * y, 0))
+
+                v.co = self._snap_to_grid(v_co)
 
         if self.shape == 'CIRCLE':
             angle_step = 2 * math.pi / len(face.verts)
@@ -572,8 +592,9 @@ class CarverBase(bpy.types.Operator,
                     v.co = Vector((vert_x, vert_y, 0))
 
         if self.shape == 'POLYLINE':
-            vert = self.cutter.verts[-1]
-            vert.co = Vector((x, y, 0))
+            v = self.cutter.verts[-1]
+            v_co = Vector((x, y, 0))
+            v.co = self._snap_to_grid(v_co)
 
         # Update Mesh & bmesh
         bm.to_mesh(self.cutter.mesh)
