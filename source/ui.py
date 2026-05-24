@@ -7,8 +7,8 @@ from .functions.list import list_canvas_cutters
 
 def carve_menu(self, context):
     layout = self.layout
-    layout.operator("object.carve_box", text="Box Carve").shape='BOX'
-    layout.operator("object.carve_box", text="Circle Carve").shape='CIRCLE'
+    layout.operator("object.carve_box", text="Box Carve")
+    layout.operator("object.carve_circle", text="Circle Carve")
     layout.operator("object.carve_polyline", text="Polyline Carve")
 
 
