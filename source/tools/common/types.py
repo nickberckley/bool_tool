@@ -9,6 +9,7 @@ from ...functions.mesh import (
 )
 from ...functions.modifier import (
     add_modifier_asset,
+    update_modifier_input,
 )
 
 
@@ -108,8 +109,8 @@ class Effects:
 
             else:
                 if cls.columns > 1 or cls.rows > 1:
-                    self.array["Socket_2"] = cls.columns
-                    self.array["Socket_3"] = cls.rows
+                    update_modifier_input(self.array, "Socket_2", cls.columns)
+                    update_modifier_input(self.array, "Socket_3", cls.rows)
 
                 # Remove modifier if it's no longer needed.
                 if cls.columns == 1 and cls.rows == 1:
@@ -118,9 +119,9 @@ class Effects:
 
         # Update array gap.
         if effect == 'ARRAY_GAP':
-            if cls.columns > 1 or cls.row > 1:
+            if cls.columns > 1 or cls.rows > 1:
                 if self.array is not None:
-                    self.array["Socket_4"] = cls.gap
+                    update_modifier_input(self.array, "Socket_4", cls.gap)
 
                     # Force the modifier to update in viewport.
                     self.array.show_viewport = False
@@ -150,14 +151,15 @@ class Effects:
 
         # Columns
         if cls.columns > 1:
-            mod["Socket_2"] = cls.columns
+            update_modifier_input(mod, "Socket_2", cls.columns)
 
         # Rows
         if cls.rows > 1:
-            mod["Socket_3"] = cls.rows
+            update_modifier_input(mod, "Socket_3", cls.rows)
 
         # Gap
-        mod["Socket_4"] = cls.gap
+        update_modifier_input(mod, "Socket_4", cls.gap)
+
 
         self.array = mod
 
@@ -280,7 +282,7 @@ class Effects:
             bm.to_mesh(mesh)
 
             mod.use_pin_to_last = True
-            mod["Input_1"] = cls.sharp_angle
+            update_modifier_input(mod, "Input_1", cls.sharp_angle)
 
             self.smooth = mod
 

@@ -181,3 +181,21 @@ def get_modifiers_to_apply(context, obj, new_modifiers) -> list:
         modifiers = list_pre_boolean_modifiers(obj)
 
     return modifiers
+
+
+def update_modifier_input(modifier, socket: str, value):
+    """Change the value of the geometry nodes modifier input socket."""
+
+    try:
+        if bpy.app.version >= (5, 2, 0):
+            socket = getattr(modifier.properties.inputs, socket)
+            socket.value = value
+        else:
+            modifier[f"{socket}"] = value
+    except:
+        """
+        NOTE: There are plethora of reasons this can fail, node trees are finicky.
+        Accounting for all possible cases is borderline impossible, so this check is necessary.
+        At least to fail silently and not throw Python error to users.
+        """
+        pass
