@@ -160,7 +160,7 @@ class Effects:
         # Gap
         update_modifier_input(mod, "Socket_4", cls.gap)
 
-
+        mod.use_pin_to_last = True
         self.array = mod
 
 

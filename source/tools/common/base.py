@@ -952,6 +952,10 @@ class CarverBase(bpy.types.Operator,
                 for obj, mod in self.objects.modifiers.items():
                     obj.modifiers.remove(mod)
 
+        # Other clean-up items.
+        if self.effects.array:
+            self.effects.array.use_pin_to_last = False
+
         bpy.types.SpaceView3D.draw_handler_remove(self._handler, 'WINDOW')
         context.workspace.status_text_set(None)
         context.window.cursor_set('DEFAULT' if context.mode == 'OBJECT' else 'CROSSHAIR')
