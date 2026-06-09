@@ -31,8 +31,10 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
         cutters = list_selected_cutters(context)
         canvases = list_cutter_users(cutters)
 
-        # Select Canvases
-        bpy.ops.object.select_all(action='DESELECT')
+        for obj in context.scene.objects:
+            obj.select_set(False)
+
+        # Select canvases.
         for canvas in canvases:
             canvas.select_set(True)
 
@@ -54,8 +56,10 @@ class OBJECT_OT_boolean_select_all(bpy.types.Operator):
         canvases = list_selected_canvases(context)
         cutters, __ = list_canvas_cutters(canvases)
 
-        # select_cutters
-        bpy.ops.object.select_all(action='DESELECT')
+        for obj in context.scene.objects:
+            obj.select_set(False)
+
+        # Select cutters.
         for cutter in cutters:
             cutter.select_set(True)
 
@@ -81,7 +85,9 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
         if modifier and modifier.type == "BOOLEAN":
             cutter = modifier.object
 
-            bpy.ops.object.select_all(action='DESELECT')
+            for obj in context.scene.objects:
+                obj.select_set(False)
+
             cutter.select_set(True)
             context.view_layer.objects.active = cutter
 

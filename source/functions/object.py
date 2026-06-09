@@ -38,22 +38,38 @@ def object_visibility_set(obj, value=False):
 
 
 def convert_to_mesh(context, obj):
-    "Converts active object into mesh (applying all modifiers and shape keys in process)"
+    """Converts active object into mesh (applying all modifiers and shape keys in process)."""
 
-    # store_selection
+    original_mode = obj.mode
+
+    if original_mode != 'OBJECT':
+        edit_objects = context.objects_in_mode
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+    # Store selection.
     stored_active = context.active_object
     stored_selection = context.selected_objects
-    bpy.ops.object.select_all(action='DESELECT')
+    for ob in context.scene.objects:
+        ob.select_set(False)
 
-    # Convert
+    # Make `obj` active and only one selected.
     obj.select_set(True)
     context.view_layer.objects.active = obj
+
+    # Convert.
     bpy.ops.object.convert(target='MESH')
 
-    # restore_selection
-    for obj in stored_selection:
-        obj.select_set(True)
+    if original_mode != 'OBJECT':
+        for ob in context.scene.objects:
+            if ob in edit_objects:
+                ob.select_set(True)
+        bpy.ops.object.mode_set(mode=original_mode)
+
+    # Restore selection.
+    for ob in stored_selection:
+        ob.select_set(True)
     context.view_layer.objects.active = stored_active
+
 
 
 def ensure_collection(context):
