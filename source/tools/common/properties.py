@@ -133,6 +133,7 @@ class CarverPropsCutter():
         name = "Angle",
         description = "Maximum face angle for sharp edges",
         subtype = "ANGLE",
+        precision = 3,
         min = 0, max = math.pi,
         default = 0.523599,
     )
