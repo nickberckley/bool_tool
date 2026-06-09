@@ -55,8 +55,8 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
             if tool.idname == "object.carve_circle":
                 layout.prop(props, "subdivision", text="Vertices")
             layout.prop(props, "rotation")
-            layout.prop(props, "aspect", expand=True)
             layout.prop(props, "origin", expand=True)
+            layout.prop(props, "aspect", expand=True)
 
             if props.alignment == 'SURFACE':
                 layout.prop(props, "orientation")
