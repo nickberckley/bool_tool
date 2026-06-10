@@ -1,5 +1,6 @@
 import bpy
 
+from ..constants import CONVERTABLE_TYPES
 from .list import (
     list_canvas_cutters,
     list_cutter_users,
@@ -100,6 +101,14 @@ def active_modifier_poll(obj):
 def has_evaluated_mesh(context, obj):
     """Checks if an object (non-mesh type) has an evaluated mesh created by Geometry Nodes modifiers."""
 
+    # Exclude cases that return Python errors.
+    if not obj:
+        return False
+    if bpy.app.version < (5, 2, 0) and obj.type == 'EMPTY':
+        return False
+    if obj.instance_type != 'NONE':
+        return False
+
     depsgraph = context.view_layer.depsgraph
     obj_eval = depsgraph.id_eval_get(obj)
     geometry = obj_eval.evaluated_geometry()
@@ -132,10 +141,12 @@ def list_candidate_objects(self, context, canvas):
 
             cutters.append(obj)
 
-        elif obj.type in ('CURVE', 'FONT'):
-            if has_evaluated_mesh(context, obj):
-                convert_to_mesh(context, obj)
-                cutters.append(obj)
+        elif obj.type in CONVERTABLE_TYPES:
+            if not has_evaluated_mesh(context, obj):
+                continue
+
+            convert_to_mesh(context, obj)
+            cutters.append(obj)
 
     return cutters
 
@@ -153,21 +164,53 @@ def destructive_op_confirmation(self, context, event, canvases: list, title="Boo
     if has_instanced_data or has_shape_keys:
         # Instanced data message.
         if has_instanced_data and not has_shape_keys:
-            message = ("Object(s) you're trying to cut have instanced object data.\n"
-                       "In order to apply modifiers, they need to be made single-user.\n"
+            message = ("Object you're trying to cut has instanced object data.\n"
+                       "In order to apply modifiers, it needs to be made single-user.\n"
                        "Do you proceed?")
 
         # Shape keys message.
         if has_shape_keys and not has_instanced_data:
-            message = ("Object(s) you're trying to cut have shape keys.\n"
+            message = ("Object you're trying to cut has shape keys.\n"
                        "In order to apply modifiers shape keys need to be applied as well.\n"
                        "Do you proceed?")
 
         # Combined message.
         if has_instanced_data and has_shape_keys:
-            message = ("Object(s) you're trying to cut have shape keys and instanced object data.\n"
-                       "In order to apply modifiers shape keys need to be applied, and object data made single user.\n"
+            message = ("Object you're trying to cut has shape keys and instanced object data.\n"
+                       "In order to apply modifiers shape keys need to be applied & object data made single user.\n"
                        "Do you proceed?")
+
+        popup = context.window_manager.invoke_confirm(self, event, title=title,
+                                                      confirm_text="Yes", icon='WARNING',
+                                                      message=message)
+
+        return popup
+
+    # Execute without confirmation window.
+    else:
+        return self.execute(context)
+
+
+def convert_to_mesh_confirmation(self, context, event, cutters: list, title="Boolean Operation"):
+    """
+    Creates & returns the confirmation pop-up window when object is about to be
+    converted to mesh to be used as a cutter. Only triggers during brush boolean
+    operators, because object gets destroyed in the destructive one anyway.
+
+    NOTE: This is only required because of the limitation of legacy Boolean modifier.
+    Geometry nodes implementation works with any object type. When the add-on is
+    updated to work with custom modifiers this will not be necesary anymore.
+    """
+
+    is_convertable = any(
+        obj.type in CONVERTABLE_TYPES and has_evaluated_mesh(context, obj)
+        for obj in cutters
+    )
+
+    if is_convertable:
+        message = ("Some of the selected objects are not of the Mesh type, but output mesh.\n"
+                   "In order to use them as cutters, they need to be converted to mesh.\n"
+                   "This is a destructive operator. Do you proceed?")
 
         popup = context.window_manager.invoke_confirm(self, event, title=title,
                                                       confirm_text="Yes", icon='WARNING',

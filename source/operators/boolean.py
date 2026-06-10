@@ -5,8 +5,8 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
     is_linked,
-    is_instanced_data,
     list_candidate_objects,
+    convert_to_mesh_confirmation,
     destructive_op_confirmation,
 )
 from ..functions.modifier import (
@@ -86,7 +86,7 @@ class BrushBoolean(ModifierProperties):
             self.report({'WARNING'}, "Boolean operators cannot be performed on linked objects")
             return {'CANCELLED'}
 
-        return self.execute(context)
+        return convert_to_mesh_confirmation(self, context, event, context.selected_objects, "Brush Boolean")
 
 
     def execute(self, context):
@@ -95,6 +95,7 @@ class BrushBoolean(ModifierProperties):
         cutters = list_candidate_objects(self, context, context.active_object)
 
         if len(cutters) == 0:
+            self.report({'WARNING'}, "No valid cutters selected")
             return {'CANCELLED'}
 
         # Create slices.
@@ -173,7 +174,7 @@ class AutoBoolean(ModifierProperties):
             self.report({'ERROR'}, "Modifiers cannot be applied to linked object")
             return {'CANCELLED'}
 
-        return destructive_op_confirmation(self, context, event, [context.active_object], title="Auto Boolean")
+        return destructive_op_confirmation(self, context, event, [context.active_object], "Auto Boolean")
 
 
     def execute(self, context):
@@ -183,6 +184,7 @@ class AutoBoolean(ModifierProperties):
         new_modifiers = defaultdict(list)
 
         if len(cutters) == 0:
+            self.report({'WARNING'}, "No valid cutters selected")
             return {'CANCELLED'}
 
         # Create slices.
