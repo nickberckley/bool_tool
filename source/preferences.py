@@ -114,18 +114,6 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         default = False,
     )
 
-    # Debug
-    versioning: bpy.props.BoolProperty(
-        name = "Versioning",
-        description = ("Because of the drastic changes in add-on data, it's necessary to do versioning when loading old files\n"
-                       "where Bool Tool cutters(brushes) are not applied. If you don't have files like that, you can ignore this")
-    )
-    experimental: bpy.props.BoolProperty(
-        name = "Experimental",
-        description = "Enable experimental features",
-        default = False,
-    )
-
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
@@ -167,13 +155,6 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         col = layout.column(align=True, heading="Features")
         col.prop(self, "fast_modifier_apply")
         col.prop(self, "double_click")
-
-        # Experimentals
-        layout.separator()
-        col = layout.column(align=True)
-        col.prop(self, "versioning", text="⚠ Versioning")
-        col.prop(self, "experimental", text="⚠ Experimental")
-
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
