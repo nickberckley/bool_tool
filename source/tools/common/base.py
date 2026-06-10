@@ -353,6 +353,10 @@ class CarverBase(bpy.types.Operator,
                     self.report({'WARNING'}, f"Modifiers cannot be applied to {obj.name} because it has instanced object data")
                     continue
 
+                if obj.data.shape_keys:
+                    self.report({'WARNING'}, f"Modifiers cannot be applied to {obj.name} because it has shape keys")
+                    continue
+
             selected.append(obj)
 
         # Ensure the active object.
