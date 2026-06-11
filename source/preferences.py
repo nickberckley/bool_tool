@@ -29,14 +29,22 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     # UI
+    category: bpy.props.EnumProperty(
+        name = "Category",
+        items = (('ADDON', "Add-on", "General add-on features"),
+                 ('SHARED', "Shared", "Features shared by all of add-ons operators and tools"),
+                 ('OPERATORS', "Boolean Operators", "Features for brush and auto Boolean operators")),
+        default = 'OPERATORS'
+    )
+
     show_in_sidebar: bpy.props.BoolProperty(
-        name = "Show Addon Panel in Sidebar",
+        name = "Show Add-on Panel in Sidebar",
         description = "Add a sidebar panel in 3D Viewport with add-ons operators and properties",
         default = True,
     )
     sidebar_category: bpy.props.StringProperty(
         name = "Category Name",
-        description = "Sidebar category name. Using the name of the existing category will add panel there",
+        description = "Sidebar category name. Using the name of the existing category will add the panel there",
         default = "Edit",
         update = update_sidebar_category,
     )
@@ -44,39 +52,40 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # Defaults
     solver: bpy.props.EnumProperty(
         name = "Boolean Solver",
-        description = "Which solver to use for automatic and brush booleans",
+        description = "Which solver to use for automatic and brush Boolean operators",
         items = [('FLOAT', "Float", ""),
                  ('EXACT', "Exact", ""),
                  ('MANIFOLD', "Manifold", "")],
         default = 'FLOAT',
     )
-    wireframe: bpy.props.BoolProperty(
-        name = "Display Cutters as Wireframe",
-        description = ("When enabled cutters will be displayed as wireframes, instead of bounding boxes.\n"
-                       "It's better for visualizating the shape, but might be harder to see and have performance cost"),
-        default = False,
+    display: bpy.props.EnumProperty(
+        name = "Cutter Display",
+        items = (('WIRE', "Wire", "Display the cutter object as a wireframe"),
+                 ('BOUNDS', "Bounds", "Display only the bounds of the cutter object")),
+        default = 'BOUNDS'
     )
     show_in_editmode: bpy.props.BoolProperty(
         name = "Enable 'Show in Edit Mode' by Default",
-        description = "Every new boolean modifier created with brush boolean wil have 'Show in Edit Mode' enabled by default",
+        description = "Added Boolean modifiers will have 'Show in Edit Mode' enabled by default",
         default = True,
     )
 
     # Advanced
     use_collection: bpy.props.BoolProperty(
         name = "Put Cutters in Collection",
-        description = ("Brush boolean operators will put all cutters in same collection, and create one if it doesn't exist.\n"
+        description = ("Put all cutters in the same collection, and create one if it doesn't exist.\n"
                        "Useful for scene management, and quickly selecting and removing all clutter when needed"),
         default = True,
     )
     collection_name: bpy.props.StringProperty(
         name = "Collection Name",
+        description = "Name of the collection where cutters will be added",
         default = "boolean_cutters",
     )
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
-        description = ("Cutters will be parented to first canvas they're applied to. Works best when one cutter is used one canvas.\n"
-                       "NOTE: This doesn't affect Carver tool, which has its own property for this"),
+        description = ("Cutters will be parented to first canvas they're applied to.\n"
+                       "Works best when one cutter is used on one canvas"),
         default = True,
     )
     apply_order: bpy.props.EnumProperty(
@@ -91,9 +100,8 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifiers",
-        description = ("When enabled boolean modifiers will be placed above every other modifier on the object (if there are any).\n"
-                       "Order of modifiers can drastically affect the result (especially when performing auto boolean).\n"
-                       "NOTE: This doesn't affect Carver tool, which has its own property for this"),
+        description = ("Place new Boolean modifiers above every other modifier on the object (if there are any).\n"
+                       "NOTE: Order of modifiers can drastically affect the final result"),
         default = False,
     )
 
@@ -101,15 +109,15 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     fast_modifier_apply: bpy.props.BoolProperty(
         name = "Faster Destructive Booleans",
         description = ("Experimental method of applying modifiers that results in 30-50% faster destructive booleans.\n"
-                       "Performance improvements also affect the add-ons operators that apply cutters.\n"
+                       "Performance improvements also affect add-ons operators that apply cutters.\n"
                        "However, changing modifier properties in the redo panel (like material transfer)\n"
                        "is not available for this method yet."),
         default = False,
     )
     double_click: bpy.props.BoolProperty(
         name = "Double-click Select",
-        description = ("Select boolean cutters by dbl-clicking on the boolean modifier.\n"
-                       "This feature works in entire modifier properties area, not just on boolean modifier header,\n"
+        description = ("Select boolean cutters by double-clicking on the Boolean modifier.\n"
+                       "Works in the entire modifier properties area, not just on boolean modifier header,\n"
                        "therefore can result in lot of misclicks and unintended selections."),
         default = False,
     )
@@ -120,41 +128,51 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
         layout.use_property_decorate = False
 
         # UI
-        col = layout.column(align=True, heading="Show in Sidebar")
-        row = col.row(align=True)
-        sub = row.row(align=True)
-        sub.prop(self, "show_in_sidebar", text="")
-        sub = sub.row(align=True)
-        sub.active = self.show_in_sidebar
-        sub.prop(self, "sidebar_category", text="")
-
-        # Defaults
+        row = layout.row()
+        row.prop(self, "category", expand=True)
         layout.separator()
-        col = layout.column(align=True)
-        row = col.row(align=True)
-        row.prop(self, "solver", text="Solver", expand=True)
-        col.prop(self, "wireframe")
-        col.prop(self, "show_in_editmode")
 
-        # Advanced
-        layout.separator()
-        col = layout.column(align=True, heading="Put Cutters in Collection")
-        row = col.row(align=True)
-        sub = row.row(align=True)
-        sub.prop(self, "use_collection", text="")
-        sub = sub.row(align=True)
-        sub.active = self.show_in_sidebar
-        sub.prop(self, "collection_name", text="")
+        # Add-on Properties
+        if self.category == 'ADDON':
+            col = layout.column(align=True, heading="Show in Sidebar")
+            row = col.row(align=True)
+            sub = row.row(align=True)
+            sub.prop(self, "show_in_sidebar", text="")
+            sub = sub.row(align=True)
+            sub.active = self.show_in_sidebar
+            sub.prop(self, "sidebar_category", text="")
 
-        col.prop(self, "parent")
-        col.prop(self, "apply_order")
-        col.prop(self, "pin")
+            col.separator()
+            col = layout.column(align=True, heading="Features")
+            col.prop(self, "fast_modifier_apply")
+            col.prop(self, "double_click")
 
-        # Features
-        layout.separator()
-        col = layout.column(align=True, heading="Features")
-        col.prop(self, "fast_modifier_apply")
-        col.prop(self, "double_click")
+        # Shared Properties
+        if self.category == 'SHARED':
+            col = layout.column()
+            col.prop(self, "show_in_editmode")
+            col.prop(self, "apply_order")
+
+        # Boolean Operator Properties
+        if self.category == 'OPERATORS':
+            col = layout.column(align=True, heading="Put Cutters in Collection")
+            row = col.row(align=True)
+            sub = row.row(align=True)
+            sub.prop(self, "use_collection", text="")
+            sub = sub.row(align=True)
+            sub.active = self.show_in_sidebar
+            sub.prop(self, "collection_name", text="", placeholder="boolean_cutters")
+
+            col = layout.column()
+            row = col.row(align=True)
+            row.prop(self, "solver", text="Solver", expand=True)
+            row = col.row(align=True)
+            row.prop(self, "display", expand=True)
+
+            col = layout.column()
+            col.prop(self, "parent")
+            col.prop(self, "pin")
+
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
