@@ -12,7 +12,26 @@ def carve_menu(self, context):
     layout.operator("object.carve_polyline", text="Polyline Carve")
 
 
-def boolean_operators_menu(self, context):
+def boolean_operators_menu_simple(self, context):
+    layout = self.layout
+    layout.operator_context = 'INVOKE_DEFAULT'
+    col = layout.column(align=True)
+
+    col.label(text="Auto Boolean")
+    col.operator("object.boolean_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.boolean_auto_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.boolean_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.boolean_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
+
+    col.separator()
+    col.label(text="Brush Boolean")
+    col.operator("object.boolean_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
+    col.operator("object.boolean_brush_union", text="Union", icon='SELECT_EXTEND')
+    col.operator("object.boolean_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    col.operator("object.boolean_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
+
+
+def boolean_operators_menu_expanded(self, context):
     layout = self.layout
     layout.operator_context = 'INVOKE_DEFAULT'
     col = layout.column(align=True)
@@ -87,7 +106,7 @@ class VIEW3D_PT_boolean(bpy.types.Panel):
         return prefs.show_in_sidebar
 
     def draw(self, context):
-        boolean_operators_menu(self, context)
+        boolean_operators_menu_expanded(self, context)
 
 
 # Properties Panel
@@ -199,7 +218,7 @@ class VIEW3D_MT_boolean(bpy.types.Menu):
         layout = self.layout
         layout.menu("VIEW3D_MT_carve")
         layout.separator()
-        boolean_operators_menu(self, context)
+        boolean_operators_menu_simple(self, context)
         boolean_extras_menu(self, context)
 
 
@@ -209,7 +228,7 @@ class VIEW3D_MT_boolean_popup(bpy.types.Menu):
     bl_idname = "VIEW3D_MT_boolean_popup"
 
     def draw(self, context):
-        boolean_operators_menu(self, context)
+        boolean_operators_menu_simple(self, context)
         boolean_extras_menu(self, context)
 
 
