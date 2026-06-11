@@ -87,10 +87,11 @@ def list_canvas_slices(canvases):
     return slices
 
 
-def list_cutter_users(cutters):
+def list_cutter_users(cutters, exclude: list=None):
     """List canvases that use specified cutters"""
 
     cutter_users = []
+    modifiers = []
 
     for cutter in cutters:
         object = bpy.data.objects.get(cutter.name)
@@ -98,13 +99,17 @@ def list_cutter_users(cutters):
         for key, values in bpy.data.user_map(subset=[object]).items():
             for value in values:
                 # filter_only_object_type_users
-                if value.id_type == 'OBJECT':
-                    for mod in value.modifiers:
-                        if mod.type == 'BOOLEAN':
-                            if mod.object and mod.object == cutter:
-                                cutter_users.append(value)
+                if value.id_type != 'OBJECT':
+                    continue
+                if exclude and value in exclude:
+                    continue
+                for mod in value.modifiers:
+                    if mod.type == 'BOOLEAN':
+                        if mod.object and mod.object == cutter:
+                            cutter_users.append(value)
+                            modifiers.append(mod)
 
-    return cutter_users
+    return cutter_users, modifiers
 
 
 def list_cutter_modifiers(canvases, cutters):

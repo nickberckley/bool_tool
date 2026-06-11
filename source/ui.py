@@ -183,6 +183,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
             op_toggle.method = 'SPECIFIED'
             op_toggle.specified_cutter = mod.object.name
             op_toggle.specified_canvas = canvas.name
+            op_toggle.specified_modifier = mod.name
 
             # Apply
             op_apply = row.operator("object.boolean_apply_cutter", text="", icon='CHECKMARK')

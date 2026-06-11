@@ -5,6 +5,9 @@ from ..functions.poll import (
     basic_poll,
     destructive_op_confirmation,
 )
+from ..functions.misc import (
+    _guess_toggle_state,
+)
 from ..functions.modifier import (
     apply_modifiers,
 )
@@ -44,57 +47,66 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
     )
     specified_canvas: bpy.props.StringProperty(
     )
+    specified_modifier: bpy.props.StringProperty(
+    )
 
     @classmethod
     def poll(cls, context):
         return basic_poll(cls, context, check_active=False)
 
     def execute(self, context):
+        # Create list of cutters & canvases.
         if self.method == 'SPECIFIED':
-            canvases = [context.scene.objects[self.specified_canvas]]
             cutters = [context.scene.objects[self.specified_cutter]]
+            canvases = [context.scene.objects[self.specified_canvas]]
+            modifiers = [canvases[0].modifiers.get(self.specified_modifier)]
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             cutters = list_selected_cutters(context)
-            canvases = list_cutter_users(cutters)
+            canvases, modifiers = list_cutter_users(cutters)
 
-        if cutters:
-            for canvas in canvases:
-                # toggle_slices_visibility (for_all_canvases)
-                if canvas.booleans.slice == True:
-                    if any(modifier.object in cutters for modifier in canvas.modifiers):
-                        canvas.hide_viewport = not canvas.hide_viewport
-                        canvas.hide_render = not canvas.hide_render
-
-                # Toggle Modifiers
-                for mod in canvas.modifiers:
-                    if mod.type == 'BOOLEAN' and mod.object in cutters:
-                        mod.show_viewport = not mod.show_viewport
-                        mod.show_render = not mod.show_render
-
-
-            if self.method == 'SPECIFIED':
-                # toggle_slices_visibility (for_specified_canvas)
-                for slice in slices:
-                    for mod in slice.modifiers:
-                        if mod.type == 'BOOLEAN' and mod.object in cutters:
-                            slice.hide_viewport = not slice.hide_viewport
-                            slice.hide_render = not slice.hide_render
-                            mod.show_viewport = not mod.show_viewport
-                            mod.show_render = not mod.show_render
-
-                # hide_cutter_if_not_used_by_any_visible_modifiers
-                other_canvases = list_canvases()
-                for obj in other_canvases:
-                    if obj not in canvases + slices:
-                        if any(mod.object in cutters and mod.show_viewport for mod in obj.modifiers if mod.type == 'BOOLEAN'):
-                            cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
-
-                for cutter in cutters:
-                    cutter.hide_viewport = not cutter.hide_viewport
-
-        else:
+        if len(cutters) == 0:
             self.report({'INFO'}, "Boolean cutters are not selected")
+            return {'CANCELLED'}
+
+        if len(canvases) == 0:
+            return {'CANCELLED'}
+
+        state = _guess_toggle_state(modifiers)
+        state = True if state == "On" else False
+
+        # Toggle Modifiers
+        for mod in modifiers:
+            mod.show_viewport = not state
+            mod.show_render = not state
+
+        # Hide Slices
+        if self.method == 'ALL':
+            for canvas in canvases:
+                if canvas.booleans.slice == True:
+                    slice = canvas
+                    if any(modifier.object in cutters for modifier in slice.modifiers):
+                        slice.hide_viewport = state
+                        slice.hide_render = state
+                        slice.hide_set(state)
+
+        elif self.method == 'SPECIFIED':
+            for slice in slices:
+                for mod in slice.modifiers:
+                    if mod.type == 'BOOLEAN' and mod.object in cutters:
+                        mod.show_viewport = not state
+                        mod.show_render = not state
+
+                        slice.hide_viewport = state
+                        slice.hide_render = state
+                        slice.hide_set(state)
+
+            # Hide Unused Cutters
+            for cutter in cutters:
+                other_canvases, __ = list_cutter_users([cutter], exclude=canvases + slices)
+                if len(other_canvases) == 0:
+                    cutter.hide_viewport = state
+                    cutter.hide_set(state)
 
         return {'FINISHED'}
 
@@ -132,7 +144,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
             slices = list_canvas_slices(canvases)
         elif self.method == 'ALL':
             cutters = list_selected_cutters(context)
-            canvases = list_cutter_users(cutters)
+            canvases, __ = list_cutter_users(cutters)
 
         if cutters:
             # Remove Modifiers
@@ -192,7 +204,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
             if prefs.parent and leftovers != None:
                 for cutter in leftovers:
                     if cutter.parent in canvases:
-                        other_canvases = list_cutter_users([cutter])
+                        other_canvases, __ = list_cutter_users([cutter])
                         change_parent(context, cutter, other_canvases[0])
 
         else:
@@ -234,7 +246,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
         elif self.method == 'ALL':
             self.cutters = list_selected_cutters(context)
-            self.canvases = list_cutter_users(self.cutters)
+            self.canvases, __ = list_cutter_users(self.cutters)
 
         return destructive_op_confirmation(self, context, event, self.canvases, title="Apply Boolean Cutter")
 
@@ -298,7 +310,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             if prefs.parent and leftovers != None:
                 for cutter in leftovers:
                     if cutter.parent in self.canvases:
-                        other_canvases = list_cutter_users([cutter])
+                        other_canvases, __ = list_cutter_users([cutter])
                         change_parent(context, cutter, other_canvases[0])
 
         else:
