@@ -5,7 +5,6 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
     is_canvas,
-    is_instanced_data,
     destructive_op_confirmation,
 )
 from ..functions.modifier import (
@@ -39,10 +38,15 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_active=False)
 
     def execute(self, context):
+        # Filter canvases.
         canvases = list_selected_canvases(context)
+        if len(canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return {'CANCELLED'}
+
         cutters, modifiers = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
@@ -82,12 +86,17 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_active=False)
 
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
 
+        # Filter canvases.
         canvases = list_selected_canvases(context)
+        if len(canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return {'CANCELLED'}
+
         cutters, __ = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
@@ -125,7 +134,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
 
                 # remove_parent_&_collection
                 if prefs.parent and cutter.parent in canvases:
-                    change_parent(cutter, None)
+                    change_parent(context, cutter, None)
 
                 if prefs.use_collection:
                     cutters_collection = bpy.data.collections.get(prefs.collection_name)
@@ -142,7 +151,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
             for cutter in leftovers:
                 if cutter.parent in canvases:
                     other_canvases = list_cutter_users([cutter])
-                    change_parent(cutter, other_canvases[0])
+                    change_parent(context, cutter, other_canvases[0])
 
         return {'FINISHED'}
 
@@ -156,11 +165,16 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_active=False)
 
 
     def invoke(self, context, event):
+        # Filter canvases.
         self.canvases = list_selected_canvases(context)
+        if len(self.canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return {'CANCELLED'}
+
         return destructive_op_confirmation(self, context, event, self.canvases, title="Apply Boolean Cutters")
 
 
@@ -202,7 +216,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
             if cutter not in purged_cutters:
                 # Transfer Children
                 for child in cutter.children:
-                    change_parent(child, cutter.parent)
+                    change_parent(context, child, cutter.parent)
 
                 # Purge
                 delete_cutter(cutter)
@@ -218,7 +232,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
             for cutter in leftovers:
                 if cutter.parent in self.canvases:
                     other_canvases = list_cutter_users([cutter])
-                    change_parent(cutter, other_canvases[0])
+                    change_parent(context, cutter, other_canvases[0])
 
         return {'FINISHED'}
 

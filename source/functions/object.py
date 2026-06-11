@@ -71,7 +71,6 @@ def convert_to_mesh(context, obj):
     context.view_layer.objects.active = stored_active
 
 
-
 def ensure_collection(context):
     """Checks the existance of boolean cutters collection and creates it if it doesn't exist"""
 
@@ -110,18 +109,17 @@ def delete_cutter(cutter):
         bpy.data.meshes.remove(orphaned_mesh)
 
 
-def change_parent(obj, parent, force=False, inverse=False):
+def change_parent(context, obj, parent, inverse=False):
     """Changes or removes parent from cutter object while keeping the transformation"""
 
     if obj.parent is not None:
-        if not force:
-            return
+        return
 
-    matrix_copy = obj.matrix_world.copy()
+    context.evaluated_depsgraph_get().update()
+
     obj.parent = parent
     if inverse:
         obj.matrix_parent_inverse = parent.matrix_world.inverted()
-    obj.matrix_world = matrix_copy
 
 
 def create_slice(context, canvas, modifier=False):
@@ -130,7 +128,7 @@ def create_slice(context, canvas, modifier=False):
     slice = canvas.copy()
     slice.data = canvas.data.copy()
     slice.name = slice.data.name = canvas.name + "_slice"
-    change_parent(slice, canvas)
+    change_parent(context, slice, canvas, inverse=True)
 
     # Set Boolean Properties
     if modifier == True:

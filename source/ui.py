@@ -18,17 +18,33 @@ def boolean_operators_menu(self, context):
     col = layout.column(align=True)
 
     col.label(text="Auto Boolean")
-    col.operator("object.boolean_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
-    col.operator("object.boolean_auto_union", text="Union", icon='SELECT_EXTEND')
-    col.operator("object.boolean_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
-    col.operator("object.boolean_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    row = col.row(align=False)
+    row.operator("object.boolean_auto_difference", text="Difference", icon='SELECT_SUBTRACT')
+    row.operator("object.boolean_auto_difference", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_auto_union", text="Union", icon='SELECT_EXTEND')
+    row.operator("object.boolean_auto_union", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_auto_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    row.operator("object.boolean_auto_intersect", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_auto_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    row.operator("object.boolean_auto_slice", text="", icon='UV_SYNC_SELECT').flip=True
 
     col.separator()
     col.label(text="Brush Boolean")
-    col.operator("object.boolean_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
-    col.operator("object.boolean_brush_union", text="Union", icon='SELECT_EXTEND')
-    col.operator("object.boolean_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
-    col.operator("object.boolean_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    row = col.row(align=False)
+    row.operator("object.boolean_brush_difference", text="Difference", icon='SELECT_SUBTRACT')
+    row.operator("object.boolean_brush_difference", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_brush_union", text="Union", icon='SELECT_EXTEND')
+    row.operator("object.boolean_brush_union", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_brush_intersect", text="Intersect", icon='SELECT_INTERSECT')
+    row.operator("object.boolean_brush_intersect", text="", icon='UV_SYNC_SELECT').flip=True
+    row = col.row(align=False)
+    row.operator("object.boolean_brush_slice", text="Slice", icon='SELECT_DIFFERENCE')
+    row.operator("object.boolean_brush_slice", text="", icon='UV_SYNC_SELECT').flip=True
 
 
 def boolean_extras_menu(self, context):

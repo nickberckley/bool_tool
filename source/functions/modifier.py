@@ -71,6 +71,7 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
             if not force_clean:
                 raise Exception()
 
+        context.view_layer.objects.active = obj
         with hide_modifiers(obj, excluding=modifiers):
             # Create a temporary mesh from evaluated object.
             evaluated_obj = obj.evaluated_get(context.evaluated_depsgraph_get())

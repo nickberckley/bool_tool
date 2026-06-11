@@ -12,22 +12,17 @@ from .object import (
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
-def basic_poll(cls, context, check_linked=False):
+def basic_poll(cls, context, check_active=True):
     """Basic poll for boolean operators."""
 
     if context.mode != 'OBJECT':
-        return False
-    if context.active_object is None:
-        return False
-
-    obj = context.active_object
-    if obj.type != 'MESH':
-        cls.poll_message_set("Boolean operators can only be used for mesh objects")
+        cls.poll_message_set("Boolean operators can only be performed in Object Mode")
         return False
 
-    if check_linked and is_linked(context, obj) == True:
-        cls.poll_message_set("Boolean operators can not be executed on linked objects")
-        return False
+    if check_active:
+        if context.active_object is None:
+            cls.poll_message_set("No active object")
+            return False
 
     return True
 
@@ -111,44 +106,70 @@ def has_evaluated_mesh(context, obj):
 
     depsgraph = context.view_layer.depsgraph
     obj_eval = depsgraph.id_eval_get(obj)
-    geometry = obj_eval.evaluated_geometry()
 
-    if geometry.mesh:
-        return True
-    else:
+    geometry = None
+    try:
+        geometry = obj_eval.evaluated_geometry()
+    except:
+        pass
+
+    if not geometry or not geometry.mesh:
         return False
+    else:
+        return True
 
 
-def list_candidate_objects(self, context, canvas):
-    """Filter out objects from the selection that can't be used as a cutter."""
+def filter_canvases(self, context, canvases: list) -> list:
+    """Filter out objects from the give list if they can't be cut."""
 
-    cutters = []
-    for obj in context.selected_objects:
-        if obj == context.active_object:
+    usable_canvases = []
+    for canvas in canvases:
+        # Exclude non-Mesh types.
+        if canvas.type != 'MESH':
+            self.report({'WARNING'}, f"{canvas.name} is not a Mesh type. Only Meshes can be cut")
             continue
-        if is_linked(context, obj):
-            self.report({'WARNING'}, f"{obj.name} is linked and can not be used as a cutter")
+        # Exclude linked objects.
+        if is_linked(context, canvas):
+            self.report({'WARNING'}, f"{canvas.name} is linked and can not be used as a cutter")
             continue
 
-        if obj.type == 'MESH':
+        usable_canvases.append(canvas)
+
+    return usable_canvases
+
+
+def filter_cutters(self, context, cutters: list, canvases: list) -> list:
+    """Filter out objects from the given list if they can't be used as a cutter."""
+
+    usable_cutters = []
+    for cutter in cutters:
+        # Exclude object if it is in both lists.
+        if cutter in canvases:
+            continue
+        # Exclude linked objects.
+        if is_linked(context, cutter):
+            self.report({'WARNING'}, f"{cutter.name} is linked and can not be used as a cutter")
+            continue
+
+        if cutter.type == 'MESH':
             # Exclude if object is already a cutter for canvas.
-            if canvas in list_cutter_users([obj]):
+            if any(canvas in list_cutter_users([cutter]) for canvas in canvases):
                 continue
             # Exclude if canvas is cutting the object (avoid dependancy loop).
-            if obj in list_cutter_users([canvas]):
-                self.report({'WARNING'}, f"{obj.name} can not cut its own cutter (dependancy loop)")
+            if cutter in list_cutter_users(canvases):
+                self.report({'WARNING'}, f"{cutter.name} can not cut its own cutter (dependancy loop)")
                 continue
 
-            cutters.append(obj)
+            usable_cutters.append(cutter)
 
-        elif obj.type in CONVERTABLE_TYPES:
-            if not has_evaluated_mesh(context, obj):
+        elif cutter.type in CONVERTABLE_TYPES:
+            if not has_evaluated_mesh(context, cutter):
                 continue
 
-            convert_to_mesh(context, obj)
-            cutters.append(obj)
+            convert_to_mesh(context, cutter)
+            usable_cutters.append(cutter)
 
-    return cutters
+    return usable_cutters
 
 
 def destructive_op_confirmation(self, context, event, canvases: list, title="Boolean Operation"):
@@ -158,25 +179,28 @@ def destructive_op_confirmation(self, context, event, canvases: list, title="Boo
     If none of the canvas objects have them the operator is executed without any confirmation.
     """
 
+    if len(canvases) == 0:
+        return self.execute(context)
+
     has_instanced_data = any(obj for obj in canvases if is_instanced_data(obj))
     has_shape_keys = any(obj for obj in canvases if obj.data.shape_keys)
 
     if has_instanced_data or has_shape_keys:
         # Instanced data message.
         if has_instanced_data and not has_shape_keys:
-            message = ("Object you're trying to cut has instanced object data.\n"
-                       "In order to apply modifiers, it needs to be made single-user.\n"
+            message = ("Object(s) you're trying to cut have instanced object data.\n"
+                       "In order to apply modifiers, they need to be made single-user.\n"
                        "Do you proceed?")
 
         # Shape keys message.
         if has_shape_keys and not has_instanced_data:
-            message = ("Object you're trying to cut has shape keys.\n"
+            message = ("Object(s) you're trying to cut have shape keys.\n"
                        "In order to apply modifiers shape keys need to be applied as well.\n"
                        "Do you proceed?")
 
         # Combined message.
         if has_instanced_data and has_shape_keys:
-            message = ("Object you're trying to cut has shape keys and instanced object data.\n"
+            message = ("Object(s) you're trying to cut have shape keys and instanced object data.\n"
                        "In order to apply modifiers shape keys need to be applied & object data made single user.\n"
                        "Do you proceed?")
 
@@ -202,6 +226,9 @@ def convert_to_mesh_confirmation(self, context, event, cutters: list, title="Boo
     updated to work with custom modifiers this will not be necesary anymore.
     """
 
+    if len(cutters) == 0:
+        return self.execute(context)
+
     is_convertable = any(
         obj.type in CONVERTABLE_TYPES and has_evaluated_mesh(context, obj)
         for obj in cutters
@@ -216,6 +243,7 @@ def convert_to_mesh_confirmation(self, context, event, cutters: list, title="Boo
                                                       confirm_text="Yes", icon='WARNING',
                                                       message=message)
 
+        self._unflippable = True
         return popup
 
     # Execute without confirmation window.

@@ -3,7 +3,6 @@ from .. import __package__ as base_package
 
 from ..functions.poll import (
     basic_poll,
-    is_instanced_data,
     destructive_op_confirmation,
 )
 from ..functions.modifier import (
@@ -48,7 +47,7 @@ class OBJECT_OT_boolean_toggle_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True)
+        return basic_poll(cls, context, check_active=False)
 
     def execute(self, context):
         if self.method == 'SPECIFIED':
@@ -121,7 +120,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True)
+        return basic_poll(cls, context, check_active=False)
 
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
@@ -177,7 +176,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 
                     # remove_parent_&_collection
                     if prefs.parent and cutter.parent in canvases:
-                        change_parent(cutter, None)
+                        change_parent(context, cutter, None)
 
                     if prefs.use_collection:
                         cutters_collection = bpy.data.collections.get(prefs.collection_name)
@@ -194,7 +193,7 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
                 for cutter in leftovers:
                     if cutter.parent in canvases:
                         other_canvases = list_cutter_users([cutter])
-                        change_parent(cutter, other_canvases[0])
+                        change_parent(context, cutter, other_canvases[0])
 
         else:
             self.report({'INFO'}, "Boolean cutters are not selected")
@@ -223,7 +222,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context, check_linked=True)
+        return basic_poll(cls, context, check_active=False)
 
 
     def invoke(self, context, event):
@@ -285,7 +284,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
             for cutter in unused_cutters:
                 # Transfer Children
                 for child in cutter.children:
-                    change_parent(child, cutter.parent)
+                    change_parent(context, child, cutter.parent)
 
                 # Purge Orphaned Cutters
                 delete_cutter(cutter)
@@ -300,7 +299,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                 for cutter in leftovers:
                     if cutter.parent in self.canvases:
                         other_canvases = list_cutter_users([cutter])
-                        change_parent(cutter, other_canvases[0])
+                        change_parent(context, cutter, other_canvases[0])
 
         else:
             self.report({'INFO'}, "Boolean cutters are not selected")

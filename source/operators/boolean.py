@@ -5,7 +5,8 @@ from .. import __package__ as base_package
 from ..functions.poll import (
     basic_poll,
     is_linked,
-    list_candidate_objects,
+    filter_canvases,
+    filter_cutters,
     convert_to_mesh_confirmation,
     destructive_op_confirmation,
 )
@@ -25,6 +26,12 @@ from ..functions.object import (
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
 class ModifierProperties():
+    flip: bpy.props.BoolProperty(
+        name = "Flip Canvas & Cutters",
+        options = {'SKIP_SAVE'},
+        default = False,
+    )
+
     material_mode: bpy.props.EnumProperty(
         name = "Materials",
         description = "Method for setting materials on the new faces",
@@ -58,6 +65,12 @@ class ModifierProperties():
         layout = self.layout
         layout.use_property_split = True
 
+        col = layout.column()
+        col.prop(self, "flip")
+        if self._unflippable:
+            col.enabled = False
+
+        layout.separator()
         if prefs.solver == 'EXACT':
             layout.prop(self, "material_mode")
             layout.prop(self, "use_self")
@@ -70,6 +83,7 @@ class ModifierProperties():
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
 
 class BrushBoolean(ModifierProperties):
+
     @classmethod
     def poll(cls, context):
         return basic_poll(cls, context)
@@ -81,19 +95,30 @@ class BrushBoolean(ModifierProperties):
             self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
             return {'CANCELLED'}
 
-        # Abort if active object is linked.
-        if is_linked(context, context.active_object):
-            self.report({'WARNING'}, "Boolean operators cannot be performed on linked objects")
-            return {'CANCELLED'}
+        if not self.flip:
+            cutters = [obj for obj in context.selected_objects if obj != context.active_object]
+        else:
+            cutters = [context.active_object]
 
-        return convert_to_mesh_confirmation(self, context, event, context.selected_objects, "Brush Boolean")
+        self._unflippable = False
+        return convert_to_mesh_confirmation(self, context, event, cutters, "Brush Boolean")
 
 
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
-        canvas = context.active_object
-        cutters = list_candidate_objects(self, context, context.active_object)
 
+        # Create list of cutters & canvases.
+        canvases = [context.active_object]
+        cutters = [obj for obj in context.selected_objects if obj != context.active_object]
+        if self.flip:
+            canvases, cutters = cutters, canvases
+
+        canvases = filter_canvases(self, context, canvases)
+        if len(canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return {'CANCELLED'}
+
+        cutters = filter_cutters(self, context, cutters, canvases)
         if len(cutters) == 0:
             self.report({'WARNING'}, "No valid cutters selected")
             return {'CANCELLED'}
@@ -101,19 +126,25 @@ class BrushBoolean(ModifierProperties):
         # Create slices.
         if self.mode == "SLICE":
             for cutter in cutters:
-                """NOTE: Slices need to be created in a separate loop to avoid inheriting boolean modifiers that the operator adds."""
-                slice = create_slice(context, canvas, modifier=True)
-                add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
+                """
+                NOTE: Slices need to be created in a separate loop to avoid
+                inheriting boolean modifiers that the operator adds.
+                """
+                for canvas in canvases:
+                    slice = create_slice(context, canvas, modifier=True)
+                    add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
 
         for cutter in cutters:
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             display = 'WIRE' if prefs.wireframe else 'BOUNDS'
             set_cutter_properties(context, cutter, self.mode, display=display, collection=prefs.use_collection)
-            add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
+            for canvas in canvases:
+                add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
             if prefs.parent:
-                change_parent(cutter, canvas)
+                change_parent(context, cutter, canvases[0], inverse=True)
 
-        canvas.booleans.canvas = True
+        for canvas in canvases:
+            canvas.booleans.canvas = True
 
         return {'FINISHED'}
 
@@ -121,28 +152,45 @@ class BrushBoolean(ModifierProperties):
 class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_union"
     bl_label = "Boolean Union (Brush)"
-    bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "UNION"
 
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Merge selected objects into the active one"
+        else:
+            return "Merge the active object into selected ones"
 
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_intersect"
     bl_label = "Boolean Intersection (Brush)"
-    bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "INTERSECT"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Only keep parts of the active object that are interesecting selected objects"
+        else:
+            return "Only keep parts of selected objects that are interesecting the active one"
 
 
 class OBJECT_OT_boolean_brush_difference(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_difference"
     bl_label = "Boolean Difference (Brush)"
-    bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "DIFFERENCE"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Subtract selected objects from the active one"
+        else:
+            return "Subtract the active object from selected ones"
 
 
 class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
@@ -153,11 +201,19 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 
     mode = "SLICE"
 
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Slice the active object by selected ones. Will create slices as separate objects"
+        else:
+            return "Slice selected objects by the active one. Will create slices as separate objects"
+
 
 
 #### ------------------------------ /auto_boolean/ ------------------------------ ####
 
 class AutoBoolean(ModifierProperties):
+
     @classmethod
     def poll(cls, context):
         return basic_poll(cls, context)
@@ -169,20 +225,35 @@ class AutoBoolean(ModifierProperties):
             self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
             return {'CANCELLED'}
 
-        # Abort if active object is linked.
-        if is_linked(context, context.active_object):
-            self.report({'ERROR'}, "Modifiers cannot be applied to linked object")
-            return {'CANCELLED'}
+        if not self.flip:
+            canvases = [context.active_object]
+        else:
+            canvases = [obj for obj in context.selected_objects if obj != context.active_object]
 
-        return destructive_op_confirmation(self, context, event, [context.active_object], "Auto Boolean")
+        for canvas in canvases:
+            if canvas.type != 'MESH':
+                canvases.remove(canvas)
+
+        self._unflippable = False
+        return destructive_op_confirmation(self, context, event, canvases, "Auto Boolean")
 
 
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
-        canvas = context.active_object
-        cutters = list_candidate_objects(self, context, context.active_object)
         new_modifiers = defaultdict(list)
 
+        # Create list of cutters & canvases.
+        canvases = [context.active_object]
+        cutters = [obj for obj in context.selected_objects if obj != context.active_object]
+        if self.flip:
+            canvases, cutters = cutters, canvases
+
+        canvases = filter_canvases(self, context, canvases)
+        if len(canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return {'CANCELLED'}
+
+        cutters = filter_cutters(self, context, cutters, canvases)
         if len(cutters) == 0:
             self.report({'WARNING'}, "No valid cutters selected")
             return {'CANCELLED'}
@@ -190,28 +261,34 @@ class AutoBoolean(ModifierProperties):
         # Create slices.
         if self.mode == "SLICE":
             for cutter in cutters:
-                """NOTE: Slices need to be created in a separate loop to avoid inheriting boolean modifiers that the operator adds."""
-                slice = create_slice(context, canvas)
-                modifier = add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
-                new_modifiers[slice].append(modifier)
-                slice.select_set(True)
+                """
+                NOTE: Slices need to be created in a separate loop to avoid
+                inheriting boolean modifiers that the operator adds.
+                """
+                for canvas in canvases:
+                    slice = create_slice(context, canvas)
+                    modifier = add_boolean_modifier(self, context, slice, cutter, "INTERSECT",
+                                                    prefs.solver, pin=prefs.pin)
+                    new_modifiers[slice].append(modifier)
+                    slice.select_set(True)
 
         for cutter in cutters:
-            # Add boolean modifier on canvas.
+            # Add boolean modifier on canvases.
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            modifier = add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
-            new_modifiers[canvas].append(modifier)
+            for canvas in canvases:
+                modifier = add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
+                new_modifiers[canvas].append(modifier)
 
-            # Transfer cutters children to canvas.
+            # Transfer cutters children to a canvas.
             for child in cutter.children:
-                change_parent(child, canvas)
+                change_parent(context, child, canvases[0])
 
             # Select all faces of the cutter so that newly created faces in canvas
             # are also selected after applying the modifier.
             for face in cutter.data.polygons:
                 face.select = True
 
-        # Apply modifiers on canvas & slices.
+        # Apply modifiers on canvases & slices.
         for obj, modifiers in new_modifiers.items():
             modifiers = get_modifiers_to_apply(context, obj, modifiers)
             apply_modifiers(context, obj, modifiers)
@@ -226,28 +303,46 @@ class AutoBoolean(ModifierProperties):
 class OBJECT_OT_boolean_auto_union(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_union"
     bl_label = "Boolean Union (Auto)"
-    bl_description = "Merge selected objects into active one"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "UNION"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Merge selected objects into the active one"
+        else:
+            return "Merge the active object into selected ones"
 
 
 class OBJECT_OT_boolean_auto_difference(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_difference"
     bl_label = "Boolean Difference (Auto)"
-    bl_description = "Subtract selected objects from active one"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "DIFFERENCE"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Subtract selected objects from the active one"
+        else:
+            return "Subtract the active object from selected ones"
 
 
 class OBJECT_OT_boolean_auto_intersect(bpy.types.Operator, AutoBoolean):
     bl_idname = "object.boolean_auto_intersect"
     bl_label = "Boolean Intersect (Auto)"
-    bl_description = "Only keep the parts of the active object that are interesecting selected objects"
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "INTERSECT"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Only keep parts of the active object that are interesecting selected objects"
+        else:
+            return "Only keep parts of selected objects that are interesecting the active one"
 
 
 class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
@@ -257,6 +352,13 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
     bl_options = {'REGISTER', 'UNDO'}
 
     mode = "SLICE"
+
+    @classmethod
+    def description(cls, context, properties):
+        if not properties.flip:
+            return "Slice the active object by selected ones. Will create slices as separate objects"
+        else:
+            return "Slice selected objects by the active one. Will create slices as separate objects"
 
 
 
