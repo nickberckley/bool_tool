@@ -50,7 +50,10 @@ class OBJECT_OT_boolean_toggle_all(bpy.types.Operator):
             return {'CANCELLED'}
 
         cutters, modifiers = list_canvas_cutters(canvases)
+        modifiers = list(itertools.chain.from_iterable(modifiers.values()))
         slices = list_canvas_slices(canvases)
+
+        print(modifiers)
 
         state = _guess_toggle_state(modifiers)
         state = True if state == "On" else False
@@ -100,7 +103,7 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
             self.report({'WARNING'}, "No valid canvases selected")
             return {'CANCELLED'}
 
-        cutters, __ = list_canvas_cutters(canvases)
+        cutters, modifiers = list_canvas_cutters(canvases)
         slices = list_canvas_slices(canvases)
 
         # Remove Slices
@@ -109,17 +112,11 @@ class OBJECT_OT_boolean_remove_all(bpy.types.Operator):
                 canvases.remove(slice)
             delete_cutter(slice)
 
-        for canvas in canvases:
-            # Remove Modifiers
-            for mod in canvas.modifiers:
-                if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
-                    if mod.object in cutters:
-                        canvas.modifiers.remove(mod)
-
-            # remove_boolean_properties
-            if canvas.booleans.canvas == True:
-                canvas.booleans.canvas = False
-
+        # Remove Modifiers
+        for canvas, mods in modifiers.items():
+            for mod in mods:
+                canvas.modifiers.remove(mod)
+            canvas.booleans.canvas = False
 
         # Restore Orphaned Cutters
         unused_cutters, leftovers = list_unused_cutters(cutters, canvases, slices, do_leftovers=True)
@@ -202,7 +199,7 @@ class OBJECT_OT_boolean_apply_all(bpy.types.Operator):
             elif prefs.apply_order == 'BEFORE':
                 modifiers = list_pre_boolean_modifiers(canvas)
             elif prefs.apply_order == 'BOOLEANS':
-                modifiers = [mod for mod in canvas.modifiers if mod.type == 'BOOLEAN' and "boolean_" in mod.name]
+                modifiers = [mod for mod in canvas.modifiers if mod.type == 'BOOLEAN']
 
             apply_modifiers(context, canvas, modifiers)
 

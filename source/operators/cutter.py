@@ -150,9 +150,8 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
             # Remove Modifiers
             for canvas in canvases:
                 for mod in canvas.modifiers:
-                    if "boolean_" in mod.name:
-                        if mod.object in cutters:
-                            canvas.modifiers.remove(mod)
+                    if mod.object in cutters:
+                        canvas.modifiers.remove(mod)
 
                 # remove_canvas_property_if_needed
                 other_cutters, __ = list_canvas_cutters([canvas])
@@ -268,9 +267,8 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
 
                 boolean_mods = []
                 for mod in canvas.modifiers:
-                    if "boolean_" in mod.name:
-                        if mod.object in self.cutters:
-                            boolean_mods.append(mod)
+                    if mod.object in self.cutters:
+                        boolean_mods.append(mod)
                 apply_modifiers(context, canvas, boolean_mods)
 
                 # remove_canvas_property_if_needed

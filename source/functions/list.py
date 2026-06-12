@@ -64,13 +64,16 @@ def list_canvas_cutters(canvases):
     """List cutters that are used by specified canvases"""
 
     cutters = []
-    modifiers = []
+    modifiers = {}
     for canvas in canvases:
         for mod in canvas.modifiers:
-            if mod.type == 'BOOLEAN' and "boolean_" in mod.name:
-                if mod.object:
-                    cutters.append(mod.object)
-                    modifiers.append(mod)
+            if mod.type != 'BOOLEAN':
+                continue
+            if not mod.object:
+                continue
+
+            cutters.append(mod.object)
+            modifiers.setdefault(canvas, []).append(mod)
 
     return cutters, modifiers
 
@@ -110,22 +113,6 @@ def list_cutter_users(cutters, exclude: list=None):
                             modifiers.append(mod)
 
     return cutter_users, modifiers
-
-
-def list_cutter_modifiers(canvases, cutters):
-    """List modifiers on specified canvases that use specified cutters"""
-
-    if not canvases:
-        canvases = list_canvases()
-
-    modifiers = []
-    for canvas in canvases:
-        for mod in canvas.modifiers:
-            if mod.type == 'BOOLEAN':
-                if mod.object in cutters:
-                    modifiers.append(mod)
-
-    return modifiers
 
 
 def list_unused_cutters(cutters, *canvases, do_leftovers=False):

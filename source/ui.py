@@ -74,7 +74,7 @@ def boolean_extras_menu(self, context):
     if context.active_object:
         # Canvas operators
         active_object = context.active_object
-        if active_object.booleans.canvas == True and any(mod.name.startswith("boolean_") for mod in active_object.modifiers):
+        if is_canvas(active_object):
             col.separator()
             col.operator("object.boolean_toggle_all", text="Toggle All Cuters")
             col.operator("object.boolean_apply_all", text="Apply All Cutters")
@@ -164,7 +164,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
         canvas = context.active_object
         __, modifiers = list_canvas_cutters([canvas])
 
-        for mod in modifiers:
+        for mod in list(modifiers.values())[0]:
             col = layout.column(align=True)
             row = col.row(align=True)
 
