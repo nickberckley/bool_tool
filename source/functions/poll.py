@@ -153,11 +153,11 @@ def filter_cutters(self, context, cutters: list, canvases: list) -> list:
 
         if cutter.type == 'MESH':
             # Exclude if object is already a cutter for canvas.
-            users, __ = list_cutter_users([cutter])
+            users = list_cutter_users([cutter]).keys()
             if any(canvas in users for canvas in canvases):
                 continue
             # Exclude if canvas is cutting the object (avoid dependancy loop).
-            users, __ = list_cutter_users(canvases)
+            users = list_cutter_users(canvases).keys()
             if cutter in users:
                 self.report({'WARNING'}, f"{cutter.name} can not cut its own cutter (dependancy loop)")
                 continue

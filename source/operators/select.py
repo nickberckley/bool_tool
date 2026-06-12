@@ -29,7 +29,7 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 
     def execute(self, context):
         cutters = list_selected_cutters(context)
-        canvases, __ = list_cutter_users(cutters)
+        canvases = list_cutter_users(cutters).keys()
 
         for obj in context.scene.objects:
             obj.select_set(False)

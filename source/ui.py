@@ -196,6 +196,7 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
             op_remove.method = 'SPECIFIED'
             op_remove.specified_cutter = mod.object.name
             op_remove.specified_canvas = canvas.name
+            op_remove.specified_modifier = mod.name
 
 
 

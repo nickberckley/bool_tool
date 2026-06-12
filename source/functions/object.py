@@ -109,11 +109,30 @@ def delete_cutter(cutter):
         bpy.data.meshes.remove(orphaned_mesh)
 
 
+def restore_cutter(context, cutter, unparent=True, unlink_collection=True):
+    """Remove Boolean properties from a cutter object to restore it to normal state."""
+
+    prefs = context.preferences.addons[base_package].preferences
+
+    # Restore Unused Cutters
+    cutter.hide_render = False
+    cutter.display_type = 'TEXTURED'
+    cutter.lineart.usage = 'INHERIT'
+    object_visibility_set(cutter, value=True)
+    cutter.booleans.cutter = ""
+
+    # Remove Parent & Collection
+    if unparent:
+        change_parent(context, cutter, None)
+
+    if unlink_collection:
+        cutters_collection = bpy.data.collections.get(prefs.collection_name)
+        if cutters_collection in cutter.users_collection:
+            bpy.data.collections.get(prefs.collection_name).objects.unlink(cutter)
+
+
 def change_parent(context, obj, parent, inverse=False):
     """Changes or removes parent from cutter object while keeping the transformation"""
-
-    if obj.parent is not None:
-        return
 
     context.evaluated_depsgraph_get().update()
 

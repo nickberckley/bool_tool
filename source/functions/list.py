@@ -72,7 +72,8 @@ def list_canvas_cutters(canvases):
             if not mod.object:
                 continue
 
-            cutters.append(mod.object)
+            if mod.object not in cutters:
+                cutters.append(mod.object)
             modifiers.setdefault(canvas, []).append(mod)
 
     return cutters, modifiers
@@ -93,9 +94,7 @@ def list_canvas_slices(canvases):
 def list_cutter_users(cutters, exclude: list=None):
     """List canvases that use specified cutters"""
 
-    cutter_users = []
-    modifiers = []
-
+    cutter_users = {}
     for cutter in cutters:
         object = bpy.data.objects.get(cutter.name)
 
@@ -107,12 +106,16 @@ def list_cutter_users(cutters, exclude: list=None):
                 if exclude and value in exclude:
                     continue
                 for mod in value.modifiers:
-                    if mod.type == 'BOOLEAN':
-                        if mod.object and mod.object == cutter:
-                            cutter_users.append(value)
-                            modifiers.append(mod)
+                    if mod.type != 'BOOLEAN':
+                        continue
+                    if not mod.object:
+                        continue
+                    if mod.object != cutter:
+                        continue
 
-    return cutter_users, modifiers
+                    cutter_users.setdefault(value, []).append(mod)
+
+    return cutter_users
 
 
 def list_unused_cutters(cutters, *canvases, do_leftovers=False):
