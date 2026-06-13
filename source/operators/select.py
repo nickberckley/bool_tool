@@ -70,26 +70,24 @@ class OBJECT_OT_boolean_select_all(bpy.types.Operator):
 class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
     bl_idname = "object.boolean_select_cutter"
     bl_label = "Select Boolean Cutter"
-    bl_description = "Select object that is used as boolean cutter by this modifier"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_options = {'UNDO'}
 
-    @classmethod
-    def poll(cls, context):
-        prefs = context.preferences.addons[base_package].preferences
-        return (basic_poll(cls, context) and active_modifier_poll(context.active_object) and
-                context.area.type == 'PROPERTIES' and context.space_data.context == 'MODIFIER' and
-                prefs.double_click)
+    cutter: bpy.props.StringProperty()
+    extend: bpy.props.BoolProperty()
+
+    def invoke(self, context, event):
+        self.extend = event.shift
+        return self.execute(context)
 
     def execute(self, context):
-        modifier = context.object.modifiers.active
-        if modifier and modifier.type == "BOOLEAN":
-            cutter = modifier.object
+        cutter = bpy.data.objects.get(self.cutter)
 
+        if not self.extend:
             for obj in context.scene.objects:
                 obj.select_set(False)
 
+        if cutter:
             cutter.select_set(True)
-            context.view_layer.objects.active = cutter
 
         return {'FINISHED'}
 

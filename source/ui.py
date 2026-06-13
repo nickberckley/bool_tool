@@ -214,6 +214,10 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
         row = layout.row(align=True)
         row.prop(mod.object, "name", text="", icon=icon, emboss=False)
 
+        # Select Cutter
+        op_select = row.operator("object.boolean_select_cutter", text="", icon='RESTRICT_SELECT_OFF', emboss=False)
+        op_select.cutter = mod.object.name
+
         # Toggle Cutter
         icon = 'HIDE_OFF' if mod.show_viewport else 'HIDE_ON'
         op_toggle = row.operator("object.boolean_toggle_cutter", text="", icon=icon, emboss=False)
