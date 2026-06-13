@@ -36,7 +36,8 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 
         # Select canvases.
         for canvas in canvases:
-            canvas.select_set(True)
+            if not canvas.booleans.slice:
+                canvas.select_set(True)
 
         return {'FINISHED'}
 
