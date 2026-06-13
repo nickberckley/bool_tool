@@ -60,6 +60,7 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
     """
 
     prefs = context.preferences.addons[base_package].preferences
+    _stored_active_obj = context.active_object
 
     # Make object data unique if it's instanced.
     if is_instanced_data(obj):
@@ -118,6 +119,8 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
 
             for mod in modifiers:
                 bpy.ops.object.modifier_apply(modifier=mod.name)
+
+    context.view_layer.objects.active = _stored_active_obj
 
 
 @contextmanager

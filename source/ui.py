@@ -153,19 +153,23 @@ class VIEW3D_PT_boolean_cutters(bpy.types.Panel):
         col = row.column(align=True)
         cutters_list_index = canvas.booleans.modifiers_list_index
         mod = _get_modifier_from_list_index(canvas, cutters_list_index)
+        sub = col.column(align=True)
 
         # Apply Cutter
-        op_apply = col.operator("object.boolean_apply_cutter", text="", icon='CHECKMARK')
+        op_apply = sub.operator("object.boolean_apply_cutter", text="", icon='CHECKMARK')
         op_apply.method = 'SPECIFIED'
-        op_apply.specified_cutter = mod.object.name
+        op_apply.specified_cutter = mod.object.name if mod else ""
         op_apply.specified_canvas = canvas.name
 
         # Remove Cutter
-        op_remove = col.operator("object.boolean_remove_cutter", text="", icon='X')
+        op_remove = sub.operator("object.boolean_remove_cutter", text="", icon='X')
         op_remove.method = 'SPECIFIED'
-        op_remove.specified_cutter = mod.object.name
+        op_remove.specified_cutter = mod.object.name if mod else ""
         op_remove.specified_canvas = canvas.name
-        op_remove.specified_modifier = mod.name
+        op_remove.specified_modifier = mod.name if mod else ""
+
+        if cutters_list_index < 0 or not mod:
+            sub.enabled = False
 
         col.separator()
         col.menu("VIEW3D_MT_boolean_specials", icon='DOWNARROW_HLT', text="")

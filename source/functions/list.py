@@ -118,28 +118,6 @@ def list_cutter_users(cutters, exclude: list=None):
     return cutter_users
 
 
-def list_unused_cutters(cutters, *canvases, do_leftovers=False):
-    """Takes in list of cutters and returns only those that have no other user besides specified canvas"""
-    """When `include_visible` is True it will return cutters that aren't used by any visible modifiers"""
-
-    other_canvases = list_canvases()
-    original_cutters = cutters[:]
-
-    for obj in other_canvases:
-        if obj in canvases:
-            return
-
-        if any(mod.object in cutters for mod in obj.modifiers if mod.type == 'BOOLEAN'):
-            cutters[:] = [cutter for cutter in cutters if cutter not in [mod.object for mod in obj.modifiers]]
-
-    leftovers = []
-    # return_cutters_that_do_have_other_users_(so_that_parents_can_be_reassigned)
-    if do_leftovers:
-        leftovers = [cutter for cutter in original_cutters if cutter not in cutters]
-
-    return cutters, leftovers
-
-
 def list_pre_boolean_modifiers(obj) -> list:
     """Returns a list of boolean modifiers & modifiers that come before last boolean modifier"""
 

@@ -25,7 +25,6 @@ from ..functions.list import (
     list_canvas_cutters,
     list_canvas_slices,
     list_cutter_users,
-    list_unused_cutters,
 )
 
 
@@ -215,8 +214,14 @@ class OBJECT_OT_boolean_remove_cutter(bpy.types.Operator):
 class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
     bl_idname = "object.boolean_apply_cutter"
     bl_label = "Apply Boolean Cutter"
-    bl_description = "Apply this boolean cutter. If cutter is the active object it will be applied to every canvas that uses it"
-    bl_options = {'UNDO'}
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def description(cls, context, properties):
+        if properties.specified_cutter:
+            return ("Apply the modifier using this Boolean cutter")
+        else:
+            return ("Apply this Boolean cutter to every canvas object that uses it")
 
     method: bpy.props.EnumProperty(
         name = "Method",
@@ -224,94 +229,103 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                  ('SPECIFIED', "Specified", "Remove cutter from specified canvas")),
         default = 'ALL',
     )
-
     specified_cutter: bpy.props.StringProperty(
     )
     specified_canvas: bpy.props.StringProperty(
+    )
+
+    delete: bpy.props.BoolProperty(
+        name = "Delete Unused Cutter",
+        description = "Completely remove the cutter object if it's not used by any other canvas",
+        default = True,
     )
 
     @classmethod
     def poll(cls, context):
         return basic_poll(cls, context, check_active=False)
 
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        layout.prop(self, "delete")
 
     def invoke(self, context, event):
         # Filter Objects
         if self.method == 'SPECIFIED':
-            self.cutters = [context.scene.objects[self.specified_cutter]]
-            self.canvases = [context.scene.objects[self.specified_canvas]]
-            self.slices = list_canvas_slices(self.canvases)
-
+            canvases = [context.scene.objects[self.specified_canvas]]
         elif self.method == 'ALL':
-            self.cutters = list_selected_cutters(context)
-            self.canvases = list_cutter_users(self.cutters).keys()
+            cutters = list_selected_cutters(context)
+            canvases = list_cutter_users(cutters).keys()
 
-        return destructive_op_confirmation(self, context, event, self.canvases, title="Apply Boolean Cutter")
-
+        return destructive_op_confirmation(self, context, event, canvases, title="Apply Boolean Cutter")
 
     def execute(self, context):
         prefs = bpy.context.preferences.addons[base_package].preferences
-        leftovers = []
 
-        if self.cutters:
-            # Select all faces of the cutter so that newly created faces in canvas
-            # are also selected after applying the modifier.
-            for cutter in self.cutters:
-                for face in cutter.data.polygons:
-                    face.select = True
+        # Create lists of cutters & canvases.
+        if self.method == 'SPECIFIED':
+            cutters = [context.scene.objects[self.specified_cutter]]
+            canvases = [context.scene.objects[self.specified_canvas]]
+            slices = list_canvas_slices(canvases)
+        elif self.method == 'ALL':
+            cutters = list_selected_cutters(context)
+            canvases = list_cutter_users(cutters).keys()
+            slices = []
 
-            # Apply Modifiers
-            for canvas in self.canvases:
-                context.view_layer.objects.active = canvas
+        if len(cutters) == 0:
+            self.report({'INFO'}, "Boolean cutters are not selected")
+            return {'CANCELLED'}
 
-                boolean_mods = []
-                for mod in canvas.modifiers:
-                    if mod.object in self.cutters:
-                        boolean_mods.append(mod)
+        if not canvases:
+            return {'CANCELLED'}
+
+        # Select all faces of the cutter so that newly created faces in canvas
+        # are also selected after applying the modifier.
+        for cutter in cutters:
+            for face in cutter.data.polygons:
+                face.select = True
+
+        # Apply Modifiers
+        for canvas in itertools.chain(canvases, slices):
+            boolean_mods = []
+            for mod in canvas.modifiers:
+                if mod.type == 'BOOLEAN' and mod.object in cutters:
+                    boolean_mods.append(mod)
+
+            if boolean_mods:
+                cutters_list_index = canvas.booleans.modifiers_list_index
                 apply_modifiers(context, canvas, boolean_mods)
+                canvas.booleans.modifiers_list_index = cutters_list_index - 1
 
-                # remove_canvas_property_if_needed
+                # Unset canvas property if it's no longer needed.
                 other_cutters, __ = list_canvas_cutters([canvas])
                 if len(other_cutters) == 0:
                     canvas.booleans.canvas = False
                 canvas.booleans.slice = False
+                canvas.booleans.slice_of = None
 
+        for cutter in cutters:
+            other_canvases = list_cutter_users([cutter], exclude=canvases).keys()
+            if len(other_canvases) == 0:
+                # Delete Unused Cutters
+                if self.delete:
+                    delete_cutter(cutter)
 
-            if self.method == 'SPECIFIED':
-                # Apply Modifier for Slices (for_specified_method)
-                for slice in self.slices:
-                    boolean_mods = []
-                    for mod in slice.modifiers:
-                        if mod.type == 'BOOLEAN' and mod.object in self.cutters:
-                            boolean_mods.append(mod)
-                    apply_modifiers(context, slice, boolean_mods)
+                # Restore Unused Cutters
+                else:
+                    restore_cutter(context, cutter,
+                                   unparent=prefs.parent and cutter.parent in canvases,
+                                   unlink_collection=prefs.use_collection)
+            else:
+                # Change Cutter Parent
+                if prefs.parent and cutters[0].parent in canvases:
+                    new_parent = next(c for c in other_canvases if not c.booleans.slice)
+                    change_parent(context, cutters[0], new_parent, inverse=True)
 
-
-            unused_cutters, leftovers = list_unused_cutters(self.cutters, self.canvases, do_leftovers=True)
-
-
-            for cutter in unused_cutters:
-                # Transfer Children
-                for child in cutter.children:
-                    change_parent(context, child, cutter.parent)
-
-                # Purge Orphaned Cutters
-                delete_cutter(cutter)
-
-            # purge_empty_collection
-            if prefs.use_collection:
-                delete_empty_collection()
-
-
-            # Change Leftover Cutter Parent
-            if prefs.parent and leftovers != None:
-                for cutter in leftovers:
-                    if cutter.parent in self.canvases:
-                        other_canvases = list_cutter_users([cutter]).keys()
-                        change_parent(context, cutter, list(other_canvases)[0])
-
-        else:
-            self.report({'INFO'}, "Boolean cutters are not selected")
+        # Purge Empty Collection
+        if prefs.use_collection:
+            delete_empty_collection()
 
         return {'FINISHED'}
 
