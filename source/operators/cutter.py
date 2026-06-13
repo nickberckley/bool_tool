@@ -308,7 +308,7 @@ class OBJECT_OT_boolean_apply_cutter(bpy.types.Operator):
                 for cutter in leftovers:
                     if cutter.parent in self.canvases:
                         other_canvases = list_cutter_users([cutter]).keys()
-                        change_parent(context, cutter, other_canvases[0])
+                        change_parent(context, cutter, list(other_canvases)[0])
 
         else:
             self.report({'INFO'}, "Boolean cutters are not selected")

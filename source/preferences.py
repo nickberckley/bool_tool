@@ -9,7 +9,7 @@ def update_sidebar_category(self, context):
 
     panel_classes = [
         ui.VIEW3D_PT_boolean,
-        ui.VIEW3D_PT_boolean_properties,
+        ui.VIEW3D_PT_boolean_helpers,
         ui.VIEW3D_PT_boolean_cutters,
     ]
 

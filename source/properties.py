@@ -32,6 +32,8 @@ class OBJECT_PG_booleans(bpy.types.PropertyGroup):
         default = False,
     )
 
+    modifiers_list_index: bpy.props.IntProperty()
+
 
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
