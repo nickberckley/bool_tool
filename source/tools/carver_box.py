@@ -15,6 +15,7 @@ from .common.types import (
     Mouse,
     Workplane,
     Cutter,
+    Grid,
     Effects,
 )
 from .common.ui import (
@@ -111,6 +112,7 @@ class OBJECT_OT_carve_box(CarverBase,
         self.workplane = Workplane(*self.calculate_workplane(context))
         self.cutter = Cutter(*self.create_cutter(context))
         self.effects = Effects().from_invoke(self, context)
+        self.grid = Grid(None, None)
 
          # cached_variables
         """Important for storing context as it was when operator was invoked (untouched by the modal)."""
@@ -144,6 +146,7 @@ class OBJECT_OT_carve_box(CarverBase,
         self.event_array(context, event)
         self.event_flip(context, event)
         self.event_move(context, event)
+        self.event_grid(context, event)
 
         if event.type in {'MIDDLEMOUSE'}:
             return {'PASS_THROUGH'}
