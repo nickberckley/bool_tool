@@ -8,9 +8,9 @@ def update_sidebar_category(self, context):
     """Change sidebar category of add-ons panel."""
 
     panel_classes = [
-        ui.VIEW3D_PT_boolean,
-        ui.VIEW3D_PT_boolean_helpers,
-        ui.VIEW3D_PT_boolean_cutters,
+        ui.panels.VIEW3D_PT_boolean,
+        ui.panels.VIEW3D_PT_boolean_helpers,
+        ui.panels.VIEW3D_PT_boolean_cutters,
     ]
 
     for cls in panel_classes:

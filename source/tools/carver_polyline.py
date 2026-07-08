@@ -5,6 +5,9 @@ from mathutils import Vector
 from bpy_extras import view3d_utils
 from .. import __file__ as base_file
 
+from ..constants import (
+    ICONS_PATH,
+)
 from ..functions.view import (
     redraw_regions,
 )
@@ -39,7 +42,7 @@ class OBJECT_WT_carve_polyline(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "dat", "ops.object.carver_polyline")
+    bl_icon = os.path.join(ICONS_PATH, "dat", "ops.object.carver_polyline")
     bl_keymap = (
         ("object.carve_polyline", {"type": 'LEFTMOUSE', "value": 'CLICK'}, None),
         ("object.carve_polyline", {"type": 'LEFTMOUSE', "value": 'CLICK', "ctrl": True}, None),

@@ -7,7 +7,7 @@ import bpy.utils.previews
 
 svg_icons = {}
 icons = bpy.utils.previews.new()
-dir = os.path.join(os.path.dirname(__file__))
+dir = os.path.join(os.path.dirname(__file__), "svg")
 
 icons.load("MEASURE", os.path.join(dir, "measure.svg"), 'IMAGE')
 icons.load("CPU", os.path.join(dir, "cpu.svg"), 'IMAGE')

@@ -3,7 +3,7 @@ import math
 
 
 # Import Custom Icons
-from ... import icons
+from ...ui import icons
 svg_icons = icons.svg_icons["main"]
 icon_measure = svg_icons["MEASURE"].icon_id
 icon_cpu = svg_icons["CPU"].icon_id

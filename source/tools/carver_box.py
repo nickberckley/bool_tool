@@ -1,8 +1,10 @@
 import bpy
 import os
 from mathutils import Vector
-from .. import __file__ as base_file
 
+from ..constants import (
+    ICONS_PATH,
+)
 from ..functions.view import (
     redraw_regions,
 )
@@ -38,7 +40,7 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "dat", "ops.object.carver_box")
+    bl_icon = os.path.join(ICONS_PATH, "dat", "ops.object.carver_box")
     bl_keymap = (
         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": None}),
         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": None}),

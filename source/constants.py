@@ -1,3 +1,8 @@
+import os
+
+
+# Paths
+ICONS_PATH = os.path.join(os.path.dirname(__file__), "ui", "icons")
 
 # Object types that can have evaluated mesh, and can be converted to Mesh.
 CONVERTABLE_TYPES = (
