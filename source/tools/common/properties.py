@@ -1,17 +1,29 @@
 import bpy
 import math
 
-
-# Import Custom Icons
-from ...ui import icons
-svg_icons = icons.svg_icons["main"]
-icon_measure = svg_icons["MEASURE"].icon_id
-icon_cpu = svg_icons["CPU"].icon_id
+from ...ui.icons import (
+    get_custom_icon,
+)
 
 
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
 class CarverPropsOperator():
+
+    # NOTE: Defining enum items inside function is necessary to allow correct import of custom icons.
+    # Without this classes (and their properties) are registered before `register` function of modules
+    # are called, resulting in empty preview collections.
+    def get_depth_items(self, context):
+        icon_measure = get_custom_icon("MEASURE")
+        icon_cpu = get_custom_icon("CPU")
+
+        items = [
+            ('MANUAL', "Manual", "Depth can be manually set after creating a cutter shape", icon_measure, 0),
+            ('AUTO', "Auto", "Depth is set automatically to cover selected objects entirely", icon_cpu, 1),
+            ('CURSOR', "3D Cursor", "Depth is set to 3D cursors location", 'PIVOT_CURSOR', 2),
+        ]
+        return items
+
     # OPERATOR-properties
     mode: bpy.props.EnumProperty(
         name = "Mode",
@@ -31,10 +43,8 @@ class CarverPropsOperator():
     )
     depth: bpy.props.EnumProperty(
         name = "Depth",
-        items = (('MANUAL', "Manual", "Depth can be manually set after creating a cutter shape", icon_measure, 0),
-                 ('AUTO', "Auto", "Depth is set automatically to cover selected objects entirely", icon_cpu, 1),
-                 ('CURSOR', "3D Cursor", "Depth is set to 3D cursors location", 'PIVOT_CURSOR', 2)),
-        default = 'MANUAL',
+        items = get_depth_items,
+        default = 0,
     )
 
 

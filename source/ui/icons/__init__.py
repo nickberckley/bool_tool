@@ -3,22 +3,44 @@ import os
 import bpy.utils.previews
 
 
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def get_custom_icon(icon_name: str):
+    """Returns the ID of a custom icon registered by add-on."""
+
+    svg_icons = preview_collections["main"]
+    if not svg_icons:
+        return 0
+
+    icon = svg_icons[icon_name].icon_id
+    if not icon:
+        return 0
+
+    return icon
+
+
+
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-svg_icons = {}
-icons = bpy.utils.previews.new()
-dir = os.path.join(os.path.dirname(__file__), "svg")
+preview_collections = {}
+svg_icons_dir = os.path.join(os.path.dirname(__file__), "svg")
 
-icons.load("MEASURE", os.path.join(dir, "measure.svg"), 'IMAGE')
-icons.load("CPU", os.path.join(dir, "cpu.svg"), 'IMAGE')
-svg_icons["main"] = icons
+icons = {
+    "MEASURE": "measure.svg",
+    "CPU": "cpu.svg",
+}
 
 
 def register():
-    ...
+    svg_icons = bpy.utils.previews.new()
+
+    for key, file in icons.items():
+        svg_icons.load(key, os.path.join(svg_icons_dir, file), 'IMAGE')
+
+    preview_collections["main"] = svg_icons
+
 
 def unregister():
-    # ICONS
-    for pcoll in svg_icons.values():
+    for pcoll in preview_collections.values():
         bpy.utils.previews.remove(pcoll)
-    svg_icons.clear()
+    preview_collections.clear()
