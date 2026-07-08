@@ -2,13 +2,13 @@ import bpy
 from collections import defaultdict
 from .. import __package__ as base_package
 
-from ..functions.poll import (
-    basic_poll,
-    is_linked,
+from ..functions.canvas import (
     filter_canvases,
+    create_slice,
+)
+from ..functions.cutter import (
     filter_cutters,
-    convert_to_mesh_confirmation,
-    destructive_op_confirmation,
+    make_cutter,
 )
 from ..functions.modifier import (
     add_boolean_modifier,
@@ -16,10 +16,13 @@ from ..functions.modifier import (
     get_modifiers_to_apply,
 )
 from ..functions.object import (
-    set_cutter_properties,
     change_parent,
-    create_slice,
-    delete_cutter,
+    delete_object,
+)
+from ..functions.poll import (
+    basic_poll,
+    convert_to_mesh_confirmation,
+    destructive_op_confirmation,
 )
 
 
@@ -136,9 +139,9 @@ class BrushBoolean(ModifierProperties):
 
         for cutter in cutters:
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
-            set_cutter_properties(context, cutter, self.mode,
-                                  display=prefs.display,
-                                  collection=prefs.use_collection)
+            make_cutter(context, cutter, self.mode,
+                        display=prefs.display,
+                        collection=prefs.use_collection)
             for canvas in canvases:
                 add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
             if prefs.parent:
@@ -296,7 +299,7 @@ class AutoBoolean(ModifierProperties):
 
         # Delete cutters.
         for cutter in cutters:
-            delete_cutter(cutter)
+            delete_object(cutter)
 
         return {'FINISHED'}
 

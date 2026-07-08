@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import math
+import mathutils
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix
 
@@ -14,20 +15,18 @@ from .properties import (
     CarverPropsCutter,
 )
 
+from ...functions.cutter import (
+    make_cutter,
+)
 from ...functions.draw import (
     draw_shader,
     draw_bmesh_faces,
-    draw_circle_around_point,
-)
-from ...functions.math import (
-    distance_from_point_to_segment,
-    region_2d_to_plane_3d,
-    region_2d_to_line_3d,
+    draw_circle_billboard,
 )
 from ...functions.mesh import (
+    is_instanced_mesh,
     extrude_face,
     are_intersecting,
-    raycast,
 )
 from ...functions.modifier import (
     add_boolean_modifier,
@@ -35,14 +34,18 @@ from ...functions.modifier import (
     get_modifiers_to_apply,
 )
 from ...functions.object import (
-    set_cutter_properties,
-    delete_empty_collection,
-    delete_cutter,
-    set_object_origin,
-)
-from ...functions.poll import (
     is_linked,
-    is_instanced_data,
+    set_object_origin,
+    delete_object,
+)
+from ...functions.scene import (
+    delete_empty_collection,
+    raycast,
+)
+from ...functions.view import (
+    distance_from_point_to_segment,
+    region_2d_to_ray_3d,
+    region_2d_to_plane_3d,
 )
 
 
@@ -318,17 +321,7 @@ class CarverBase(bpy.types.Operator,
                  CarverPropsCutter):
     """Base class for Carver operators."""
 
-    def redraw_region(self, context):
-        """Redraw the region to find the limits of the 3D viewport."""
-
-        region_types = {'WINDOW', 'UI'}
-        for area in context.window.screen.areas:
-            if area.type == 'VIEW_3D':
-                for region in area.regions:
-                    if not region_types or region.type in region_types:
-                        region.tag_redraw()
-
-
+    # Core Methods
     def validate_selection(self, context):
         """Filter out selection to get the list of viable canvases."""
 
@@ -349,7 +342,7 @@ class CarverBase(bpy.types.Operator,
                 continue
 
             if self.mode == 'DESTRUCTIVE':
-                if is_instanced_data(obj):
+                if is_instanced_mesh(obj.data):
                     self.report({'WARNING'}, f"Modifiers cannot be applied to {obj.name} because it has instanced object data")
                     continue
 
@@ -371,7 +364,6 @@ class CarverBase(bpy.types.Operator,
         return selected, active
 
 
-    # Core Methods
     def calculate_workplane(self, context):
         """
         Calculates matrix, location (origin point), and normal (direction)
@@ -406,8 +398,8 @@ class CarverBase(bpy.types.Operator,
         # Create the Object
         obj = bpy.data.objects.new("boolean_cutter", mesh)
         obj.matrix_world = self.workplane.matrix
-        set_cutter_properties(context, obj, "Difference", collection=True,
-                              display='WIRE' if self.shape == 'POLYLINE' else self.display)
+        make_cutter(context, obj, "Difference", collection=True,
+                    display='WIRE' if self.shape == 'POLYLINE' else self.display)
         obj.booleans.carver = True
 
         # Initial Rotation
@@ -475,8 +467,8 @@ class CarverBase(bpy.types.Operator,
         # Draw Line
         if self.phase in ("BEVEL", "ROTATE", "ARRAY"):
             current_mouse_pos_3d = region_2d_to_plane_3d(context.region, context.region_data,
-                                                     self.mouse.current,
-                                                     (self.workplane.location, self.workplane.normal))
+                                                         self.mouse.current,
+                                                         (self.workplane.location, self.workplane.normal))
             if current_mouse_pos_3d is not None:
                 vertices = [self.cutter.center, current_mouse_pos_3d]
                 if vertices is not None:
@@ -486,7 +478,10 @@ class CarverBase(bpy.types.Operator,
         if self.shape == 'POLYLINE' and self.phase == 'DRAW':
             verts = self.cutter.verts
             if len(verts) > 3:
-                vertices = draw_circle_around_point(context, obj, verts[0], self._distance_from_first, 4)
+                vertices = draw_circle_billboard(context,
+                                                 obj.matrix_world @ verts[0].co,
+                                                 radius=self._distance_from_first,
+                                                 segments=4)
                 if len(vertices) > 0:
                     draw_shader('LINE_LOOP', (0, 0, 0), 1.0, vertices)
 
@@ -651,20 +646,24 @@ class CarverBase(bpy.types.Operator,
 
         region = context.region
         rv3d = context.region_data
-        normal = self.cutter.obj.matrix_world.to_3x3().inverted() @ self.workplane.normal
 
-        # Find the point on 3D line (along the normal) closest to the cursor.
-        # and calculate the distance between that and the extrude origin.
-        closest_points = region_2d_to_line_3d(region, rv3d,
-                                              self.mouse.current,
-                                              self._extrude_origin, self.workplane.normal)
+        # Convert the mouse position into a 3D ray and find closest points between...
+        # that ray and the line coming from the extrude origin along the workplane normal.
+        ray_origin, ray_direction = region_2d_to_ray_3d(region, rv3d, self.mouse.current)
+        closest_points = mathutils.geometry.intersect_line_line(ray_origin,
+                                                                ray_origin + ray_direction,
+                                                                self._extrude_origin,
+                                                                self._extrude_origin + self.workplane.normal)
+
         if closest_points is None:
             return
 
+        # Calculate the distance between the extrude origin and mouse position.
         offset_vector = closest_points[1] - self._extrude_origin
         distance = offset_vector.dot(self.workplane.normal)
 
         # Offset vertices of the extruded face from their their original coordinates.
+        normal = self.cutter.obj.matrix_world.to_3x3().inverted() @ self.workplane.normal
         if distance is not None:
             for v, vert_co in zip(self._extrude_faces[-1].verts, self._extrude_verts_co):
                 offset = normal * distance
@@ -780,8 +779,7 @@ class CarverBase(bpy.types.Operator,
                                                              context.scene.cursor.location)
         else:
             # Put the location at the closest point of the bounding box of all selected objects.
-            ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, self.mouse.initial)
-            ray_direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, self.mouse.initial)
+            ray_origin, ray_direction = region_2d_to_ray_3d(region, rv3d, self.mouse.initial)
 
             corners = []
             for obj in self.objects.selected:
@@ -807,8 +805,7 @@ class CarverBase(bpy.types.Operator,
         matrix = Matrix.Identity(4)
         normal = matrix.col[2].xyz
 
-        ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, self.mouse.initial)
-        ray_direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, self.mouse.initial)
+        ray_origin, ray_direction = region_2d_to_ray_3d(region, rv3d, self.mouse.initial)
         t = (matrix.translation.z - ray_origin.z) / ray_direction.z
         location = ray_origin + ray_direction * t
         matrix.translation = location
@@ -947,7 +944,7 @@ class CarverBase(bpy.types.Operator,
         # Operation was aborted, or successfully finished in the Destructive mode.
         # Delete everything created by the operator (i.e. cutter).
         if clean_up:
-            delete_cutter(self.cutter.obj)
+            delete_object(self.cutter.obj)
             self.cutter.bm.free()
             delete_empty_collection()
 

@@ -1,44 +1,68 @@
 import bpy
 import bmesh
-import mathutils
+from mathutils import Vector, Matrix
 from contextlib import contextmanager
-from .. import __package__ as base_package
 
 
-#### ------------------------------ FUNCTIONS ------------------------------ ####
+#### ------------------------------ /poll/ ------------------------------ ####
 
-def set_cutter_properties(context, cutter, mode, display='BOUNDS', collection=True):
-    """Ensures cutter is properly set: has right properties, is hidden, in a collection & parented"""
+def is_linked(context, obj) -> bool:
+    """Checks whether the object is linked from an external .blend file (including library-overrides)."""
 
-    # Hide Cutters
-    cutter.hide_render = True
-    cutter.display_type = display
-    cutter.lineart.usage = 'EXCLUDE'
-    object_visibility_set(cutter, value=False)
+    if obj not in context.editable_objects:
+        if obj.library:
+            return True
+        else:
+            return False
+    else:
+        if obj.override_library:
+            return True
+        else:
+            return False
 
-    # Cutters Collection
-    if collection:
-        cutters_collection = ensure_collection(context)
-        if cutters_collection not in cutter.users_collection:
-            cutters_collection.objects.link(cutter)
 
-    # add_boolean_property
-    cutter.booleans.cutter = mode.capitalize()
+def has_evaluated_mesh(context, obj):
+    """Checks if an evaluated object has mesh (created by Geometry Nodes modifiers)."""
 
+    # Exclude cases that return Python errors.
+    if not obj:
+        return False
+    if bpy.app.version < (5, 2, 0) and obj.type == 'EMPTY':
+        return False
+    if obj.instance_type != 'NONE':
+        return False
+
+    depsgraph = context.view_layer.depsgraph
+    obj_eval = depsgraph.id_eval_get(obj)
+
+    geometry = None
+    try:
+        geometry = obj_eval.evaluated_geometry()
+    except:
+        pass
+
+    if not geometry or not geometry.mesh:
+        return False
+    else:
+        return True
+
+
+
+#### ------------------------------ /operate/ ------------------------------ ####
 
 def object_visibility_set(obj, value=False):
-    "Sets object visibility properties to either True or False"
+    """Sets object visibility properties to either True or False."""
 
     obj.visible_camera = value
+    obj.visible_shadow = value
     obj.visible_diffuse = value
     obj.visible_glossy = value
-    obj.visible_shadow = value
     obj.visible_transmission = value
     obj.visible_volume_scatter = value
 
 
 def convert_to_mesh(context, obj):
-    """Converts active object into mesh (applying all modifiers and shape keys in process)."""
+    """Converts active object into mesh (applying all modifiers and shape keys in the process)."""
 
     original_mode = obj.mode
 
@@ -60,9 +84,8 @@ def convert_to_mesh(context, obj):
     bpy.ops.object.convert(target='MESH')
 
     if original_mode != 'OBJECT':
-        for ob in context.scene.objects:
-            if ob in edit_objects:
-                ob.select_set(True)
+        for ob in edit_objects:
+            ob.select_set(True)
         bpy.ops.object.mode_set(mode=original_mode)
 
     # Restore selection.
@@ -71,115 +94,30 @@ def convert_to_mesh(context, obj):
     context.view_layer.objects.active = stored_active
 
 
-def ensure_collection(context):
-    """Checks the existance of boolean cutters collection and creates it if it doesn't exist"""
-
-    prefs = context.preferences.addons[base_package].preferences
-
-    collection_name = prefs.collection_name
-    cutters_collection = bpy.data.collections.get(collection_name)
-
-    if cutters_collection is None:
-        cutters_collection = bpy.data.collections.new(collection_name)
-        context.scene.collection.children.link(cutters_collection)
-        cutters_collection.hide_render = True
-        cutters_collection.color_tag = 'COLOR_01'
-        # cutters_collection.hide_viewport = True
-        # context.view_layer.layer_collection.children[collection_name].exclude = True
-
-    return cutters_collection
-
-
-def delete_empty_collection():
-    """Removes boolean cutters collection if it has no more objects in it"""
-
-    prefs = bpy.context.preferences.addons[base_package].preferences
-
-    collection = bpy.data.collections.get(prefs.collection_name)
-    if collection and not collection.objects:
-        bpy.data.collections.remove(collection)
-
-
-def delete_cutter(cutter):
-    """Deletes cutter object and purges it's mesh data"""
-
-    orphaned_mesh = cutter.data
-    bpy.data.objects.remove(cutter)
-    if orphaned_mesh.users == 0:
-        bpy.data.meshes.remove(orphaned_mesh)
-
-
-def restore_cutter(context, cutter, unparent=True, unlink_collection=True):
-    """Remove Boolean properties from a cutter object to restore it to normal state."""
-
-    prefs = context.preferences.addons[base_package].preferences
-
-    # Restore Unused Cutters
-    cutter.hide_render = False
-    cutter.display_type = 'TEXTURED'
-    cutter.lineart.usage = 'INHERIT'
-    object_visibility_set(cutter, value=True)
-    cutter.booleans.cutter = ""
-
-    # Remove Parent & Collection
-    if unparent:
-        change_parent(context, cutter, None)
-
-    if unlink_collection:
-        cutters_collection = bpy.data.collections.get(prefs.collection_name)
-        if cutters_collection in cutter.users_collection:
-            bpy.data.collections.get(prefs.collection_name).objects.unlink(cutter)
-
-
 def change_parent(context, obj, parent, inverse=False):
-    """Changes or removes parent from cutter object while keeping the transformation"""
+    """Changes or removes parent from an object while keeping the transformation."""
 
     context.evaluated_depsgraph_get().update()
 
     obj.parent = parent
-    if inverse:
+    if inverse and parent is not None:
         obj.matrix_parent_inverse = parent.matrix_world.inverted()
 
 
-def create_slice(context, canvas, modifier=False):
-    """Creates copy of canvas to be used as slice"""
-
-    slice = canvas.copy()
-    slice.data = canvas.data.copy()
-    slice.name = slice.data.name = canvas.name + "_slice"
-    change_parent(context, slice, canvas, inverse=True)
-
-    # Set Boolean Properties
-    if modifier == True:
-        slice.booleans.canvas = True
-        slice.booleans.slice = True
-        slice.booleans.slice_of = canvas
-
-    # Add to Canvas Collections
-    for coll in canvas.users_collection:
-        coll.objects.link(slice)
-
-    # add_slices_to_local_view
-    if context.space_data.local_view:
-        slice.local_view_set(context.space_data, True)
-
-    return slice
-
-
-def set_object_origin(obj, bm, point='CENTER', custom=None):
-    """Sets object origin to given position by shifting vertices"""
+def set_object_origin(obj, bm, point='CENTER', custom: Vector=None):
+    """Sets the origin of a mesh type object to given position by shifting vertices."""
 
     # Center of the bounding box.
     if point == 'CENTER_OBJ':
-        position_local = 0.125 * sum((mathutils.Vector(b) for b in obj.bound_box), mathutils.Vector())
+        position_local = 0.125 * sum((Vector(b) for b in obj.bound_box), Vector())
         position_world = obj.matrix_world @ position_local
 
     # Center of the geometry.
     elif point == 'CENTER_MESH':
         if len(bm.verts) > 0:
-            position_local = sum((v.co for v in bm.verts), mathutils.Vector()) / len(bm.verts)
+            position_local = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
         else:
-            position_local = mathutils.Vector((0, 0, 0))
+            position_local = Vector((0, 0, 0))
         position_world = obj.matrix_world @ position_local
 
     # Custom origin point (should be local Vector).
@@ -187,8 +125,8 @@ def set_object_origin(obj, bm, point='CENTER', custom=None):
         position_local = custom
         position_world = obj.matrix_world @ custom
 
-    mat = mathutils.Matrix.Translation(position_local)
-    bmesh.ops.transform(bm, matrix=mat.inverted(), verts=bm.verts)
+    matrix = Matrix.Translation(position_local)
+    bmesh.ops.transform(bm, matrix=matrix.inverted(), verts=bm.verts)
     bm.to_mesh(obj.data)
 
     obj.location = position_world
@@ -212,3 +150,13 @@ def hide_objects(context, exceptions: list):
     finally:
         for obj in hidden_objects:
             obj.hide_set(False)
+
+
+def delete_object(cutter, purge_data=True):
+    """Deletes the object and optionally purges its data if it has no more users."""
+
+    orphaned_data = cutter.data
+    bpy.data.objects.remove(cutter)
+
+    if purge_data and orphaned_data.users == 0:
+        bpy.data.meshes.remove(orphaned_data)

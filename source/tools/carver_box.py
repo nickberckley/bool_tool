@@ -3,6 +3,10 @@ import os
 from mathutils import Vector
 from .. import __file__ as base_file
 
+from ..functions.view import (
+    redraw_regions,
+)
+
 from .common.base import (
     CarverBase,
 )
@@ -34,7 +38,7 @@ class OBJECT_WT_carve_box(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "tool_icons", "ops.object.carver_box")
+    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "dat", "ops.object.carver_box")
     bl_keymap = (
         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": None}),
         ("object.carve_box", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": None}),
@@ -130,11 +134,10 @@ class OBJECT_OT_carve_box(CarverBase,
 
 
     def modal(self, context, event):
+        redraw_regions(context)
+
         # Status Bar Text
         self.status(context)
-
-        # find_the_limit_of_the_3d_viewport_region
-        self.redraw_region(context)
 
         # Modifier Keys
         self.event_aspect(context, event)

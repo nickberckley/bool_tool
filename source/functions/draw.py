@@ -10,7 +10,7 @@ from gpu_extras.batch import batch_for_shader
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def draw_shader(type, color, alpha, coords, size=1, indices=None):
-    """Creates a batch for a draw type"""
+    """Sets up and draws a batch for a given GPU shader type."""
 
     gpu.state.blend_set('ALPHA')
 
@@ -48,9 +48,10 @@ def draw_shader(type, color, alpha, coords, size=1, indices=None):
     gpu.state.blend_set('NONE')
 
 
-def draw_bmesh_faces(faces, world_matrix):
+def draw_bmesh_faces(faces, world_matrix) -> tuple[list, list]:
     """
-    Get world-space vertex pairs and indices from `bmesh` face. To be used in GPU batch.
+    Gets world-space vertex pairs and indices from `bmesh` faces.
+    Returns the list of 3D vertices and the list of triangle indices to be used in GPU batch.
     Adapted from "Blockout" extension by niewinny (https://github.com/niewinny/blockout).
     """
 
@@ -65,13 +66,13 @@ def draw_bmesh_faces(faces, world_matrix):
     for face in faces:
         face_indices = []
 
-        # Collect unique vertices only (avoid storing verts that are shared by faces multiple times).
-        # (Iterating over face corners because unlike `face.verts` they're ordered).
+        # Collect unique vertices only (avoid storing verts that are shared by multiple faces).
+        # (NOTE: Iterating over face corners because unlike `face.verts` they're ordered).
         for loop in face.loops:
             vert = loop.vert
-            co = world_matrix @ Vector(vert.co)
 
             if vert not in vert_index_map:
+                co = world_matrix @ Vector(vert.co)
                 vertices.append(co)
                 vert_index_map[vert] = vert_count
                 face_indices.append(vert_count)
@@ -94,46 +95,28 @@ def draw_bmesh_faces(faces, world_matrix):
     return vertices, indices
 
 
-def draw_bmesh_edges(edges, world_matrix):
-    """Convert bmesh edges into world-space vertex pairs to be used in GPU batch."""
-
-    if not edges:
-        return None
-
-    vertices = []
-    for edge in edges:
-        v1 = world_matrix @ edge.verts[0].co
-        v2 = world_matrix @ edge.verts[1].co
-        vertices.append(v1)
-        vertices.append(v2)
-
-    return vertices
-
-
-def draw_circle_around_point(context, obj, vert, radius, segments):
+def draw_circle_billboard(context, origin: Vector, radius: float, segments: int) -> list:
     """
-    Draws the screen-aligned circle around given vertex of the object.
-    Returns the list of vertices for GPU batch.
+    Draws a view-facing circle in the world-space around the given origin Vector.
+    Returns the list of 3D vertices.
     """
 
     region = context.region
     rv3d = context.region_data
-    vert_world = obj.matrix_world @ vert.co
+    origin_2d = view3d_utils.location_3d_to_region_2d(region, rv3d, origin)
     radius = min(radius, 25)
 
     vertices = []
     for i in range(segments + 1):
         angle = i * (2 * math.pi / segments)
 
-        # Calculate offset and vertex position in screen-space.
+        # Add offset in screen-space.
         offset_x = radius * math.cos(angle)
         offset_y = radius * math.sin(angle)
-        vert_screen = view3d_utils.location_3d_to_region_2d(region, rv3d, vert_world)
+        vert_2d = Vector((origin_2d.x + offset_x, origin_2d.y + offset_y))
 
-        if vert_screen:
-            # Add offset in screen-space and convert back to world-space.
-            circle_screen = Vector((vert_screen.x + offset_x, vert_screen.y + offset_y))
-            circle_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, circle_screen, vert_world)
-            vertices.append(circle_3d)
+        # Convert back to world-space.
+        vert_3d = view3d_utils.region_2d_to_location_3d(region, rv3d, vert_2d, origin)
+        vertices.append(vert_3d)
 
     return vertices

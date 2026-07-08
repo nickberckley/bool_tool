@@ -1,16 +1,16 @@
 import bpy
-from .. import __package__ as base_package
 
-from ..functions.poll import (
-    basic_poll,
-    active_modifier_poll,
+from ..functions.canvas import (
     is_canvas,
-)
-from ..functions.list import (
-    list_selected_cutters,
     list_selected_canvases,
     list_canvas_cutters,
+)
+from ..functions.cutter import (
+    list_selected_cutters,
     list_cutter_users,
+)
+from ..functions.poll import (
+    basic_poll,
 )
 
 
@@ -25,7 +25,7 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context) and context.active_object.booleans.cutter
+        return basic_poll(cls, context, check_active=True) and context.active_object.booleans.cutter
 
     def execute(self, context):
         cutters = list_selected_cutters(context)
@@ -51,7 +51,7 @@ class OBJECT_OT_boolean_select_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return basic_poll(cls, context) and is_canvas(context.active_object)
+        return basic_poll(cls, context, check_active=True) and is_canvas(context.active_object)
 
     def execute(self, context):
         canvases = list_selected_canvases(context)

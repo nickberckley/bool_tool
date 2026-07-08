@@ -3,41 +3,37 @@ import bmesh
 from contextlib import contextmanager
 from .. import __package__ as base_package
 
-from ..functions.list import (
-    list_pre_boolean_modifiers,
+from .mesh import (
+    is_instanced_mesh,
 )
 from .object import (
     convert_to_mesh,
-)
-from .poll import (
-    is_instanced_data,
 )
 
 
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, redo=True):
-    "Adds boolean modifier with specified cutter and properties to a single object"
+    """Adds the Boolean modifier with specified cutter and properties to a given object."""
 
     if bpy.app.version < (5, 0, 0) and solver == 'FLOAT':
         solver = 'FAST'
 
     prefs = context.preferences.addons[base_package].preferences
+    name = "boolean_" + cutter.name.replace("boolean_", "")
 
-    modifier = obj.modifiers.new("boolean_" + cutter.name.replace("boolean_", ""), 'BOOLEAN')
+    modifier = obj.modifiers.new(name, 'BOOLEAN')
     modifier.operation = mode
     modifier.object = cutter
     modifier.solver = solver
+    modifier.show_in_editmode = prefs.show_in_editmode
 
-    # Set solver options (inherited from operator properties).
+    # Set solver options (inherited from operator properties, i.e. `self`).
     if redo:
         modifier.material_mode = self.material_mode
         modifier.use_self = self.use_self
         modifier.use_hole_tolerant = self.use_hole_tolerant
         modifier.double_threshold = self.double_threshold
-
-    if prefs.show_in_editmode:
-        modifier.show_in_editmode = True
 
     # Move modifier to the index 0 (make it first in the stack).
     if pin:
@@ -50,10 +46,10 @@ def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, re
 def apply_modifiers(context, obj, modifiers: list, force_clean=False):
     """
     Apply modifiers on object.
-    Instead of using `bpy.ops.object.modifier_apply`, this function uses
-    `bpy.data.meshes.new_from_object` built-in function to create a temporary
-    mesh from the evaluated object (basically with visible modifiers applied).
-    Temporary mesh is then transferred to objects mesh with `bmesh`.
+    Instead of using `bpy.ops.object.modifier_apply`, by default this function uses
+    `to_mesh` built-in function to create a temporary mesh from the evaluated object
+    (basically with visible modifiers applied). Temporary mesh is then transferred
+    to objects mesh using `bmesh`.
 
     This method is up to 2x faster, although it's considered experimental
     and may fail in some cases, so a fallback to `bpy.ops.object.modifier_apply` is kept.
@@ -63,7 +59,7 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
     _stored_active_obj = context.active_object
 
     # Make object data unique if it's instanced.
-    if is_instanced_data(obj):
+    if is_instanced_mesh(obj.data):
         context.active_object.data = context.active_object.data.copy()
 
     try:
@@ -75,8 +71,10 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
         context.view_layer.objects.active = obj
         with hide_modifiers(obj, excluding=modifiers):
             # Create a temporary mesh from evaluated object.
-            evaluated_obj = obj.evaluated_get(context.evaluated_depsgraph_get())
-            temp_data = bpy.data.meshes.new_from_object(evaluated_obj)
+            depsgraph = context.evaluated_depsgraph_get()
+            evaluated_obj = obj.evaluated_get(depsgraph)
+            temp_data = evaluated_obj.to_mesh(preserve_all_data_layers=True,
+                                              depsgraph=depsgraph)
 
             # Create `bmesh` from temporary mesh and update edit mesh.
             if context.mode == 'EDIT_MESH':
@@ -88,11 +86,11 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
                 bm = bmesh.new()
                 bm.from_mesh(temp_data)
                 bm.to_mesh(obj.data)
+
             bm.free()
             evaluated_obj.to_mesh_clear()
 
-            # Remove modifiers and purge temporary mesh.
-            bpy.data.meshes.remove(temp_data)
+            # Remove modifiers.
             for mod in modifiers:
                 obj.modifiers.remove(mod)
 
@@ -101,7 +99,6 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
             if obj.data.shape_keys:
                 obj.shape_key_clear()
 
-    # Use `bpy.ops` operator to apply modifiers if above fails.
     except Exception as e:
         # print("Error applying modifiers with `bmesh` method:", e, "falling back to `bpy.ops` method")
 
@@ -125,7 +122,7 @@ def apply_modifiers(context, obj, modifiers: list, force_clean=False):
 
 @contextmanager
 def hide_modifiers(obj, excluding: list):
-    """Hides all modifiers of a given object in viewport except those in excluding list"""
+    """Hides all modifiers of a given object in the viewport except those in `excluding` list."""
 
     visible_modifiers = []
     for mod in obj.modifiers:
@@ -143,10 +140,10 @@ def hide_modifiers(obj, excluding: list):
 
 
 def add_modifier_asset(obj, path: str, asset: str):
-    """Loads the node group asset and adds a Geometry Nodes modifier using it."""
+    """Loads in the node group asset and adds a Geometry Nodes modifier using it."""
 
     try:
-        # Load the node group.
+        # Load in the node group.
         if bpy.app.version >= (5, 0, 0):
             with bpy.data.libraries.load(path, link=True, pack=True) as (data_from, data_to):
                 if asset in data_from.node_groups:
@@ -159,7 +156,7 @@ def add_modifier_asset(obj, path: str, asset: str):
 
         node_group = bpy.data.node_groups[asset]
 
-        # Add modifier on the object.
+        # Add modifier to the object.
         mod = obj.modifiers.new(asset, type='NODES')
         mod.node_group = node_group
         mod.show_group_selector = False
@@ -172,17 +169,36 @@ def add_modifier_asset(obj, path: str, asset: str):
         return None
 
 
-def get_modifiers_to_apply(context, obj, new_modifiers) -> list:
+def get_modifiers_to_apply(context, obj, custom_list=None) -> list:
     """Returns the list of modifiers that need to be applied based on add-on preferences."""
 
     prefs = context.preferences.addons[base_package].preferences
 
+    # Apply all modifiers.
     if prefs.apply_order == 'ALL':
-        modifiers = [mod for mod in obj.modifiers]
+        modifiers = list(obj.modifiers)
+
+    # Apply only Boolean modifiers.
     elif prefs.apply_order == 'BOOLEANS':
-        modifiers = new_modifiers
+        if custom_list is None:
+            modifiers = [mod for mod in obj.modifiers if is_boolean_modifier(mod)]
+        else:
+            modifiers = custom_list
+
+    # Apply all modifiers that come before last Boolean modifier.
     elif prefs.apply_order == 'BEFORE':
-        modifiers = list_pre_boolean_modifiers(obj)
+        # Find the index of a last Boolean modifier.
+        last_boolean_index = -1
+        for i in reversed(range(len(obj.modifiers))):
+            if obj.modifiers[i].type == 'BOOLEAN':
+                last_boolean_index = i
+                break
+
+        # If a Boolean modifier is found, list all modifiers that come before it.
+        if last_boolean_index != -1:
+            modifiers = [mod for mod in obj.modifiers[:last_boolean_index + 1]]
+        else:
+            modifiers = []
 
     return modifiers
 
@@ -198,8 +214,21 @@ def update_modifier_input(modifier, socket: str, value):
             modifier[f"{socket}"] = value
     except:
         """
-        NOTE: There are plethora of reasons this can fail, node trees are finicky.
-        Accounting for all possible cases is borderline impossible, so this check is necessary.
-        At least to fail silently and not throw Python error to users.
+        NOTE: There are plethora of reasons why this can fail, node trees are finicky.
+        Accounting for all possible cases is borderline impossible, so this check is necessary
+        to at least fail silently and not throw Python error to users.
         """
         pass
+
+
+def is_boolean_modifier(mod, check_cutter=True) -> bool:
+    """Checks if a modifier is a Boolean modifier (and optionally if it has a valid cutter)."""
+
+    if mod is None:
+        return False
+    if mod.type != 'BOOLEAN':
+        return False
+    if check_cutter and mod.object is None:
+        return False
+
+    return True

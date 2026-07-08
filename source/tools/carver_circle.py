@@ -20,7 +20,7 @@ class OBJECT_WT_carve_circle(bpy.types.WorkSpaceTool):
     bl_space_type = 'VIEW_3D'
     bl_context_mode = 'OBJECT'
 
-    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "tool_icons", "ops.object.carver_circle")
+    bl_icon = os.path.join(os.path.dirname(base_file), "icons", "dat", "ops.object.carver_circle")
     bl_keymap = (
         ("object.carve_circle", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG'}, {"properties": None}),
         ("object.carve_circle", {"type": 'LEFTMOUSE', "value": 'CLICK_DRAG', "shift": True}, {"properties": None}),

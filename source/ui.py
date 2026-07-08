@@ -1,8 +1,32 @@
 import bpy
-from .functions.misc import (
-    _get_modifier_from_list_index,
+
+from .functions.canvas import (
+    is_canvas,
 )
-from .functions.poll import is_canvas
+from .functions.modifier import (
+    is_boolean_modifier,
+)
+
+
+#### ------------------------------ FUNCTIONS ------------------------------ ####
+
+def _get_modifier_from_list_index(obj, index: int):
+    """
+    Returns the modifier of an object based on Cutters list index.
+    Filters out non-Boolean modifiers to leave a list that matches Cutters one in length.
+    """
+
+    # Create a list of only Boolean modifiers.
+    boolean_modifiers = []
+    for mod in obj.modifiers:
+        if is_boolean_modifier(mod):
+            boolean_modifiers.append(mod)
+
+    if 0 <= index < len(boolean_modifiers):
+        return boolean_modifiers[index]
+
+    return None
+
 
 
 #### ------------------------------ /ui/ ------------------------------ ####
@@ -237,7 +261,7 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
 
         modifiers = getattr(data, propname)
         for mod in modifiers:
-            if mod.type == 'BOOLEAN' and mod.object is not None:
+            if is_boolean_modifier(mod):
                 flags.append(self.bitflag_filter_item)
             else:
                 flags.append(0)
@@ -254,8 +278,8 @@ class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
         # Invert
         if self.use_filter_invert:
             for i, mod in enumerate(modifiers):
-                if mod.type != 'BOOLEAN' or mod.object is None:
-                    continue  # don't unhide non-booleans on invert
+                if not is_boolean_modifier(mod):
+                    continue
                 flags[i] ^= self.bitflag_filter_item
 
         # Sort by Name
