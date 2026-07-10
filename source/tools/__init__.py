@@ -21,12 +21,12 @@ else:
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
 """NOTE: Order of modules is important because of dependancies. Don't change without a reason."""
-modules = [
+modules = (
     carver_circle,
     carver_box,
     carver_polyline,
     ui,
-]
+)
 
 main_tools = [
     carver_box.OBJECT_WT_carve_box,

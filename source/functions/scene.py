@@ -32,12 +32,15 @@ def ensure_collection(context) -> bpy.types.Collection:
     return coll
 
 
-def delete_empty_collection():
+def delete_empty_collection(context):
     """Removes Boolean cutters collection if it has no more objects in it."""
 
-    prefs = bpy.context.preferences.addons[base_package].preferences
-    collection_name = prefs.collection_name
+    prefs = context.preferences.addons[base_package].preferences
 
+    if not prefs.use_collection:
+        return
+
+    collection_name = prefs.collection_name
     collection = bpy.data.collections.get(collection_name)
 
     if not collection:

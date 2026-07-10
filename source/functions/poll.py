@@ -64,6 +64,7 @@ def destructive_op_confirmation(cls, context, event, canvases: list, title="Bool
                                                       confirm_text="Yes", icon='WARNING',
                                                       message=message)
 
+        cls._unflippable = True
         return popup
 
     # Execute without confirmation window.
@@ -76,7 +77,7 @@ def convert_to_mesh_confirmation(cls, context, event, cutters: list, title="Bool
     Creates & returns the confirmation pop-up window when the object is
     about to be converted to mesh to be used as a cutter.
 
-    NOTE (1): Only triggers during brush boolean operators,
+    NOTE (1): Only triggers during brush Boolean operators,
     because object gets destroyed in the destructive one anyway.
 
     NOTE (2): This is only required because of the limitation of legacy Boolean modifier.

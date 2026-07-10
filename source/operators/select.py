@@ -20,7 +20,7 @@ from ..functions.poll import (
 class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
     bl_idname = "object.select_cutter_canvas"
     bl_label = "Select Boolean Canvas"
-    bl_description = "Select all the objects that use selected objects as boolean cutters"
+    bl_description = "Select all canvases that use selected objects as Boolean cutters"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -46,7 +46,7 @@ class OBJECT_OT_select_cutter_canvas(bpy.types.Operator):
 class OBJECT_OT_boolean_select_all(bpy.types.Operator):
     bl_idname = "object.boolean_select_all"
     bl_label = "Select Boolean Cutters"
-    bl_description = "Select all boolean cutters affecting active object"
+    bl_description = "Select all Boolean cutters affecting selected canvases"
     bl_options = {'UNDO'}
 
     @classmethod
@@ -98,31 +98,16 @@ class OBJECT_OT_boolean_select_cutter(bpy.types.Operator):
 
 addon_keymaps = []
 
-classes = [
+classes = (
     OBJECT_OT_select_cutter_canvas,
     OBJECT_OT_boolean_select_all,
     OBJECT_OT_boolean_select_cutter,
-]
-
+)
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # KEYMAP
-    addon = bpy.context.window_manager.keyconfigs.addon
-    km = addon.keymaps.new(name="Property Editor", space_type='PROPERTIES')
-
-    kmi = km.keymap_items.new("object.boolean_select_cutter", type='LEFTMOUSE', value='DOUBLE_CLICK')
-    kmi.active = True
-    addon_keymaps.append((km, kmi))
-
-
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-    # KEYMAP
-    for km, kmi in addon_keymaps:
-        km.keymap_items.remove(kmi)
-    addon_keymaps.clear()

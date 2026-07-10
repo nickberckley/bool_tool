@@ -13,7 +13,6 @@ from .common.base import (
     CarverBase,
 )
 from .common.properties import (
-    CarverPropsArray,
     CarverPropsBevel,
 )
 from .common.types import (
@@ -64,9 +63,7 @@ class MESH_WT_carve_box(OBJECT_WT_carve_box):
 
 #### ------------------------------ OPERATORS ------------------------------ ####
 
-class OBJECT_OT_carve_box(CarverBase,
-                          CarverPropsArray,
-                          CarverPropsBevel):
+class OBJECT_OT_carve_box(CarverBase, CarverPropsBevel):
     bl_idname = "object.carve_box"
     bl_label = "Box Carve"
     bl_description = description
@@ -76,6 +73,7 @@ class OBJECT_OT_carve_box(CarverBase,
     # SHAPE-properties
     shape = 'BOX'
 
+    # NOTE: There are registered on operator level because they need to be overriden or hidden per-tool.
     aspect: bpy.props.EnumProperty(
         name = "Aspect",
         description = "The initial aspect",
@@ -121,8 +119,8 @@ class OBJECT_OT_carve_box(CarverBase,
          # cached_variables
         """Important for storing context as it was when operator was invoked (untouched by the modal)."""
         self.phase = "DRAW"
-        self.initial_origin = self.origin  # Initial shape origin.
-        self.initial_aspect = self.aspect  # Initial shape aspect.
+        self._initial_origin = self.origin  # Initial shape origin.
+        self._initial_aspect = self.aspect  # Initial shape aspect.
         self._stored_phase = "DRAW"
 
         # Add Draw Handler
@@ -156,7 +154,6 @@ class OBJECT_OT_carve_box(CarverBase,
             if self.phase != "BEVEL":
                 return {'PASS_THROUGH'}
 
-
         # Mouse Move
         if event.type == 'MOUSEMOVE':
             self.mouse.current = Vector((event.mouse_region_x, event.mouse_region_y))
@@ -168,7 +165,6 @@ class OBJECT_OT_carve_box(CarverBase,
             # Extrude
             elif self.phase == "EXTRUDE":
                 self.set_extrusion_depth(context)
-
 
         # Confirm
         elif event.type == 'LEFTMOUSE':
@@ -183,7 +179,7 @@ class OBJECT_OT_carve_box(CarverBase,
                 min_distance = 5
 
                 if delta_x < min_distance or delta_y < min_distance:
-                    self.finalize(context, clean_up=True, abort=True)
+                    self.finalize(context, abort=True)
                     return {'FINISHED'}
 
                 self.extrude_cutter(context)
@@ -193,18 +189,15 @@ class OBJECT_OT_carve_box(CarverBase,
                 if self.depth != 'MANUAL':
                     self.confirm(context)
                     return {'FINISHED'}
-                else:
-                    return {'RUNNING_MODAL'}
 
             # Confirm Depth
             if self.phase == "EXTRUDE" and event.value == 'PRESS':
                 self.confirm(context)
                 return {'FINISHED'}
 
-
         # Cancel
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            self.finalize(context, clean_up=True, abort=True)
+            self.finalize(context, abort=True)
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
@@ -310,9 +303,9 @@ class OBJECT_OT_carve_box(CarverBase,
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-classes = [
+classes = (
     OBJECT_OT_carve_box,
-]
+)
 
 def register():
     for cls in classes:

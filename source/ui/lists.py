@@ -8,6 +8,7 @@ from ..functions.modifier import (
 #### ------------------------------ /cutters_list/ ------------------------------ ####
 
 class VIEW3D_UL_boolean_cutters(bpy.types.UIList):
+
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         canvas = context.active_object
         mod = item

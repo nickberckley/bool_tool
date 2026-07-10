@@ -12,7 +12,7 @@ from .object import (
 #### ------------------------------ /poll/ ------------------------------ ####
 
 def is_canvas(obj):
-    """Checks whether the object is a Boolean canvas (i.e. has boolean cutters)."""
+    """Checks whether the object is a Boolean canvas (i.e. has Boolean cutters)."""
 
     if obj.booleans.canvas == False:
         return False
@@ -34,7 +34,7 @@ def list_all_canvases(scene):
     canvases = []
 
     for obj in scene.objects:
-        if obj.booleans.canvas:
+        if is_canvas(obj):
             canvases.append(obj)
 
     return canvases
@@ -53,11 +53,11 @@ def list_selected_canvases(context):
                 continue
             if obj.type != 'MESH':
                 continue
-            if obj.booleans.canvas:
+            if is_canvas(obj):
                 canvases.append(obj)
 
     if active_object:
-        if active_object.booleans.canvas:
+        if is_canvas(active_object):
             canvases.append(active_object)
 
     return canvases

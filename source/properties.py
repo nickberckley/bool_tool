@@ -38,9 +38,9 @@ class OBJECT_PG_booleans(bpy.types.PropertyGroup):
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-classes = [
+classes = (
     OBJECT_PG_booleans,
-]
+)
 
 def register():
     for cls in classes:

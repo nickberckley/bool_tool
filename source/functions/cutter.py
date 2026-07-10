@@ -13,6 +13,7 @@ from .object import (
     object_visibility_set,
     convert_to_mesh,
     change_parent,
+    delete_object,
 )
 from .scene import (
     ensure_collection,
@@ -48,7 +49,7 @@ def list_cutter_users(cutters: list, exclude: list=None) -> dict:
     """
     List canvases that use specified cutters.
     Canvases that should be excluded from the search can be specified with the `exclude` arg.
-    Returns a dict of canvases (keys) and list of their Boolean modifiers that use cutters (values).
+    Returns a dict of canvases (keys) and set of their Boolean modifiers that use cutters (values).
     """
 
     cutter_users = {}
@@ -68,7 +69,7 @@ def list_cutter_users(cutters: list, exclude: list=None) -> dict:
                 if mod.object not in cutters:
                     continue
 
-                cutter_users.setdefault(value, []).append(mod)
+                cutter_users.setdefault(value, set()).add(mod)
 
     return cutter_users
 
@@ -157,3 +158,31 @@ def restore_cutter(context, cutter, unparent=True, unlink_collection=True):
         cutters_collection = bpy.data.collections.get(prefs.collection_name)
         if cutters_collection in cutter.users_collection:
             cutters_collection.objects.unlink(cutter)
+
+
+def handle_unused_cutters(context, cutters: list, canvases: list, delete=True):
+    """Deletes or restores cutters with no remaining users (besides given list of canvases)."""
+
+    prefs = context.preferences.addons[base_package].preferences
+
+    for cutter in cutters:
+        other_canvases = list_cutter_users([cutter], exclude=canvases).keys()
+
+        if len(other_canvases) == 0:
+            if delete:
+                # Delete unused cutters & transfer their children to canvas.
+                for child in cutter.children:
+                    change_parent(context, child, cutter.parent, inverse=True)
+                delete_object(cutter)
+
+            else:
+                # Restore unused cutters.
+                restore_cutter(context, cutter,
+                               unparent=prefs.parent and cutter.parent in canvases,
+                               unlink_collection=prefs.use_collection)
+
+        else:
+            # Cutter has other users, parent it to one of them.
+            if prefs.parent and cutter.parent in canvases:
+                new_parent = next(c for c in other_canvases if not c.booleans.slice)
+                change_parent(context, cutter, new_parent, inverse=True)

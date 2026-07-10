@@ -73,8 +73,7 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # Advanced
     use_collection: bpy.props.BoolProperty(
         name = "Put Cutters in Collection",
-        description = ("Put all cutters in the same collection, and create one if it doesn't exist.\n"
-                       "Useful for scene management, and quickly selecting and removing all clutter when needed"),
+        description = ("Put all cutters in the same collection, and create one if it doesn't exist"),
         default = True,
     )
     collection_name: bpy.props.StringProperty(
@@ -84,23 +83,24 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     )
     parent: bpy.props.BoolProperty(
         name = "Parent Cutters to Object",
-        description = ("Cutters will be parented to first canvas they're applied to.\n"
-                       "Works best when one cutter is used on one canvas"),
+        description = ("Cutters will be parented to first canvas they're applied to"),
         default = True,
     )
     apply_order: bpy.props.EnumProperty(
-        name = "When Applying Cutters...",
-        description = ("What happens when boolean cutters are applied on object.\n"
-                       "Either when performing auto-boolean, using 'Apply All Cutters' operator.\n"
-                       "NOTE: This doesn't apply to Carver tool on 'Destructive' mode; or when applying individual cutters"),
-        items = (('ALL', "Apply All Modifiers", "All modifiers on object will be applied (this includes shape keys as well)"),
-                 ('BEFORE', "Apply Booleans & Everything Before", "Alongside boolean modifiers all modifiers will be applied that come before the last boolean"),
-                 ('BOOLEANS', "Only Apply Booleans", "Only apply boolean modifiers. This method will fail if object has shape keys")),
+        name = "Apply Modifiers",
+        description = ("Which modifiers to apply when using add-ons destructive operators.\n"
+                       "NOTE: This option is not used when applying individual cutters"),
+        items = (('ALL', "All",
+                  "All modifiers on object (and shape keys) will be applied during destructive operators"),
+                 ('BEFORE', "Booleans & Everything Before",
+                  "Apply all modifiers that come before the last Boolean modifier in the stack"),
+                 ('BOOLEANS', "Booleans",
+                  "Only apply Boolean modifiers")),
         default = 'ALL',
     )
     pin: bpy.props.BoolProperty(
         name = "Pin Boolean Modifiers",
-        description = ("Place new Boolean modifiers above every other modifier on the object (if there are any).\n"
+        description = ("Always make new Boolean modifiers first in the modifier stack.\n"
                        "NOTE: Order of modifiers can drastically affect the final result"),
         default = False,
     )
@@ -108,17 +108,9 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
     # Features
     fast_modifier_apply: bpy.props.BoolProperty(
         name = "Faster Destructive Booleans",
-        description = ("Experimental method of applying modifiers that results in 30-50% faster destructive booleans.\n"
-                       "Performance improvements also affect add-ons operators that apply cutters.\n"
+        description = ("Experimental method of applying modifiers that results in 30-50% faster destructive Booleans.\n"
                        "However, changing modifier properties in the redo panel (like material transfer)\n"
                        "is not available for this method yet."),
-        default = False,
-    )
-    double_click: bpy.props.BoolProperty(
-        name = "Double-click Select",
-        description = ("Select boolean cutters by double-clicking on the Boolean modifier.\n"
-                       "Works in the entire modifier properties area, not just on boolean modifier header,\n"
-                       "therefore can result in lot of misclicks and unintended selections."),
         default = False,
     )
 
@@ -145,7 +137,6 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
             col.separator()
             col = layout.column(align=True, heading="Features")
             col.prop(self, "fast_modifier_apply")
-            col.prop(self, "double_click")
 
         # Shared Properties
         if self.category == 'SHARED':
@@ -177,9 +168,9 @@ class BoolToolPreferences(bpy.types.AddonPreferences):
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-classes = [
+classes = (
     BoolToolPreferences,
-]
+)
 
 def register():
     for cls in classes:

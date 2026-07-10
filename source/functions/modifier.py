@@ -11,6 +11,70 @@ from .object import (
 )
 
 
+#### ------------------------------ /list/ ------------------------------ ####
+
+def enumerate_boolean_modifiers(obj) -> int:
+    """Returns the number of Boolean modifiers on the object."""
+
+    num = 0
+    for mod in obj.modifiers:
+        if is_boolean_modifier(mod):
+            num += 1
+
+    return num
+
+
+def get_modifiers_to_apply(context, obj, custom_list=None) -> list:
+    """Returns the list of modifiers that need to be applied based on add-on preferences."""
+
+    prefs = context.preferences.addons[base_package].preferences
+
+    # Apply all modifiers.
+    if prefs.apply_order == 'ALL':
+        modifiers = list(obj.modifiers)
+
+    # Apply only Boolean modifiers.
+    elif prefs.apply_order == 'BOOLEANS':
+        if custom_list is None:
+            modifiers = [mod for mod in obj.modifiers if is_boolean_modifier(mod)]
+        else:
+            modifiers = custom_list
+
+    # Apply all modifiers that come before last Boolean modifier.
+    elif prefs.apply_order == 'BEFORE':
+        # Find the index of a last Boolean modifier.
+        last_boolean_index = -1
+        for i in reversed(range(len(obj.modifiers))):
+            if obj.modifiers[i].type == 'BOOLEAN':
+                last_boolean_index = i
+                break
+
+        # If a Boolean modifier is found, list all modifiers that come before it.
+        if last_boolean_index != -1:
+            modifiers = [mod for mod in obj.modifiers[:last_boolean_index + 1]]
+        else:
+            modifiers = []
+
+    return modifiers
+
+
+
+#### ------------------------------ /poll/ ------------------------------ ####
+
+def is_boolean_modifier(mod, check_cutter=True) -> bool:
+    """Checks if a modifier is a Boolean modifier (and optionally if it has a valid cutter)."""
+
+    if mod is None:
+        return False
+    if mod.type != 'BOOLEAN':
+        return False
+    if check_cutter and mod.object is None:
+        return False
+
+    return True
+
+
+
 #### ------------------------------ FUNCTIONS ------------------------------ ####
 
 def add_boolean_modifier(self, context, obj, cutter, mode, solver, pin=False, redo=True):
@@ -169,40 +233,6 @@ def add_modifier_asset(obj, path: str, asset: str):
         return None
 
 
-def get_modifiers_to_apply(context, obj, custom_list=None) -> list:
-    """Returns the list of modifiers that need to be applied based on add-on preferences."""
-
-    prefs = context.preferences.addons[base_package].preferences
-
-    # Apply all modifiers.
-    if prefs.apply_order == 'ALL':
-        modifiers = list(obj.modifiers)
-
-    # Apply only Boolean modifiers.
-    elif prefs.apply_order == 'BOOLEANS':
-        if custom_list is None:
-            modifiers = [mod for mod in obj.modifiers if is_boolean_modifier(mod)]
-        else:
-            modifiers = custom_list
-
-    # Apply all modifiers that come before last Boolean modifier.
-    elif prefs.apply_order == 'BEFORE':
-        # Find the index of a last Boolean modifier.
-        last_boolean_index = -1
-        for i in reversed(range(len(obj.modifiers))):
-            if obj.modifiers[i].type == 'BOOLEAN':
-                last_boolean_index = i
-                break
-
-        # If a Boolean modifier is found, list all modifiers that come before it.
-        if last_boolean_index != -1:
-            modifiers = [mod for mod in obj.modifiers[:last_boolean_index + 1]]
-        else:
-            modifiers = []
-
-    return modifiers
-
-
 def update_modifier_input(modifier, socket: str, value):
     """Change the value of the geometry nodes modifier input socket."""
 
@@ -219,16 +249,3 @@ def update_modifier_input(modifier, socket: str, value):
         to at least fail silently and not throw Python error to users.
         """
         pass
-
-
-def is_boolean_modifier(mod, check_cutter=True) -> bool:
-    """Checks if a modifier is a Boolean modifier (and optionally if it has a valid cutter)."""
-
-    if mod is None:
-        return False
-    if mod.type != 'BOOLEAN':
-        return False
-    if check_cutter and mod.object is None:
-        return False
-
-    return True

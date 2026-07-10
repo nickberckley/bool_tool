@@ -28,20 +28,24 @@ from ..functions.poll import (
 
 #### ------------------------------ PROPERTIES ------------------------------ ####
 
-class ModifierProperties():
+class BooleanBase():
+    # Add-on properties.
     flip: bpy.props.BoolProperty(
         name = "Flip Canvas & Cutters",
         options = {'SKIP_SAVE'},
         default = False,
     )
 
+    # Boolean modifier properties.
     material_mode: bpy.props.EnumProperty(
         name = "Materials",
         description = "Method for setting materials on the new faces",
-        items = (('INDEX', "Index Based", ("Set the material on new faces based on the order of the material slot lists. If a material doesn't exist on the\n"
-                                           "modifier object, the face will use the same material slot or the first if the object doesn't have enough slots.")),
-                 ('TRANSFER', "Transfer", ("Transfer materials from non-empty slots to the result mesh, adding new materials as necessary.\n"
-                                           "For empty slots, fall back to using the same material index as the operand mesh."))),
+        items = (('INDEX', "Index Based",
+                  ("Set the material on new faces based on the order of the material slot lists. If a material doesn't exist on the\n"
+                   "modifier object, the face will use the same material slot or the first if the object doesn't have enough slots.")),
+                 ('TRANSFER', "Transfer",
+                  ("Transfer materials from non-empty slots to the result mesh, adding new materials as necessary.\n"
+                   "For empty slots, fall back to using the same material index as the operand mesh."))),
         default = 'INDEX',
     )
     use_self: bpy.props.BoolProperty(
@@ -61,6 +65,12 @@ class ModifierProperties():
         min = 0, max = 1, precision = 12, step = 0.0001,
         default = 0.000001,
     )
+
+    # Built-in Methods.
+    @classmethod
+    def poll(cls, context):
+        return basic_poll(cls, context)
+
 
     def draw(self, context):
         prefs = context.preferences.addons[base_package].preferences
@@ -82,18 +92,39 @@ class ModifierProperties():
             layout.prop(self, "double_threshold")
 
 
+    # Custom Methods.
+    def _filter_objects(self, context) -> tuple[list, list]:
+        """Returns lists of cutters & canvases."""
+
+        canvases = [context.active_object]
+        cutters = [obj for obj in context.selected_objects if obj != context.active_object]
+
+        # Flip.
+        if self.flip:
+            canvases, cutters = cutters, canvases
+
+        # Filter Canvases.
+        canvases = filter_canvases(self, context, canvases)
+        if len(canvases) == 0:
+            self.report({'WARNING'}, "No valid canvases selected")
+            return None, None
+
+        # Filter Cutters.
+        cutters = filter_cutters(self, context, cutters, canvases)
+        if len(cutters) == 0:
+            self.report({'WARNING'}, "No valid cutters selected")
+            return None, None
+
+        return canvases, cutters
+
+
 
 #### ------------------------------ /brush_boolean/ ------------------------------ ####
 
-class BrushBoolean(ModifierProperties):
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(cls, context)
-
+class BrushBoolean(BooleanBase):
 
     def invoke(self, context, event):
-        # Abort if there are less than 2 selected objects.
+        # Abort if there are less than 2 objects selected.
         if len(context.selected_objects) < 2:
             self.report({'WARNING'}, "Boolean operator needs at least two selected objects")
             return {'CANCELLED'}
@@ -110,20 +141,9 @@ class BrushBoolean(ModifierProperties):
     def execute(self, context):
         prefs = context.preferences.addons[base_package].preferences
 
-        # Create list of cutters & canvases.
-        canvases = [context.active_object]
-        cutters = [obj for obj in context.selected_objects if obj != context.active_object]
-        if self.flip:
-            canvases, cutters = cutters, canvases
-
-        canvases = filter_canvases(self, context, canvases)
-        if len(canvases) == 0:
-            self.report({'WARNING'}, "No valid canvases selected")
-            return {'CANCELLED'}
-
-        cutters = filter_cutters(self, context, cutters, canvases)
-        if len(cutters) == 0:
-            self.report({'WARNING'}, "No valid cutters selected")
+        # Create lists of cutters & canvases.
+        canvases, cutters = self._filter_objects(context)
+        if canvases is None or cutters is None:
             return {'CANCELLED'}
 
         # Create slices.
@@ -131,22 +151,25 @@ class BrushBoolean(ModifierProperties):
             for cutter in cutters:
                 """
                 NOTE: Slices need to be created in a separate loop to avoid
-                inheriting boolean modifiers that the operator adds.
+                inheriting Boolean modifiers that the operator adds.
                 """
                 for canvas in canvases:
                     slice = create_slice(context, canvas, modifier=True)
                     add_boolean_modifier(self, context, slice, cutter, "INTERSECT", prefs.solver, pin=prefs.pin)
 
         for cutter in cutters:
-            mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             make_cutter(context, cutter, self.mode,
                         display=prefs.display,
                         collection=prefs.use_collection)
+
+            mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             for canvas in canvases:
                 add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
+
             if prefs.parent:
                 change_parent(context, cutter, canvases[0], inverse=True)
 
+        # Set Boolean property to canvases.
         for canvas in canvases:
             canvas.booleans.canvas = True
 
@@ -166,6 +189,7 @@ class OBJECT_OT_boolean_brush_union(bpy.types.Operator, BrushBoolean):
             return "Merge selected objects into the active one"
         else:
             return "Merge the active object into selected ones"
+
 
 class OBJECT_OT_boolean_brush_intersect(bpy.types.Operator, BrushBoolean):
     bl_idname = "object.boolean_brush_intersect"
@@ -216,12 +240,7 @@ class OBJECT_OT_boolean_brush_slice(bpy.types.Operator, BrushBoolean):
 
 #### ------------------------------ /auto_boolean/ ------------------------------ ####
 
-class AutoBoolean(ModifierProperties):
-
-    @classmethod
-    def poll(cls, context):
-        return basic_poll(cls, context)
-
+class AutoBoolean(BooleanBase):
 
     def invoke(self, context, event):
         # Abort if there are less than 2 selected objects.
@@ -246,20 +265,9 @@ class AutoBoolean(ModifierProperties):
         prefs = context.preferences.addons[base_package].preferences
         new_modifiers = defaultdict(list)
 
-        # Create list of cutters & canvases.
-        canvases = [context.active_object]
-        cutters = [obj for obj in context.selected_objects if obj != context.active_object]
-        if self.flip:
-            canvases, cutters = cutters, canvases
-
-        canvases = filter_canvases(self, context, canvases)
-        if len(canvases) == 0:
-            self.report({'WARNING'}, "No valid canvases selected")
-            return {'CANCELLED'}
-
-        cutters = filter_cutters(self, context, cutters, canvases)
-        if len(cutters) == 0:
-            self.report({'WARNING'}, "No valid cutters selected")
+        # Create lists of cutters & canvases.
+        canvases, cutters = self._filter_objects(context)
+        if canvases is None or cutters is None:
             return {'CANCELLED'}
 
         # Create slices.
@@ -267,7 +275,7 @@ class AutoBoolean(ModifierProperties):
             for cutter in cutters:
                 """
                 NOTE: Slices need to be created in a separate loop to avoid
-                inheriting boolean modifiers that the operator adds.
+                inheriting Boolean modifiers that the operator adds.
                 """
                 for canvas in canvases:
                     slice = create_slice(context, canvas)
@@ -277,7 +285,7 @@ class AutoBoolean(ModifierProperties):
                     slice.select_set(True)
 
         for cutter in cutters:
-            # Add boolean modifier on canvases.
+            # Add Boolean modifier on canvases.
             mode = "DIFFERENCE" if self.mode == "SLICE" else self.mode
             for canvas in canvases:
                 modifier = add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
@@ -370,7 +378,7 @@ class OBJECT_OT_boolean_auto_slice(bpy.types.Operator, AutoBoolean):
 
 addon_keymaps = []
 
-classes = [
+classes = (
     OBJECT_OT_boolean_brush_union,
     OBJECT_OT_boolean_brush_difference,
     OBJECT_OT_boolean_brush_intersect,
@@ -380,7 +388,7 @@ classes = [
     OBJECT_OT_boolean_auto_difference,
     OBJECT_OT_boolean_auto_intersect,
     OBJECT_OT_boolean_auto_slice,
-]
+)
 
 
 def register():

@@ -1,5 +1,4 @@
 import bpy
-from ... import __package__ as base_package
 
 
 #### ------------------------------ /toolbar/ ------------------------------ ####
@@ -14,7 +13,7 @@ def carver_ui_common(context, layout, props):
         layout.prop(props, "solver", expand=True)
 
     else:
-        # Use labels for Properties editor/sidebar.
+        # NOTE: Use labels for Properties editor/sidebar.
         layout.prop(props, "mode", text="Mode")
         layout.prop(props, "alignment", text="Alignment")
         layout.prop(props, "depth", text="Depth")
@@ -43,15 +42,12 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
+        mode = 'OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH'
+        tool = context.workspace.tools.from_space_view3d_mode(mode)
+        props = tool.operator_properties(tool.idname)
 
         # Box & Circle
         if tool.idname == "object.carve_box" or tool.idname == "object.carve_circle":
-            if tool.idname == "object.carve_box":
-                props = tool.operator_properties("object.carve_box")
-            else:
-                props = tool.operator_properties("object.carve_circle")
-
             if tool.idname == "object.carve_circle":
                 layout.prop(props, "subdivision", text="Vertices")
             layout.prop(props, "rotation")
@@ -67,7 +63,6 @@ class TOPBAR_PT_carver_shape(bpy.types.Panel):
 
         # Polyline
         elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
             if props.alignment == 'SURFACE':
                 layout.prop(props, "offset", text="Offset")
                 layout.prop(props, "align_to_all")
@@ -85,13 +80,9 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box":
-            props = tool.operator_properties("object.carve_box")
-        elif tool.idname == "object.carve_circle":
-            props = tool.operator_properties("object.carve_circle")
-        elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
+        mode = 'OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH'
+        tool = context.workspace.tools.from_space_view3d_mode(mode)
+        props = tool.operator_properties(tool.idname)
 
         # Bevel
         if tool.idname == 'object.carve_box':
@@ -116,6 +107,7 @@ class TOPBAR_PT_carver_effects(bpy.types.Panel):
             col.prop(props, "rows")
             col.prop(props, "gap")
 
+
 class TOPBAR_PT_carver_cutter(bpy.types.Panel):
     bl_label = "Carver Cutter"
     bl_idname = "TOPBAR_PT_carver_cutter"
@@ -128,25 +120,25 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
         layout.use_property_split = True
         layout.use_property_decorate = False
 
-        tool = context.workspace.tools.from_space_view3d_mode('OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH')
-        if tool.idname == "object.carve_box":
-            props = tool.operator_properties("object.carve_box")
-        elif tool.idname == "object.carve_circle":
-            props = tool.operator_properties("object.carve_circle")
-        elif tool.idname == "object.carve_polyline":
-            props = tool.operator_properties("object.carve_polyline")
+        mode = 'OBJECT' if context.mode == 'OBJECT' else 'EDIT_MESH'
+        tool = context.workspace.tools.from_space_view3d_mode(mode)
+        props = tool.operator_properties(tool.idname)
 
-        # modifier_&_cutter
+        # Modifier properties.
+        col = layout.column()
+        col.prop(props, "pin", text="Pin Modifier")
+        col.separator()
+
+        # Cutter object properties.
         col = layout.column()
         row = col.row()
         row.prop(props, "display", text="Display", expand=True)
-        col.prop(props, "pin", text="Pin Modifier")
         if props.mode == 'MODIFIER':
             col.prop(props, "parent")
             col.prop(props, "hide")
             col.prop(props, "cutter_origin", text="Origin")
 
-        # auto_smooth
+        # Auto Smooth.
         layout.separator()
         col = layout.column(align=True)
         col.prop(props, "auto_smooth", text="Auto Smooth")
@@ -159,11 +151,11 @@ class TOPBAR_PT_carver_cutter(bpy.types.Panel):
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-classes = [
+classes = (
     TOPBAR_PT_carver_shape,
     TOPBAR_PT_carver_effects,
     TOPBAR_PT_carver_cutter,
-]
+)
 
 def register():
     for cls in classes:

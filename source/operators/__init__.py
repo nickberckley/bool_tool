@@ -18,12 +18,12 @@ else:
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-modules = [
+modules = (
     boolean,
     canvas,
     cutter,
     select,
-]
+)
 
 def register():
     for module in modules:

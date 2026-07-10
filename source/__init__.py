@@ -23,14 +23,14 @@ else:
 
 #### ------------------------------ REGISTRATION ------------------------------ ####
 
-modules = [
+modules = (
     operators,
     tools,
     ui,
     manual,
     preferences,
     properties,
-]
+)
 
 def register():
     for module in modules:
