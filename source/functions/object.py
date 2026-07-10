@@ -59,6 +59,12 @@ def object_visibility_set(obj, value=False):
     obj.visible_glossy = value
     obj.visible_transmission = value
     obj.visible_volume_scatter = value
+    if bpy.app.version >= (5, 2, 0):
+        obj.visible_raycast = value
+
+    obj.hide_probe_volume = not value
+    obj.hide_probe_sphere = not value
+    obj.hide_probe_plane = not value
 
 
 def convert_to_mesh(context, obj):
