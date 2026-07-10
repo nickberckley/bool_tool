@@ -85,14 +85,16 @@ class CarverEvents():
 
             # Restore origin at edge (first vertex).
             if self.origin == 'EDGE':
+                self.cutter.bm.verts.ensure_lookup_table()
                 point = self.cutter.bm.verts[0].co
                 set_object_origin(self.cutter.obj, self.cutter.bm, point='CUSTOM', custom=point)
 
 
         # Set correct phase.
         if event.type == 'R':
+            _rm = False if self._stored_phase == "DRAW" else True
             stored_phase = self._custom_modifier_event(context, event, "ROTATE",
-                                                       cursor='MOVE_X', store_values=True, restore_mouse=False,
+                                                       cursor='MOVE_X', store_values=True, restore_mouse=_rm,
                                                        postprocess=_remove_rotate_phase_properties)
 
         if self.phase == "ROTATE":
@@ -226,8 +228,8 @@ class CarverEvents():
 
         # Adjust gap.
         if (self.rows > 1 or self.columns > 1) and (event.type == 'A'):
-            stored_phase = self._custom_modifier_event(context, event, "ARRAY", cursor='MUTE',
-                                                       store_values=True, restore_mouse=True)
+            stored_phase = self._custom_modifier_event(context, event, "ARRAY",
+                                                       cursor='MUTE', store_values=True)
 
         if self.phase == "ARRAY":
             region = context.region
