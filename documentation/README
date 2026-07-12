@@ -6,7 +6,7 @@ This directory contains the source and configuration for the documentation site 
 documentation/
 ├── build/          # Generated output (gitignored)
 ├── config/         # Sphinx configuration
-├── pages/          # Documentation content (.md files)
+├── pages/          # Documentation content
 ├── make.bat        # Build script for Windows
 ├── Makefile        # Build script for Linux/macOS
 └── requirements.txt
