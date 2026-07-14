@@ -1,0 +1,102 @@
+/*
+ * This stylesheet is applied after the theme's default one,
+ * and thus any overrides or additions can be added here.
+ *
+ * More info:
+ *		https://www.sphinx-doc.org/en/master/extdev/appapi.html#sphinx.application.Sphinx.add_css_file
+ *
+ * Copied from Blender manual repository.
+ */
+
+ body {
+	--toc-title-font-size: var(--font-size--normal);
+	--toc-font-size: var(--sidebar-item-font-size);
+	--admonition-font-size: var(--font-size--normal);
+	--admonition-title-font-size: var(--font-size--normal);
+	--color-api-name: #cb382b;
+	--color-brand-visited: var(--color-brand-content) !important;
+}
+
+a {
+	text-decoration: none;
+}
+
+
+/* Center main title. */
+.sidebar-brand-text {
+	text-align: center;
+	width: 100%;
+}
+
+/* Add margins on top of titles. */
+h1,
+h2,
+h3 {
+	margin-top: 1.75rem;
+}
+
+/* Reduce the margins on top/bottom of horizontal lines. */
+hr.docutils {
+	margin: 1rem 0;
+}
+
+/* Fix margins on aligned images. */
+figure.align-right {
+	margin-right: 0;
+}
+figure.align-left {
+	margin-left: 0;
+}
+
+/* Fix margins on top and bottom of figures. */
+figure {
+	padding-bottom: 0.5rem;
+}
+figcaption {
+	margin-bottom: 0.5rem !important;
+
+	p {
+		margin-top: 0;
+	}
+}
+
+/* Allow horizontal lists to collapse on narrow screens. */
+.hlist tr {
+	display: flex;
+	flex-flow: row wrap;
+}
+
+/* Force admonition to span the full width if close to a figure. */
+.admonition {
+	clear: both;
+}
+
+/* Use secondary font color for caption text. */
+figcaption,
+caption {
+	color: var(--color-foreground-secondary);
+	font-size: var(--font-size--small)
+}
+
+/* Don't underline any text within code blocks (hurts readability). */
+.highlight .nc,
+.highlight .nn,
+.highlight .gu {
+	text-decoration-line: none !important;
+}
+
+.caption .menuselection {
+	background-color: transparent;
+	border: none;
+}
+
+/* Break long code references onto a second line. */
+a > code.docutils {
+	overflow-wrap: anywhere;
+}
+
+/* ".. container::" lead, block text float around image. */
+.lead {
+	clear: both;
+	width: 100%;
+}

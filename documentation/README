@@ -1,0 +1,37 @@
+# Bool Tool Documentation
+This directory contains the source and configuration for the documentation site of this project. Documentation is written in Markdown (`.md`) and built with [Sphinx](https://www.sphinx-doc.org/) (and the [Furo](https://github.com/pradyunsg/furo) theme).
+
+## Structure
+```
+documentation/
+├── build/          # Generated output (gitignored)
+├── config/         # Sphinx configuration
+├── pages/          # Documentation content
+├── make.bat        # Build script for Windows
+├── Makefile        # Build script for Linux/macOS
+└── requirements.txt
+```
+
+## Requirements
+- Sphinx
+- Furo (theme)
+- [`myst-parser`](https://myst-parser.readthedocs.io/en/latest/)
+
+Install the documentation dependencies with `pip`:
+
+```bash
+pip install -r documentation/requirements.txt
+```
+
+## Building the docs
+**Windows:**
+```bat
+documentation/make.bat html
+```
+
+**Linux/macOS** (requires [GNU Make](https://www.gnu.org/software/make/)):
+```bash
+documentation/make html
+```
+
+The built site will be added in `build/html`. Open `build/html/index.html` in a browser to preview the documentations website locally.
