@@ -22,6 +22,12 @@ a {
 }
 
 
+/* Center main title. */
+.sidebar-brand-text {
+	text-align: center;
+	width: 100%;
+}
+
 /* Add margins on top of titles. */
 h1,
 h2,
