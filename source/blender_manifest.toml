@@ -34,4 +34,5 @@ paths_exclude_pattern = [
   "/.git/",
   "__pycache__/",
   ".*",
+  "/ui/icons/*.blend"
 ]
