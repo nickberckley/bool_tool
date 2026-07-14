@@ -22,3 +22,4 @@ If you want to report a bug or request a feature `create a new issue on Github <
    Introduction <introduction>
    Booleans <booleans/index>
    Carver <carver/index>
+   Utilities <utilities/index>
