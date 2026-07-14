@@ -2,18 +2,17 @@ schema_version = "1.0.0"
 
 id = "bool_tool"
 name = "Bool Tool"
-version = "2.0.0"
+version = "2.1.0"
 tagline = "Quick Boolean operators and tools for hard surface modeling"
+tags = ["Modeling", "Object"]
 type = "add-on"
 
-maintainer = "Nika Kutsniashvili <nickberckley@gmail.com>"
-website = "https://github.com/nickberckley/bool_tool"
-tags = ["Modeling", "Object"]
+maintainer = "Nika Kutsniashvili"
+website = "https://nickberckley.github.io/bool_tool/"
+support = "https://github.com/nickberckley/bool_tool/issues/new?template=bug_report.md"
 
 blender_version_min = "4.5.0"
 
-# License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
-# https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
 license = [
   "SPDX:GPL-3.0-or-later",
 ]
