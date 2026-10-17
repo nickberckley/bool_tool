@@ -138,7 +138,7 @@ def create_slice(context, canvas, modifier=False):
         coll.objects.link(slice)
 
     # Add slices to local view.
-    if context.space_data.local_view:
+    if context.space_data and context.space_data.type == 'VIEW_3D' and context.space_data.local_view:
         slice.local_view_set(context.space_data, True)
 
     return slice
