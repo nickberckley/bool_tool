@@ -104,10 +104,12 @@ def change_parent(context, obj, parent, inverse=False):
     """Changes or removes parent from an object while keeping the transformation."""
 
     context.evaluated_depsgraph_get().update()
+    matrix_world = obj.matrix_world.copy()
 
     obj.parent = parent
     if inverse and parent is not None:
         obj.matrix_parent_inverse = parent.matrix_world.inverted()
+    obj.matrix_world = matrix_world
 
 
 def set_object_origin(obj, bm, point='CENTER', custom: Vector=None):

@@ -166,7 +166,7 @@ class BrushBoolean(BooleanBase):
             for canvas in canvases:
                 add_boolean_modifier(self, context, canvas, cutter, mode, prefs.solver, pin=prefs.pin)
 
-            if prefs.parent:
+            if prefs.parent and cutter.parent is None:
                 change_parent(context, cutter, canvases[0], inverse=True)
 
         # Set Boolean property to canvases.
